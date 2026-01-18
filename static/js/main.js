@@ -119,7 +119,9 @@ function initQuickAddToCart() {
     const buttons = document.querySelectorAll(".js-add-to-cart");
     if (!buttons.length) return;
     buttons.forEach((button) => {
-        button.addEventListener("click", async () => {
+        button.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             const productId = button.dataset.productId;
             const size = button.dataset.size;
             const color = button.dataset.color || "";
