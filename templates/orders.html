@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Order History - Queen Orange{% endblock %}
+{% block content %}
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h1 class="section-title">Your Orders</h1>
+                <p class="section-subtitle">Review your purchase history</p>
+            </div>
+
+            {% if orders %}
+                <div class="order-history">
+                    {% for order in orders %}
+                        <div class="order-card" style="background: var(--gray-100); padding: 1.5rem; border-radius: var(--radius-lg); margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                                <div>
+                                    <strong>{{ order.order_number }}</strong>
+                                    <div style="color: var(--gray-600); font-size: 0.9rem;">{{ order.created_at|date:"M d, Y" }}</div>
+                                </div>
+                                <div style="font-weight: 700;">₹{{ order.total }}</div>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">Status: {{ order.get_status_display }}</div>
+                            <div>
+                                {% for item in order.items.all %}
+                                    <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                        <span>{{ item.product_name }} ({{ item.variant_snapshot }}) × {{ item.quantity }}</span>
+                                        <span>₹{{ item.line_total }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No orders yet.</p>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}
+

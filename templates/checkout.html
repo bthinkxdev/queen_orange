@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Checkout - Queen Orange{% endblock %}
+{% block meta_description %}Complete your order with delivery details.{% endblock %}
+{% block content %}
+    <section class="checkout-page">
+        <div class="container">
+            <div class="section-header" style="margin-bottom: var(--space-8);">
+                <h1 class="section-title">Checkout</h1>
+                <p class="section-subtitle">Complete your order details</p>
+            </div>
+
+            <div class="checkout-container">
+                <div class="checkout-form">
+                    {% if form.errors %}
+                        <div class="notification error" style="position: relative; opacity: 1;">
+                            Please review the highlighted fields.
+                        </div>
+                    {% endif %}
+                    <form method="post" action="{% url 'store:order_create' %}">
+                        {% csrf_token %}
+                        <div class="form-section">
+                            <h3>Contact Information</h3>
+                            <div class="form-group">
+                                <label for="id_full_name">Full Name *</label>
+                                {{ form.full_name }}
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="id_email">Email</label>
+                                    {{ form.email }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_phone">Phone Number *</label>
+                                    {{ form.phone }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Delivery Address</h3>
+                            <div class="form-group">
+                                <label for="id_address">Address *</label>
+                                {{ form.address }}
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="id_city">City *</label>
+                                    {{ form.city }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_pincode">Pincode *</label>
+                                    {{ form.pincode }}
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_state">State *</label>
+                                {{ form.state }}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Payment Method</h3>
+                            <div class="payment-options">
+                                {% for radio in form.payment %}
+                                    <label class="payment-option {% if radio.choice_value == form.payment.value %}selected{% endif %}">
+                                        {{ radio.tag }}
+                                        <div class="payment-option-content">
+                                            <div class="payment-icon">{% if radio.choice_value == "cod" %}💵{% else %}💬{% endif %}</div>
+                                            <div>
+                                                <strong>{{ radio.choice_label }}</strong>
+                                                <p>{% if radio.choice_value == "cod" %}Pay when you receive{% else %}Complete order via WhatsApp{% endif %}</p>
+                                            </div>
+                                        </div>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-6);">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                            <span>Place Order</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="order-summary cart-summary">
+                    <h3>Order Summary</h3>
+                    <div class="order-items">
+                        {% for item in items %}
+                            <div class="order-item">
+                                <div class="order-item-image">
+                                    {% with image=item.product.images.first %}
+                                        {% if image %}
+                                            <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
+                                        {% else %}
+                                            <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div class="order-item-info">
+                                    <div class="order-item-name">{{ item.product.name }}</div>
+                                    <div class="order-item-meta">Size: {{ item.variant.size }} | Qty: {{ item.quantity }}</div>
+                                    <div class="order-item-price">₹{{ item.line_total }}</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span>₹{{ totals.subtotal }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping</span>
+                        <span>{% if totals.shipping == 0 %}FREE{% else %}₹{{ totals.shipping }}{% endif %}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total</span>
+                        <span>₹{{ totals.total }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.payment-option input[type="radio"]').forEach((input) => {
+        input.addEventListener('change', () => {
+            document.querySelectorAll('.payment-option').forEach((option) => {
+                option.classList.remove('selected');
+            });
+            input.closest('.payment-option').classList.add('selected');
+        });
+    });
+</script>
+{% endblock %}
+

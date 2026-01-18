@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}About Us - Queen Orange{% endblock %}
+{% block meta_description %}Learn more about Queen Orange.{% endblock %}
+{% block content %}
+    <section class="static-page">
+        <div class="container">
+            <div class="static-content">
+                <h1>About Queen Orange</h1>
+                <p>Welcome to <strong>Queen Orange</strong>, your ultimate destination for premium women's nightwear and adorable babies clothing. We believe that comfort and style should go hand in hand, and every piece in our collection reflects this philosophy.</p>
+
+                <h2>Our Story</h2>
+                <p>Founded with a vision to bring elegance and comfort to everyday clothing, Queen Orange has grown into a trusted name in women's and children's fashion. We understand that clothing is not just about covering up—it's about expressing yourself, feeling confident, and experiencing ultimate comfort.</p>
+
+                <p>Our journey began with a simple idea: to create nightwear that women would love to wear, and baby clothes that parents could trust. Today, we serve thousands of happy customers across India, delivering quality products that exceed expectations.</p>
+
+                <h2>What We Offer</h2>
+                <p>Our carefully curated collection includes:</p>
+                <ul>
+                    <li><strong>Premium Nightwear:</strong> Full nighties, frock nighties, feeding nighties, and pleated nighties designed for maximum comfort</li>
+                    <li><strong>Stylish Loungewear:</strong> Cord sets, 2-piece sets, and churidar sets perfect for relaxing at home</li>
+                    <li><strong>Fashion Tops:</strong> Trendy tops and short tops for everyday wear</li>
+                    <li><strong>Babies Dresses:</strong> Adorable and comfortable dresses for your little ones</li>
+                </ul>
+
+                <h2>Why Choose Queen Orange?</h2>
+                <p>We stand out because we care about:</p>
+                <ul>
+                    <li><strong>Quality:</strong> Every product is made from premium fabrics that are soft, breathable, and durable</li>
+                    <li><strong>Comfort:</strong> Our designs prioritize your comfort without compromising on style</li>
+                    <li><strong>Affordability:</strong> Premium quality at prices that won't break the bank</li>
+                    <li><strong>Customer Service:</strong> We're always here to help via WhatsApp, email, or phone</li>
+                    <li><strong>Fast Delivery:</strong> Quick shipping across India with COD available</li>
+                </ul>
+
+                <h2>Our Promise</h2>
+                <p>At Queen Orange, we promise to deliver:</p>
+                <ul>
+                    <li>100% genuine products with quality assurance</li>
+                    <li>Secure and convenient shopping experience</li>
+                    <li>Hassle-free returns and exchanges</li>
+                    <li>Responsive customer support</li>
+                    <li>Regular new arrivals and exclusive collections</li>
+                </ul>
+
+                <h2>Join the Queen Orange Family</h2>
+                <p>We invite you to experience the perfect blend of comfort, quality, and style. Whether you're looking for cozy nightwear, stylish loungewear, or adorable baby clothes, Queen Orange has something special for you.</p>
+
+                <div style="display: flex; gap: var(--space-4); justify-content: center; flex-wrap: wrap; margin-top: 3rem;">
+                    <a href="{% url 'store:product_list' %}" class="btn btn-primary">
+                        <span>Shop Our Collection</span>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <a href="{% url 'store:contact' %}" class="btn btn-secondary">
+                        <span>Get in Touch</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+

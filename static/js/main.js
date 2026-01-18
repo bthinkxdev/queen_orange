@@ -1,0 +1,161 @@
+// Queen Orange - UI JavaScript
+
+document.addEventListener("DOMContentLoaded", () => {
+    initMobileMenu();
+    initScrollEffects();
+    initAnimations();
+});
+
+function initMobileMenu() {
+    const menuToggle = document.querySelector(".mobile-menu-toggle");
+    const navMenu = document.querySelector(".nav-menu");
+
+    if (!menuToggle || !navMenu) return;
+
+    menuToggle.addEventListener("click", () => {
+        navMenu.classList.toggle("active");
+        menuToggle.classList.toggle("active");
+        document.body.style.overflow = navMenu.classList.contains("active") ? "hidden" : "";
+    });
+
+    navMenu.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", () => {
+            navMenu.classList.remove("active");
+            menuToggle.classList.remove("active");
+            document.body.style.overflow = "";
+        });
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!menuToggle.contains(event.target) && !navMenu.contains(event.target)) {
+            navMenu.classList.remove("active");
+            menuToggle.classList.remove("active");
+            document.body.style.overflow = "";
+        }
+    });
+}
+
+function initAnimations() {
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add("fade-in");
+                    observer.unobserve(entry.target);
+                }
+            });
+        },
+        { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+
+    document.querySelectorAll(".product-card, .category-card").forEach((el) => {
+        observer.observe(el);
+    });
+}
+
+function initScrollEffects() {
+    const header = document.querySelector(".header");
+    if (!header) return;
+
+    window.addEventListener("scroll", () => {
+        header.classList.toggle("scrolled", window.scrollY > 100);
+    });
+}
+
+function scrollBestsellers(direction) {
+    const container = document.querySelector(".bestsellers-scroll-container");
+    if (!container) return;
+    const scrollAmount = 320;
+    const next = direction === "left" ? container.scrollLeft - scrollAmount : container.scrollLeft + scrollAmount;
+    container.scrollTo({ left: next, behavior: "smooth" });
+}
+
+function showNotification(message, type = "success") {
+    const notification = document.createElement("div");
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+        notification.classList.add("show");
+    }, 50);
+    setTimeout(() => {
+        notification.classList.remove("show");
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 2500);
+}
+
+function getCookie(name) {
+    const cookieValue = document.cookie
+        .split(";")
+        .map((cookie) => cookie.trim())
+        .find((cookie) => cookie.startsWith(`${name}=`));
+    if (!cookieValue) return "";
+    return decodeURIComponent(cookieValue.split("=")[1]);
+}
+
+function updateCartBadge(count) {
+    const badges = document.querySelectorAll(".cart-badge");
+    badges.forEach((badge) => {
+        if (!count) {
+            badge.remove();
+            return;
+        }
+        badge.textContent = count;
+        badge.style.display = "flex";
+    });
+    if (count && badges.length === 0) {
+        const cartBtn = document.querySelector(".cart-btn");
+        if (!cartBtn) return;
+        const badge = document.createElement("span");
+        badge.className = "cart-badge";
+        badge.textContent = count;
+        cartBtn.appendChild(badge);
+    }
+}
+
+function initQuickAddToCart() {
+    const buttons = document.querySelectorAll(".js-add-to-cart");
+    if (!buttons.length) return;
+    buttons.forEach((button) => {
+        button.addEventListener("click", async () => {
+            const productId = button.dataset.productId;
+            const size = button.dataset.size;
+            const color = button.dataset.color || "";
+            if (!productId || !size) {
+                showNotification("Please select a size on the product page.", "error");
+                return;
+            }
+            try {
+                const formData = new FormData();
+                formData.append("product_id", productId);
+                formData.append("size", size);
+                formData.append("color", color);
+                formData.append("quantity", "1");
+                const response = await fetch("/cart/add/", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: formData,
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    showNotification(data.error || "Unable to add to cart.", "error");
+                    return;
+                }
+                updateCartBadge(data.cart_count);
+                showNotification("Added to cart!");
+            } catch (error) {
+                showNotification("Unable to add to cart.", "error");
+            }
+        });
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initQuickAddToCart();
+});
+

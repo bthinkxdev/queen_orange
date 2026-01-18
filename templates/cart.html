@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Shopping Cart - Queen Orange{% endblock %}
+{% block meta_description %}Review your cart and proceed to checkout.{% endblock %}
+{% block content %}
+    <section class="cart-page">
+        <div class="container">
+            <div class="section-header" style="margin-bottom: var(--space-8);">
+                <h1 class="section-title">Shopping Cart</h1>
+                <p class="section-subtitle">Review your items before checkout</p>
+            </div>
+
+            {% if items %}
+                <div class="cart-container">
+                    <div class="cart-items">
+                        {% for item in items %}
+                            <div class="cart-item">
+                                <div class="cart-item-image">
+                                    {% with image=item.product.images.first %}
+                                        {% if image %}
+                                            <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
+                                        {% else %}
+                                            <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div class="cart-item-details">
+                                    <h3 class="cart-item-name">{{ item.product.name }}</h3>
+                                    <p class="cart-item-meta">Size: {{ item.variant.size }}{% if item.variant.color %} | Color: {{ item.variant.color }}{% endif %}</p>
+                                    <p class="cart-item-price">₹{{ item.unit_price }}</p>
+                                    <div class="cart-item-actions">
+                                        <form method="post" action="{% url 'store:cart_update' %}" class="quantity-controls">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <button class="quantity-btn" name="quantity" value="{{ item.quantity|add:'-1' }}">−</button>
+                                            <input type="number" class="quantity-input" value="{{ item.quantity }}" readonly style="width: 60px;">
+                                            <button class="quantity-btn" name="quantity" value="{{ item.quantity|add:'1' }}">+</button>
+                                        </form>
+                                        <form method="post" action="{% url 'store:cart_remove' item_id=item.id %}">
+                                            {% csrf_token %}
+                                            <button class="remove-btn" type="submit">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                </svg>
+                                                <span>Remove</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="cart-summary">
+                        <h3>Order Summary</h3>
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span>₹{{ totals.subtotal }}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span>{% if totals.shipping == 0 %}FREE{% else %}₹{{ totals.shipping }}{% endif %}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total</span>
+                            <span>₹{{ totals.total }}</span>
+                        </div>
+                        <a href="{% url 'store:checkout' %}" class="btn btn-primary" style="width: 100%; margin-top: var(--space-6);">
+                            <span>Proceed to Checkout</span>
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                        <a href="{% url 'store:product_list' %}" class="btn btn-secondary" style="width: 100%; margin-top: var(--space-4);">
+                            <span>Continue Shopping</span>
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-cart">
+                    <div class="empty-cart-icon">🛒</div>
+                    <h2>Your Cart is Empty</h2>
+                    <p>Add some products to get started!</p>
+                    <a href="{% url 'store:product_list' %}" class="btn btn-primary">
+                        <span>Start Shopping</span>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}
+

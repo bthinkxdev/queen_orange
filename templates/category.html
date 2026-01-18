@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }} - Queen Orange{% endblock %}
+{% block meta_description %}Browse all women's nightwear and babies dresses. Filter by category, price, and size.{% endblock %}
+{% block content %}
+    <section class="page-header">
+        <div class="container">
+            <h1 class="page-title">{{ page_title }}</h1>
+            <p class="page-description">Discover our premium collection</p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <form class="filter-section" method="get" action="{% url 'store:product_list' %}">
+                {% if filters.q %}
+                    <input type="hidden" name="q" value="{{ filters.q }}">
+                {% endif %}
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Category</label>
+                        <select name="category">
+                            <option value="all">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.slug }}" {% if filters.category == category.slug %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Min Price (₹)</label>
+                        <input type="number" name="min_price" placeholder="Min" min="0" value="{{ filters.min_price }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Max Price (₹)</label>
+                        <input type="number" name="max_price" placeholder="Max" min="0" value="{{ filters.max_price }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Size</label>
+                        <select name="size">
+                            <option value="">All Sizes</option>
+                            {% for size_option in size_options %}
+                                <option value="{{ size_option }}" {% if filters.size == size_option %}selected{% endif %}>{{ size_option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" type="submit">Apply</button>
+                        <a class="btn btn-secondary" href="{% url 'store:product_list' %}">Reset</a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="product-count-wrapper">
+                <p class="product-count-text">
+                    Showing <strong>{{ page_obj.paginator.count }}</strong> products
+                </p>
+            </div>
+
+            {% if products %}
+                <div class="product-grid">
+                    {% for product in products %}
+                        <div class="product-card">
+                            <a href="{% url 'store:product_detail' product.slug %}" class="product-link">
+                                <div class="product-image">
+                                    {% with image=product.images.first %}
+                                        {% if image %}
+                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="lazy">
+                                        {% else %}
+                                            <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
+                                        {% endif %}
+                                    {% endwith %}
+                                    {% if product.discount_percent %}
+                                        <span class="discount-badge">{{ product.discount_percent }}% OFF</span>
+                                    {% endif %}
+                                    {% if product.is_bestseller %}
+                                        <span class="bestseller-badge">Bestseller</span>
+                                    {% endif %}
+                                </div>
+                                <div class="product-info">
+                                    <h3 class="product-name">{{ product.name }}</h3>
+                                    <div class="product-price">
+                                        <span class="current-price">₹{{ product.price }}</span>
+                                        {% if product.original_price %}
+                                            <span class="original-price">₹{{ product.original_price }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                            <a href="{% url 'store:product_detail' product.slug %}" class="btn btn-primary add-to-cart-btn">View Details</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-products">
+                    <div class="no-products-icon">🔍</div>
+                    <h2>No Products Found</h2>
+                    <p>No products match your current filters. Try adjusting your selection.</p>
+                    <a class="btn btn-primary" href="{% url 'store:product_list' %}">Clear Filters</a>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

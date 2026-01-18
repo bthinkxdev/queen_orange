@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ product.name }} - Queen Orange{% endblock %}
+{% block meta_description %}View product details, select size, and add to cart.{% endblock %}
+{% block content %}
+    <section class="product-detail">
+        <div class="container">
+            <div class="product-detail-container">
+                <div class="product-gallery">
+                    <div class="main-image">
+                        {% with image=product.images.first %}
+                            {% if image %}
+                                <img src="{{ image.image.url }}" alt="{{ product.name }}" id="mainImage">
+                            {% else %}
+                                <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" id="mainImage">
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="image-thumbnails">
+                        {% for image in product.images.all %}
+                            <div class="image-thumbnail {% if forloop.first %}active{% endif %}" data-src="{{ image.image.url }}">
+                                <img src="{{ image.image.url }}" alt="{{ product.name }} image">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="product-details-content">
+                    <h1>{{ product.name }}</h1>
+
+                    <div class="product-rating">
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <span class="rating-count">(4.8 / 5) 256 reviews</span>
+                    </div>
+
+                    <div class="product-price-section">
+                        <div class="price-row">
+                            <span class="current-price">₹{{ product.price }}</span>
+                            {% if product.original_price %}
+                                <span class="original-price">₹{{ product.original_price }}</span>
+                            {% endif %}
+                        </div>
+                        {% if product.discount_percent %}
+                            <p class="savings">You save {{ product.discount_percent }}% off</p>
+                        {% endif %}
+                    </div>
+
+                    {% if sizes %}
+                    <form method="post" action="{% url 'store:cart_add' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="color" id="selectedColor" value="{% if colors %}{{ colors.0 }}{% endif %}">
+                        <input type="hidden" name="size" id="selectedSize" value="{% if sizes %}{{ sizes.0 }}{% endif %}">
+
+                        {% if colors %}
+                            <div class="color-selector">
+                                <label>Select Color</label>
+                                <div class="color-options">
+                                    {% for color in colors %}
+                                        <div class="color-option {% if forloop.first %}selected{% endif %}" data-color="{{ color }}">
+                                            <div class="color-option-inner" style="background-color: {{ color|lower|cut:' ' }}"></div>
+                                            <span class="color-option-name">{{ color }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="size-selector">
+                            <label>Select Size</label>
+                            <div class="size-options">
+                                {% for size in sizes %}
+                                    <div class="size-option {% if forloop.first %}selected{% endif %}" data-size="{{ size }}">{{ size }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="quantity-selector">
+                            <label>Quantity</label>
+                            <div class="quantity-controls">
+                                <input type="number" class="quantity-input" name="quantity" value="1" min="1" max="10">
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" type="submit" name="action" value="add">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 2L7.17 4M16.84 4L15 2M12 10V14M8 14H16M6 8H18C19.1046 8 20 8.89543 20 10V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V10C4 8.89543 4.89543 8 6 8Z"/>
+                                </svg>
+                                <span>Add to Cart</span>
+                            </button>
+                            <button class="btn btn-dark" type="submit" name="action" value="buy">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <span>Buy Now</span>
+                            </button>
+                        </div>
+                        <button class="btn btn-whatsapp" style="width: 100%;" type="submit" name="action" value="whatsapp">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.520.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.520-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.500-.669-.510-.173-.008-.371-.010-.570-.010-.198 0-.520.074-.792.372-.272.297-1.040 1.016-1.040 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.200 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.360.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.570-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.510-5.260c.001-5.450 4.436-9.884 9.888-9.884 2.64 0 5.122 1.030 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.450-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.050 0C5.495 0 .160 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.480-8.413z"/>
+                            </svg>
+                            <span>Order via WhatsApp</span>
+                        </button>
+                    </form>
+                    {% else %}
+                        <div class="notification error" style="position: relative; opacity: 1;">
+                            This product is currently out of stock.
+                        </div>
+                    {% endif %}
+
+                    <div class="product-description">
+                        <h3>Product Description</h3>
+                        <p>{{ product.description }}</p>
+                        <ul style="list-style: disc; margin-left: 2rem; margin-top: 1rem; color: var(--gray-700);">
+                            <li>Premium quality fabric</li>
+                            <li>Comfortable fit</li>
+                            <li>Easy to wash and maintain</li>
+                            <li>Available in multiple sizes</li>
+                            <li>Elegant design</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-featured">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">You May Also Like</h2>
+                <p class="section-subtitle">More products you'll love</p>
+            </div>
+            <div class="product-grid">
+                {% for related in related_products %}
+                    <div class="product-card">
+                        <a href="{% url 'store:product_detail' related.slug %}" class="product-link">
+                            <div class="product-image">
+                                {% with image=related.images.first %}
+                                    {% if image %}
+                                        <img src="{{ image.image.url }}" alt="{{ related.name }}" loading="lazy">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ related.name }}" loading="lazy">
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <div class="product-info">
+                                <h3 class="product-name">{{ related.name }}</h3>
+                                <div class="product-price">
+                                    <span class="current-price">₹{{ related.price }}</span>
+                                    {% if related.original_price %}
+                                        <span class="original-price">₹{{ related.original_price }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        <a href="{% url 'store:product_detail' related.slug %}" class="btn btn-primary add-to-cart-btn">View Details</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.image-thumbnail').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+            const mainImage = document.getElementById('mainImage');
+            mainImage.src = thumb.dataset.src;
+            document.querySelectorAll('.image-thumbnail').forEach((item) => item.classList.remove('active'));
+            thumb.classList.add('active');
+        });
+    });
+
+    document.querySelectorAll('.size-option').forEach((option) => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.size-option').forEach((item) => item.classList.remove('selected'));
+            option.classList.add('selected');
+            document.getElementById('selectedSize').value = option.dataset.size;
+        });
+    });
+
+    document.querySelectorAll('.color-option').forEach((option) => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.color-option').forEach((item) => item.classList.remove('selected'));
+            option.classList.add('selected');
+            document.getElementById('selectedColor').value = option.dataset.color;
+        });
+    });
+</script>
+{% endblock %}
+
