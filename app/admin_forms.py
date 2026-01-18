@@ -30,12 +30,32 @@ class CategoryForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Category Name"}),
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "category-slug"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "image": forms.FileInput(attrs={"class": "form-control"}),
+            "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image:
+            # Check file size (5MB = 5 * 1024 * 1024 bytes)
+            max_size = 5 * 1024 * 1024  # 5MB in bytes
+            if image.size > max_size:
+                raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
+            
+            # Check if it's a valid image file
+            try:
+                from PIL import Image
+                img = Image.open(image)
+                img.verify()
+                # Reset file pointer after verification
+                image.seek(0)
+            except Exception:
+                raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
+        
+        return image
 
 
 class ProductForm(forms.ModelForm):
@@ -75,18 +95,40 @@ class ProductImageForm(forms.ModelForm):
         model = ProductImage
         fields = ["image", "is_primary", "alt_text"]
         widgets = {
-            "image": forms.FileInput(attrs={"class": "form-control"}),
+            "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
             "is_primary": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "alt_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "Alt text"}),
         }
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image:
+            # Check file size (5MB = 5 * 1024 * 1024 bytes)
+            max_size = 5 * 1024 * 1024  # 5MB in bytes
+            if image.size > max_size:
+                raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
+            
+            # Check if it's a valid image file
+            try:
+                from PIL import Image
+                img = Image.open(image)
+                img.verify()
+                # Reset file pointer after verification
+                image.seek(0)
+            except Exception:
+                raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
+        
+        return image
 
 
 ProductImageFormSet = inlineformset_factory(
     Product,
     ProductImage,
     form=ProductImageForm,
-    extra=1,
+    extra=3,  # Show 3 empty forms by default
     can_delete=True,
+    max_num=5,  # Allow up to 5 images maximum
+    validate_max=True,  # Enforce maximum limit
 )
 
 
@@ -107,7 +149,8 @@ ProductVariantFormSet = inlineformset_factory(
     Product,
     ProductVariant,
     form=ProductVariantForm,
-    extra=1,
+    extra=3,  # Show 3 empty forms by default
     can_delete=True,
+    max_num=50,  # Allow up to 50 variants (different sizes/colors)
 )
 
