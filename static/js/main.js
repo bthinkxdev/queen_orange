@@ -2,6 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     initMobileMenu();
+    initMobileSearch();
     initScrollEffects();
     initAnimations();
 });
@@ -31,6 +32,51 @@ function initMobileMenu() {
             navMenu.classList.remove("active");
             menuToggle.classList.remove("active");
             document.body.style.overflow = "";
+        }
+    });
+}
+
+function initMobileSearch() {
+    const searchToggle = document.getElementById("mobileSearchToggle");
+    const searchOverlay = document.getElementById("mobileSearchOverlay");
+    const searchClose = document.getElementById("mobileSearchClose");
+    const searchInput = document.querySelector(".mobile-search-input");
+
+    if (!searchToggle || !searchOverlay) return;
+
+    // Open mobile search
+    searchToggle.addEventListener("click", () => {
+        searchOverlay.classList.add("active");
+        document.body.style.overflow = "hidden";
+        
+        // Auto-focus search input after animation
+        setTimeout(() => {
+            if (searchInput) searchInput.focus();
+        }, 300);
+    });
+
+    // Close mobile search
+    const closeSearch = () => {
+        searchOverlay.classList.remove("active");
+        document.body.style.overflow = "";
+        if (searchInput) searchInput.value = "";
+    };
+
+    if (searchClose) {
+        searchClose.addEventListener("click", closeSearch);
+    }
+
+    // Close on overlay click (outside form)
+    searchOverlay.addEventListener("click", (e) => {
+        if (e.target === searchOverlay) {
+            closeSearch();
+        }
+    });
+
+    // Close on ESC key
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && searchOverlay.classList.contains("active")) {
+            closeSearch();
         }
     });
 }

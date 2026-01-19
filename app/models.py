@@ -1,8 +1,11 @@
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+import hashlib
+import secrets
 
 
 class TimeStampedModel(models.Model):
@@ -264,3 +267,55 @@ class NewsletterSubscription(TimeStampedModel):
 
     def __str__(self):
         return self.email
+
+
+class UserProfile(TimeStampedModel):
+    """Extended user profile for additional user information"""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    phone = models.CharField(max_length=20, blank=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['user']),
+        ]
+    
+    def __str__(self):
+        return f"Profile: {self.user.email}"
+
+
+class OTPRequest(TimeStampedModel):
+    """Store OTP requests for email-based authentication"""
+    email = models.EmailField(db_index=True)
+    otp_hash = models.CharField(max_length=64)  # SHA256 hash of OTP
+    expires_at = models.DateTimeField(db_index=True)
+    is_used = models.BooleanField(default=False, db_index=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    attempts = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'is_used', 'expires_at']),
+            models.Index(fields=['created_at', 'email']),
+        ]
+    
+    def __str__(self):
+        return f"OTP for {self.email} - {'Used' if self.is_used else 'Active'}"
+    
+    @staticmethod
+    def hash_otp(otp):
+        """Hash OTP using SHA256"""
+        return hashlib.sha256(str(otp).encode()).hexdigest()
+    
+    def verify_otp(self, otp):
+        """Verify provided OTP against stored hash"""
+        return self.otp_hash == self.hash_otp(otp)
+    
+    def is_valid(self):
+        """Check if OTP is still valid (not expired, not used)"""
+        return not self.is_used and timezone.now() < self.expires_at
+    
+    @classmethod
+    def generate_otp(cls):
+        """Generate a secure 4-digit OTP"""
+        return str(secrets.randbelow(10000)).zfill(4)

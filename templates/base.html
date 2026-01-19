@@ -6,11 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}Queen Orange{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Premium women and babies clothing.{% endblock %}">
-    <meta name="theme-color" content="#6D4C41">
+    <meta name="theme-color" content="#FF9800">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/mobile-optimizations.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header class="header">
@@ -31,16 +33,45 @@
                         <li class="nav-item"><a href="{% url 'store:product_list' %}" class="nav-link {% if active_page == 'collection' %}active{% endif %}">COLLECTION</a></li>
                         <li class="nav-item"><a href="{% url 'store:about' %}" class="nav-link {% if active_page == 'about' %}active{% endif %}">ABOUT</a></li>
                         <li class="nav-item"><a href="{% url 'store:contact' %}" class="nav-link {% if active_page == 'contact' %}active{% endif %}">CONTACT</a></li>
+                        {% if user.is_authenticated %}
+                        <li class="nav-item"><a href="{% url 'auth:account' %}" class="nav-link {% if active_page == 'account' %}active{% endif %}">ACCOUNT</a></li>
+                        {% endif %}
                     </ul>
 
                     <div class="nav-actions">
-                        <form class="navbar-search" action="{% url 'store:product_list' %}" method="get">
+                        <!-- Desktop Search -->
+                        <form class="navbar-search" action="{% url 'store:product_list' %}" method="get" id="desktopSearch">
                             <svg class="navbar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"/>
                                 <path d="m21 21-4.35-4.35"/>
                             </svg>
                             <input type="text" class="navbar-search-input" placeholder="Search for products..." name="q" value="{{ filters.q|default:'' }}">
                         </form>
+                        
+                        <!-- Mobile Search Toggle Button -->
+                        <button class="search-btn" id="mobileSearchToggle" aria-label="Search" type="button">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </button>
+                        
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'auth:account' %}" class="user-btn" aria-label="My account" title="My Account">
+                            <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'auth:login' %}" class="user-btn" aria-label="Login" title="Login">
+                            <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                                <polyline points="10 17 15 12 10 7"></polyline>
+                                <line x1="15" y1="12" x2="3" y2="12"></line>
+                            </svg>
+                        </a>
+                        {% endif %}
                         <a href="{% url 'store:cart' %}" class="cart-btn" aria-label="Shopping cart">
                             <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="9" cy="21" r="1"/>
@@ -51,7 +82,7 @@
                                 <span class="cart-badge">{{ cart_count }}</span>
                             {% endif %}
                         </a>
-                        <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
                             <span class="hamburger-line"></span>
                             <span class="hamburger-line"></span>
                             <span class="hamburger-line"></span>
@@ -60,6 +91,28 @@
                 </div>
             </div>
         </nav>
+        
+        <!-- Mobile Search Overlay (Expandable) -->
+        <div class="mobile-search-overlay" id="mobileSearchOverlay">
+            <div class="mobile-search-container">
+                <form class="mobile-search-form" action="{% url 'store:product_list' %}" method="get">
+                    <button type="button" class="mobile-search-close" id="mobileSearchClose" aria-label="Close search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="mobile-search-input-wrapper">
+                        <svg class="mobile-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" class="mobile-search-input" placeholder="Search for products..." name="q" value="{{ filters.q|default:'' }}" autocomplete="off">
+                    </div>
+                    <button type="submit" class="mobile-search-submit">Search</button>
+                </form>
+            </div>
+        </div>
     </header>
 
     {% if messages %}

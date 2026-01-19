@@ -112,7 +112,7 @@ class OrderService:
 
     @classmethod
     @transaction.atomic
-    def create_order(cls, cart, form_data):
+    def create_order(cls, cart, form_data, user=None):
         items = (
             cart.items.select_related("variant", "product")
             .select_for_update(of=("self", "variant"))
@@ -125,17 +125,40 @@ class OrderService:
             if item.quantity > item.variant.stock_quantity:
                 raise StockError(f"{item.product.name} is out of stock.")
 
-        address = Address.objects.create(
-            user=cart.user if cart.user else None,
-            full_name=form_data["full_name"],
-            phone=form_data["phone"],
-            email=form_data.get("email", ""),
-            address_line=form_data["address"],
-            city=form_data["city"],
-            state=form_data["state"],
-            pincode=form_data["pincode"],
-            is_snapshot=True,
-        )
+        # Handle address - either use existing or create snapshot
+        selected_address_id = form_data.get('selected_address')
+        use_new_address = form_data.get('use_new_address', False)
+        
+        if selected_address_id and not use_new_address:
+            # Create snapshot of existing address
+            try:
+                existing_address = Address.objects.get(pk=selected_address_id, user=user, is_snapshot=False)
+                address = Address.objects.create(
+                    user=user,
+                    full_name=existing_address.full_name,
+                    phone=existing_address.phone,
+                    email=existing_address.email,
+                    address_line=existing_address.address_line,
+                    city=existing_address.city,
+                    state=existing_address.state,
+                    pincode=existing_address.pincode,
+                    is_snapshot=True,
+                )
+            except Address.DoesNotExist:
+                raise CartError("Selected address not found.")
+        else:
+            # Create new snapshot address
+            address = Address.objects.create(
+                user=cart.user if cart.user else None,
+                full_name=form_data["full_name"],
+                phone=form_data["phone"],
+                email=form_data.get("email", ""),
+                address_line=form_data["address_line"],
+                city=form_data["city"],
+                state=form_data["state"],
+                pincode=form_data["pincode"],
+                is_snapshot=True,
+            )
 
         totals = CartService.compute_totals(cart)
         order_number = cls._generate_order_number()

@@ -416,6 +416,20 @@ class OrderDetailView(StaffRequiredMixin, DetailView):
         return context
 
 
+class OrderInvoiceView(StaffRequiredMixin, DetailView):
+    """Professional A4 Invoice view for printing"""
+    model = Order
+    template_name = "admin/order_invoice.html"
+    context_object_name = "order"
+    slug_field = "order_number"
+    slug_url_kwarg = "order_number"
+    
+    def get_queryset(self):
+        return Order.objects.select_related("address", "payment").prefetch_related(
+            "items__product", "items__variant"
+        )
+
+
 class OrderUpdateStatusView(StaffRequiredMixin, View):
     def post(self, request, order_number):
         order = get_object_or_404(Order, order_number=order_number)

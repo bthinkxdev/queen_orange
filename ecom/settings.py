@@ -138,3 +138,22 @@ MAX_CART_QTY = 10
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Cache configuration for rate limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'achujozefsl0709@gmail.com'  # your email
+EMAIL_HOST_PASSWORD = 'mtbsaphoieurdqqe'  # use env var in production
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+ADMIN_NOTIFICATION_EMAILS = ['dineshvarkala@gmail.com']
