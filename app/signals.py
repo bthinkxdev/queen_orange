@@ -61,3 +61,4 @@ def delete_old_category_image_on_update(sender, instance, **kwargs):
         if os.path.isfile(old_image.path):
             os.remove(old_image.path)
 
+
