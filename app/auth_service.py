@@ -9,13 +9,17 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
 
 from .models import OTPRequest, UserProfile
 
+import logging
+
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class OTPService:
@@ -51,7 +55,10 @@ class OTPService:
     def get_cooldown_remaining(cls, email):
         """Get remaining cooldown time in seconds"""
         key = cls.get_rate_limit_key(email)
-        ttl = cache.ttl(key)
+        try:
+            ttl = cache.ttl(key)
+        except Exception:
+            return 0
         return max(0, ttl) if ttl else 0
     
     @classmethod
@@ -109,12 +116,12 @@ class OTPService:
             'support_email': settings.DEFAULT_FROM_EMAIL,
         }
         
-        # Render email templates
-        html_message = render_to_string('auth/otp_email.html', context)
-        plain_message = render_to_string('auth/otp_email.txt', context)
-        
-        # Send email
         try:
+            # Render email templates
+            html_message = render_to_string('auth/otp_email.html', context)
+            plain_message = render_to_string('auth/otp_email.txt', context)
+
+            # Send email
             send_mail(
                 subject='Your One-Time Login Code',
                 message=plain_message,
@@ -124,8 +131,12 @@ class OTPService:
                 fail_silently=False,
             )
             return True, ""
+        except TemplateDoesNotExist as e:
+            logger.exception("OTP email template missing: %s", e)
+            return False, "Email template missing on server. Please contact support."
         except Exception as e:
             error_message = str(e)
+            logger.exception("Error sending OTP email: %s", error_message)
             if "CERTIFICATE_VERIFY_FAILED" in error_message:
                 user_message = (
                     "Email server SSL verification failed. "
@@ -133,7 +144,6 @@ class OTPService:
                 )
             else:
                 user_message = "Failed to send OTP email. Please try again."
-            print(f"Error sending OTP email: {error_message}")
             return False, user_message
     
     @classmethod

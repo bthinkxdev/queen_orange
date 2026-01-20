@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
+import logging
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView, ListView, TemplateView
 
@@ -33,6 +34,7 @@ def get_client_ip(request):
 class OTPLoginView(View):
     """Handle OTP login - both email request and OTP verification"""
     template_name = 'auth/otp_login.html'
+    logger = logging.getLogger(__name__)
     
     def get(self, request):
         # Check if user is already authenticated
@@ -109,8 +111,8 @@ class OTPLoginView(View):
         except RateLimitError as e:
             messages.error(request, str(e))
         except Exception as e:
+            self.logger.exception("OTP request error: %s", e)
             messages.error(request, 'An error occurred. Please try again.')
-            print(f"OTP request error: {e}")
         
         return render(request, self.template_name, {
             'email_form': form,
@@ -244,7 +246,7 @@ class OTPLoginAjaxView(View):
                 'cooldown': cooldown,
             }, status=429)
         except Exception as e:
-            print(f"OTP request error: {e}")
+            logging.getLogger(__name__).exception("OTP request error: %s", e)
             return JsonResponse({
                 'success': False,
                 'error': 'An error occurred. Please try again.',
