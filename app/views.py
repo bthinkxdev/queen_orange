@@ -18,13 +18,8 @@ class ProductListView(ListView):
     paginate_by = 24
 
     def get_queryset(self):
-        qs = (
-            Product.objects.active()
-            .select_related("category")
-            .prefetch_related(
-                Prefetch("images", queryset=ProductImage.objects.order_by("-is_primary", "id"))
-            )
-        )
+        qs = Product.objects.active().select_related("category")
+        
         category = self.request.GET.get("category")
         min_price = self.request.GET.get("min_price")
         max_price = self.request.GET.get("max_price")
@@ -45,7 +40,9 @@ class ProductListView(ListView):
                 | Q(description__icontains=query)
                 | Q(category__name__icontains=query)
             )
-        return qs.distinct()
+        
+        # Apply distinct then prefetch_related for images
+        return qs.distinct().prefetch_related("images")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
