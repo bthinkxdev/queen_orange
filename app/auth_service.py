@@ -123,18 +123,10 @@ class OTPService:
                 html_message=html_message,
                 fail_silently=False,
             )
-            return True, ""
+            return True
         except Exception as e:
-            error_message = str(e)
-            if "CERTIFICATE_VERIFY_FAILED" in error_message:
-                user_message = (
-                    "Email server SSL verification failed. "
-                    "Please contact support or try again later."
-                )
-            else:
-                user_message = "Failed to send OTP email. Please try again."
-            print(f"Error sending OTP email: {error_message}")
-            return False, user_message
+            print(f"Error sending OTP email: {e}")
+            return False
     
     @classmethod
     def verify_otp(cls, email, otp):

@@ -86,8 +86,7 @@ class OTPLoginView(View):
             otp_request, plain_otp = OTPService.create_otp(email, ip_address)
             
             # Send OTP via email
-            sent, error_message = OTPService.send_otp_email(email, plain_otp)
-            if sent:
+            if OTPService.send_otp_email(email, plain_otp):
                 # Store email in session for verification step
                 request.session['otp_email'] = email
                 request.session['otp_next'] = next_url
@@ -104,7 +103,7 @@ class OTPLoginView(View):
                 }
                 return render(request, self.template_name, context)
             else:
-                messages.error(request, error_message)
+                messages.error(request, 'Failed to send OTP. Please try again.')
                 
         except RateLimitError as e:
             messages.error(request, str(e))
@@ -222,8 +221,7 @@ class OTPLoginAjaxView(View):
         try:
             otp_request, plain_otp = OTPService.create_otp(email, ip_address)
             
-            sent, error_message = OTPService.send_otp_email(email, plain_otp)
-            if sent:
+            if OTPService.send_otp_email(email, plain_otp):
                 request.session['otp_email'] = email
                 return JsonResponse({
                     'success': True,
@@ -233,7 +231,7 @@ class OTPLoginAjaxView(View):
             else:
                 return JsonResponse({
                     'success': False,
-                    'error': error_message,
+                    'error': 'Failed to send OTP. Please try again.',
                 }, status=500)
                 
         except RateLimitError as e:
