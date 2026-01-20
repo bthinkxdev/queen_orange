@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+try:
+    import certifi
+except Exception:
+    certifi = None
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -157,3 +162,7 @@ EMAIL_HOST_USER = 'achujozefsl0709@gmail.com'
 EMAIL_HOST_PASSWORD = 'mtbsaphoieurdqqe'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_NOTIFICATION_EMAILS = ['dineshvarkala@gmail.com']
+EMAIL_TIMEOUT = 30
+
+if certifi:
+    EMAIL_SSL_CERTFILE = certifi.where()
