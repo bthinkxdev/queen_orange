@@ -2,9 +2,9 @@
 
 /* Use existing CSS variables from style.css */
 :root {
-    --color-primary: #FF9800;
-    --color-primary-dark: #F57C00;
-    --color-primary-light: #FFF3E0;
+    --color-primary: #7B1FA2;
+    --color-primary-dark: #6A1B9A;
+    --color-primary-light: #F3E5F5;
     --color-text: #212121;
     --color-text-light: #757575;
     --space-1: 4px;
@@ -43,7 +43,7 @@
     background: var(--color-primary);
     color: #ffffff;
     border-color: var(--color-primary);
-    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(123, 31, 162, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -55,7 +55,7 @@
 
 .btn-primary:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(123, 31, 162, 0.3);
 }
 
 .btn-primary:disabled {

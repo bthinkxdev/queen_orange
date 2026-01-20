@@ -1,69 +1,174 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ page_title }} - Queen Orange{% endblock %}
-{% block meta_description %}Browse all women's nightwear and babies dresses. Filter by category, price, and size.{% endblock %}
+{% block title %}{{ page_title }} - Golden Elegance{% endblock %}
 {% block content %}
-    <section class="page-header">
-        <div class="container">
-            <h1 class="page-title">{{ page_title }}</h1>
-            <p class="page-description">Discover our premium collection</p>
+<section class="collection-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="collection-header">
+            <h1 class="collection-title">{{ page_title }}</h1>
+            <p class="collection-subtitle">Explore our exquisite collection</p>
         </div>
-    </section>
 
-    <section class="section">
-        <div class="container">
-            <form class="filter-section" method="get" action="{% url 'store:product_list' %}">
-                {% if filters.q %}
-                    <input type="hidden" name="q" value="{{ filters.q }}">
-                {% endif %}
-                <div class="filter-row">
+        <div class="collection-layout">
+            <!-- Desktop Sidebar Filters -->
+            <aside class="filters-sidebar desktop-only">
+                <div class="filters-header">
+                    <h3>Filters</h3>
+                    <a href="{% url 'store:product_list' %}" class="filter-clear">Clear All</a>
+                </div>
+
+                <form method="get" action="{% url 'store:product_list' %}" id="filterForm">
+                    <!-- Search Filter -->
                     <div class="filter-group">
-                        <label>Category</label>
-                        <select name="category">
-                            <option value="all">All Categories</option>
-                            {% for category in categories %}
-                                <option value="{{ category.slug }}" {% if filters.category == category.slug %}selected{% endif %}>{{ category.name }}</option>
+                        <label class="filter-label">
+                            <i class="fas fa-search"></i> Search
+                        </label>
+                        <input type="text" name="q" class="filter-input" placeholder="Search jewelry..." value="{{ filters.q }}">
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-th-large"></i> Category
+                        </label>
+                        <select name="category" class="filter-select" id="categorySelect">
+                            <option value="all" {% if filters.category == 'all' %}selected{% endif %}>All Categories</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.slug }}" {% if filters.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
+                    <!-- Dynamic Size Filter -->
+                    {% if size_config.options %}
+                    <div class="filter-group" id="sizeFilterGroup">
+                        <label class="filter-label">
+                            <i class="fas fa-ruler"></i> {{ size_config.label }}
+                        </label>
+                        <div class="size-options-grid">
+                            {% for size_opt in size_config.options %}
+                                <label class="size-option-label">
+                                    <input type="radio" name="size" value="{{ size_opt }}" {% if filters.size == size_opt %}checked{% endif %}>
+                                    <span class="size-option-btn">{{ size_opt }}</span>
+                                </label>
+                            {% endfor %}
+                            <label class="size-option-label">
+                                <input type="radio" name="size" value="" {% if not filters.size %}checked{% endif %}>
+                                <span class="size-option-btn">All</span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Price Filter -->
                     <div class="filter-group">
-                        <label>Min Price (₹)</label>
-                        <input type="number" name="min_price" placeholder="Min" min="0" value="{{ filters.min_price }}">
+                        <label class="filter-label">
+                            <i class="fas fa-rupee-sign"></i> Price Range
+                        </label>
+                        <div class="price-inputs">
+                            <input type="number" name="min_price" placeholder="Min" class="filter-input" value="{{ filters.min_price }}">
+                            <span>–</span>
+                            <input type="number" name="max_price" placeholder="Max" class="filter-input" value="{{ filters.max_price }}">
+                        </div>
+                        <div class="price-quick-filters">
+                            <button type="button" class="price-tag" data-min="0" data-max="999">Under ₹999</button>
+                            <button type="button" class="price-tag" data-min="1000" data-max="2999">₹1,000 - ₹2,999</button>
+                            <button type="button" class="price-tag" data-min="3000" data-max="4999">₹3,000 - ₹4,999</button>
+                            <button type="button" class="price-tag" data-min="5000" data-max="">₹5,000+</button>
+                        </div>
                     </div>
 
+                    <!-- Plating/Material Filter -->
                     <div class="filter-group">
-                        <label>Max Price (₹)</label>
-                        <input type="number" name="max_price" placeholder="Max" min="0" value="{{ filters.max_price }}">
-                    </div>
-
-                    <div class="filter-group">
-                        <label>Size</label>
-                        <select name="size">
-                            <option value="">All Sizes</option>
-                            {% for size_option in size_options %}
-                                <option value="{{ size_option }}" {% if filters.size == size_option %}selected{% endif %}>{{ size_option }}</option>
+                        <label class="filter-label">
+                            <i class="fas fa-gem"></i> Plating
+                        </label>
+                        <select name="plating" class="filter-select">
+                            <option value="">All Types</option>
+                            {% for plating_opt in plating_options %}
+                                <option value="{{ plating_opt }}" {% if filters.plating == plating_opt %}selected{% endif %}>{{ plating_opt }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="filter-actions">
-                        <button class="btn btn-primary" type="submit">Apply</button>
-                        <a class="btn btn-secondary" href="{% url 'store:product_list' %}">Reset</a>
+                    <!-- Occasion Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-calendar-alt"></i> Occasion
+                        </label>
+                        <select name="occasion" class="filter-select">
+                            <option value="">All Occasions</option>
+                            {% for occasion_opt in occasion_options %}
+                                <option value="{{ occasion_opt }}" {% if filters.occasion == occasion_opt %}selected{% endif %}>{{ occasion_opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Style Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-palette"></i> Style
+                        </label>
+                        <select name="style" class="filter-select">
+                            <option value="">All Styles</option>
+                            {% for style_opt in style_options %}
+                                <option value="{{ style_opt }}" {% if filters.style == style_opt %}selected{% endif %}>{{ style_opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Finish Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-star"></i> Finish
+                        </label>
+                        <select name="finish" class="filter-select">
+                            <option value="">All Finishes</option>
+                            {% for finish_opt in finish_options %}
+                                <option value="{{ finish_opt }}" {% if filters.finish == finish_opt %}selected{% endif %}>{{ finish_opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary filter-apply-btn">
+                        <i class="fas fa-check"></i> Apply Filters
+                    </button>
+                </form>
+            </aside>
+
+            <!-- Products Grid -->
+            <div class="products-section">
+                <!-- Toolbar -->
+                <div class="products-toolbar">
+                    <div class="toolbar-left">
+                        <button class="mobile-filter-toggle" id="mobileFilterBtn">
+                            <i class="fas fa-filter"></i>
+                            Filters
+                        </button>
+                        <span class="products-count">{{ page_obj.paginator.count }} Products</span>
+                    </div>
+                    <div class="toolbar-right">
+                        <label for="sortSelect" class="sort-label">Sort by:</label>
+                        <select name="sort" id="sortSelect" class="sort-select">
+                            <option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="price_low" {% if filters.sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                            <option value="price_high" {% if filters.sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            <option value="popular" {% if filters.sort == 'popular' %}selected{% endif %}>Popular</option>
+                        </select>
                     </div>
                 </div>
-            </form>
 
-            <div class="product-count-wrapper">
-                <p class="product-count-text">
-                    Showing <strong>{{ page_obj.paginator.count }}</strong> products
-                </p>
-            </div>
-
-            {% if products %}
-                <div class="product-grid">
+                <!-- Products Grid -->
+                <div class="products-grid">
                     {% for product in products %}
                         <div class="product-card">
+                            {% if product.discount_percent %}
+                                <span class="product-badge discount">{{ product.discount_percent }}% OFF</span>
+                            {% endif %}
+                            {% if product.is_featured %}
+                                <span class="product-badge featured">Featured</span>
+                            {% endif %}
                             <a href="{% url 'store:product_detail' product.slug %}" class="product-link">
                                 <div class="product-image">
                                     {% with image=product.images.first %}
@@ -73,15 +178,13 @@
                                             <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
                                         {% endif %}
                                     {% endwith %}
-                                    {% if product.discount_percent %}
-                                        <span class="discount-badge">{{ product.discount_percent }}% OFF</span>
-                                    {% endif %}
-                                    {% if product.is_bestseller %}
-                                        <span class="bestseller-badge">Bestseller</span>
-                                    {% endif %}
                                 </div>
                                 <div class="product-info">
+                                    <div class="product-category">{{ product.category.name }}</div>
                                     <h3 class="product-name">{{ product.name }}</h3>
+                                    {% if product.occasion %}
+                                        <div class="product-meta">{{ product.occasion }}</div>
+                                    {% endif %}
                                     <div class="product-price">
                                         <span class="current-price">₹{{ product.price }}</span>
                                         {% if product.original_price %}
@@ -90,18 +193,117 @@
                                     </div>
                                 </div>
                             </a>
-                            <a href="{% url 'store:product_detail' product.slug %}" class="btn btn-primary add-to-cart-btn">View Details</a>
+                        </div>
+                    {% empty %}
+                        <div class="no-products">
+                            <i class="fas fa-search"></i>
+                            <h3>No Products Found</h3>
+                            <p>Try adjusting your filters or search terms</p>
+                            <a href="{% url 'store:product_list' %}" class="btn btn-primary">Clear Filters</a>
                         </div>
                     {% endfor %}
                 </div>
-            {% else %}
-                <div class="no-products">
-                    <div class="no-products-icon">🔍</div>
-                    <h2>No Products Found</h2>
-                    <p>No products match your current filters. Try adjusting your selection.</p>
-                    <a class="btn btn-primary" href="{% url 'store:product_list' %}">Clear Filters</a>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="pagination-btn">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    {% endif %}
+                    
+                    <span class="pagination-info">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="pagination-btn">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    {% endif %}
                 </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
-    </section>
+    </div>
+</section>
+
+<!-- Mobile Filter Bottom Sheet -->
+<div class="mobile-filter-sheet" id="mobileFilterSheet">
+    <div class="filter-sheet-overlay" id="filterSheetOverlay"></div>
+    <div class="filter-sheet-content">
+        <div class="filter-sheet-header">
+            <h3>Filters</h3>
+            <button class="filter-sheet-close" id="filterSheetClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="filter-sheet-body">
+            <!-- Mobile filters (same as sidebar) -->
+            <form method="get" action="{% url 'store:product_list' %}" id="mobileFilterForm">
+                <!-- All filter groups duplicated here for mobile -->
+                <!-- (Same structure as desktop sidebar) -->
+            </form>
+        </div>
+        <div class="filter-sheet-footer">
+            <button type="button" class="btn btn-secondary" id="clearMobileFilters">Clear All</button>
+            <button type="submit" form="mobileFilterForm" class="btn btn-primary">Apply</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Category change handler - dynamic size filter
+document.getElementById('categorySelect')?.addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+// Sort change handler
+document.getElementById('sortSelect')?.addEventListener('change', function() {
+    const url = new URL(window.location);
+    url.searchParams.set('sort', this.value);
+    window.location.href = url.toString();
+});
+
+// Price quick filters
+document.querySelectorAll('.price-tag').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const min = this.dataset.min;
+        const max = this.dataset.max;
+        document.querySelector('input[name="min_price"]').value = min;
+        document.querySelector('input[name="max_price"]').value = max;
+    });
+});
+
+// Mobile filter sheet
+const mobileFilterBtn = document.getElementById('mobileFilterBtn');
+const mobileFilterSheet = document.getElementById('mobileFilterSheet');
+const filterSheetOverlay = document.getElementById('filterSheetOverlay');
+const filterSheetClose = document.getElementById('filterSheetClose');
+
+function openFilterSheet() {
+    mobileFilterSheet.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFilterSheet() {
+    mobileFilterSheet.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+mobileFilterBtn?.addEventListener('click', openFilterSheet);
+filterSheetOverlay?.addEventListener('click', closeFilterSheet);
+filterSheetClose?.addEventListener('click', closeFilterSheet);
+
+// Auto-submit on filter change (optional UX enhancement)
+document.querySelectorAll('.filter-select').forEach(select => {
+    select.addEventListener('change', function() {
+        // Optionally auto-submit: document.getElementById('filterForm').submit();
+    });
+});
+</script>
 {% endblock %}

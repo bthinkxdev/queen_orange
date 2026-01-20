@@ -1,6 +1,6 @@
 /* ============================================
-   QUEEN ORANGE - PREMIUM iOS-LEVEL DESIGN
-   Mobile-First, Elegant & Modern
+   GOLDEN ELEGANCE - PREMIUM JEWELRY DESIGN
+   Mobile-First, Elegant & Luxurious
    ============================================ */
 
 /* ============================================
@@ -14,18 +14,18 @@
 }
 
 :root {
-    /* Premium Color Palette - Clean White with Orange & Pink Accents (Queen Orange) */
-    --primary: #FF9800;
-    --primary-dark: #F57C00;
-    --primary-light: #FFF3E0;
-    --secondary: #E91E63;
-    --accent: #FF6F00;
+    /* Premium Color Palette - Professional Purple & Magenta (Golden Elegance) */
+    --primary: #7B1FA2;
+    --primary-dark: #6A1B9A;
+    --primary-light: #F3E5F5;
+    --secondary: #9C27B0;
+    --accent: #E91E63;
     
     /* Neutrals - Clean & Minimal */
     --white: #FFFFFF;
     --black: #212121;
-    --cream: #FFFAF5;
-    --beige: #FFF8F0;
+    --cream: #F8F5FF;
+    --beige: #F3E5F5;
     --gray-50: #FAFAFA;
     --gray-100: #F5F5F5;
     --gray-200: #EEEEEE;
@@ -38,9 +38,9 @@
     --gray-900: #212121;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-    --gradient-secondary: linear-gradient(135deg, #E91E63 0%, #FF9800 100%);
-    --gradient-soft: linear-gradient(135deg, #FFFFFF 0%, #FFFAF5 100%);
+    --gradient-primary: linear-gradient(135deg, #7B1FA2 0%, #6A1B9A 100%);
+    --gradient-secondary: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%);
+    --gradient-soft: linear-gradient(135deg, #FFFFFF 0%, #F3E5F5 100%);
     
     /* Typography - Elegant Serif & Clean Sans */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1607,7 +1607,7 @@ input, textarea, select {
 }
 
 .rating-stars {
-    color: #FFD700;
+    color: #9C27B0;
     letter-spacing: 1px;
     font-size: 11px;
 }
@@ -1878,7 +1878,7 @@ input, textarea, select {
 }
 
 .star {
-    color: #FFD700;
+    color: #9C27B0;
 }
 
 .testimonial-author {

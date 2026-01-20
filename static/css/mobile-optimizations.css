@@ -313,7 +313,7 @@
     .order-card-header .order-total {
         font-size: 18px !important;
         font-weight: 700;
-        color: #FF9800;
+        color: #7B1FA2;
         text-align: right;
     }
     
@@ -350,7 +350,7 @@
     
     .order-item-price {
         font-weight: 600;
-        color: #FF9800;
+        color: #7B1FA2;
         margin-left: 12px;
         white-space: nowrap;
     }
