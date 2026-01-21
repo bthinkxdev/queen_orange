@@ -313,7 +313,7 @@
     .order-card-header .order-total {
         font-size: 18px !important;
         font-weight: 700;
-        color: #FF9800;
+        color: #E91E63;
         text-align: right;
     }
     
@@ -350,7 +350,7 @@
     
     .order-item-price {
         font-weight: 600;
-        color: #FF9800;
+        color: #E91E63;
         margin-left: 12px;
         white-space: nowrap;
     }
@@ -540,7 +540,7 @@ img[loading="lazy"].loaded {
 
 /* Better tap highlight */
 * {
-    -webkit-tap-highlight-color: rgba(255, 152, 0, 0.1);
+    -webkit-tap-highlight-color: rgba(233, 30, 99, 0.1);
 }
 
 /* Smooth scrolling */
