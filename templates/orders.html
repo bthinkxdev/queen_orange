@@ -1,8 +1,15 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Order History - Queen Orange{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
 {% block content %}
     <section class="section">
         <div class="container">
+            <div class="breadcrumb">
+            <a href="{% url 'auth:account' %}">← Back to Account</a>
+            </div>
             <div class="section-header">
                 <h1 class="section-title">Your Orders</h1>
                 <p class="section-subtitle">Review your purchase history</p>
@@ -41,5 +48,17 @@
             {% endif %}
         </div>
     </section>
+
+<style>
+    .breadcrumb {
+    margin-bottom: var(--space-4);
+    }
+
+    .breadcrumb a {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-size: 14px;
+    }
+</style>
 {% endblock %}
 
