@@ -4,7 +4,7 @@
 {% block title %}Order {{ order.order_number }}{% endblock %}
 {% block page_title %}
     Order Details
-    <a href="{% url 'admin:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary" style="float: right; margin-left: 10px;">
+    <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary" style="float: right; margin-left: 10px;">
         🖨️ Print Invoice
     </a>
 {% endblock %}

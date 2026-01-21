@@ -68,9 +68,9 @@
                                 <div class="product-image">
                                     {% with image=product.images.first %}
                                         {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="lazy">
+                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="eager">
                                         {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
+                                            <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="eager">
                                         {% endif %}
                                     {% endwith %}
                                     {% if product.discount_percent %}
