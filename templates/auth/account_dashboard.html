@@ -221,32 +221,49 @@
 .orders-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: 10px;
 }
 
 .order-item {
-    padding: var(--space-3);
+    padding: 14px 16px;
     border: 1px solid #E0E0E0;
     border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all 0.3s ease;
+    background: #FAFAFA;
+}
+
+.order-item:hover {
+    border-color: #FF9800;
+    background: #FFF5E6;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
 }
 
 .order-info {
-    display: flex;
-    justify-content: space-between;
+    flex-direction: row;
+    gap: 10px;
+    min-width: 0;
     align-items: center;
-    margin-bottom: var(--space-2);
 }
 
 .order-number {
     font-weight: 600;
     color: var(--color-primary);
+    font-size: 12px;
+    min-width: 110px;
+    white-space: nowrap;
 }
 
 .order-status {
-    padding: 4px 12px;
+    padding: 3px 8px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
+    white-space: nowrap;
+    width: fit-content;
 }
 
 .status-placed { background: #fff3cd; color: #856404; }
@@ -257,9 +274,26 @@
 
 .order-meta {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.order-date {
+    font-size: 11px;
+    color: #999;
+    min-width: 60px;
+    text-align: right;
+}
+
+.order-total {
     font-size: 14px;
-    color: var(--color-text-light);
+    font-weight: 700;
+    color: var(--color-primary);
+    min-width: 75px;
+    text-align: right;
 }
 
 .addresses-grid {
