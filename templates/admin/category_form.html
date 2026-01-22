@@ -1,5 +1,6 @@
 {% extends "admin/base.html" %}
 {% load static %}
+{% load file_utils %}
 
 {% block title %}{{ form_title }}{% endblock %}
 {% block page_title %}{{ form_title }}{% endblock %}
@@ -45,10 +46,16 @@
                         {{ form.image.errors }}
                     </div>
                 {% endif %}
-                {% if form.instance.image %}
+                {% if form.instance.image|file_exists %}
                     <div style="margin-top: 1rem;">
                         <img src="{{ form.instance.image.url }}" alt="Current image" 
                              style="max-width: 200px; border-radius: 8px; border: 1px solid var(--gray-200);">
+                    </div>
+                {% elif form.instance.image %}
+                    <div style="margin-top: 1rem; background: var(--gray-100); padding: 1rem; border-radius: 8px; text-align: center; color: var(--gray-600); max-width: 200px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--warning);"></i>
+                        <p style="margin: 0; font-size: 0.875rem;">Image file not found</p>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--gray-500);">{{ form.instance.image.name }}</p>
                     </div>
                 {% endif %}
             </div>

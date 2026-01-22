@@ -1,5 +1,6 @@
 {% extends "admin/base.html" %}
 {% load static %}
+{% load file_utils %}
 
 {% block title %}{{ form_title }}{% endblock %}
 {% block page_title %}{{ form_title }}{% endblock %}
@@ -554,6 +555,12 @@
             </div>
             
             {{ image_formset.management_form }}
+            {% if image_formset.non_form_errors %}
+                <div style="background: #FFEBEE; color: #C62828; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 2px solid #EF5350;">
+                    <strong><i class="fas fa-exclamation-circle"></i> Formset Errors:</strong>
+                    {{ image_formset.non_form_errors }}
+                </div>
+            {% endif %}
             <div id="image-formset" class="formset-container">
                 {% for form in image_formset %}
                     <div class="formset-form image-form" data-form-index="{{ forloop.counter0 }}">
@@ -582,11 +589,34 @@
                                 <small style="color: var(--gray-500);">(Max 5MB, JPG/PNG/GIF/WebP)</small>
                             </label>
                             {{ form.image }}
+                            {% if form.image.errors %}
+                                <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                                    {{ form.image.errors }}
+                                </div>
+                            {% endif %}
                         </div>
                         
-                        {% if form.instance.image %}
+                        {% if form.instance.image|file_exists %}
                             <div class="image-preview">
                                 <img src="{{ form.instance.image.url }}" alt="Current image">
+                                <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray-600); text-align: center;">
+                                    <i class="fas fa-info-circle"></i> Select a new file above to replace this image
+                                </p>
+                            </div>
+                        {% elif form.instance.image %}
+                            <div class="image-preview" style="background: var(--gray-100); padding: 1rem; border-radius: 8px; text-align: center; color: var(--gray-600);">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--warning);"></i>
+                                <p style="margin: 0; font-size: 0.875rem; font-weight: 600;">Image file not found on disk</p>
+                                <p style="margin: 0.25rem 0 0.5rem 0; font-size: 0.75rem; color: var(--gray-500);">{{ form.instance.image.name }}</p>
+                                <p style="margin: 0; font-size: 0.75rem; color: var(--primary);">
+                                    <i class="fas fa-upload"></i> Select a new image file above to replace it
+                                </p>
+                            </div>
+                        {% else %}
+                            <div class="image-preview" style="background: var(--gray-50); padding: 1rem; border-radius: 8px; text-align: center; color: var(--gray-500); border: 2px dashed var(--gray-300);">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                                <p style="margin: 0; font-size: 0.875rem;">No image selected</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem;">Select an image file above to upload</p>
                             </div>
                         {% endif %}
                         
@@ -632,6 +662,12 @@
             </div>
             
             {{ variant_formset.management_form }}
+            {% if variant_formset.non_form_errors %}
+                <div style="background: #FFEBEE; color: #C62828; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 2px solid #EF5350;">
+                    <strong><i class="fas fa-exclamation-circle"></i> Formset Errors:</strong>
+                    {{ variant_formset.non_form_errors }}
+                </div>
+            {% endif %}
             <div id="variant-formset" class="formset-container">
                 {% for form in variant_formset %}
                     <div class="formset-form variant-form" data-form-index="{{ forloop.counter0 }}">
@@ -825,6 +861,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const removeBtn = newForm.querySelector('.remove-form-btn');
             if (removeBtn) {
                 removeBtn.addEventListener('click', function() {
+                    // Clear file input to prevent validation issues
+                    const fileInput = newForm.querySelector('input[type="file"]');
+                    if (fileInput) fileInput.value = '';
+                    // Clear text inputs
+                    newForm.querySelectorAll('input[type="text"]').forEach(input => input.value = '');
+                    // Uncheck checkboxes
+                    newForm.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
                     newForm.classList.add('deleted');
                     newForm.style.display = 'none';
                     updateFormNumbers(imageFormset, 'image-form');
@@ -853,6 +896,13 @@ document.addEventListener('DOMContentLoaded', function() {
         imageFormset.querySelectorAll('.remove-form-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const form = btn.closest('.formset-form');
+                // Clear file input to prevent validation issues
+                const fileInput = form.querySelector('input[type="file"]');
+                if (fileInput) fileInput.value = '';
+                // Clear text inputs
+                form.querySelectorAll('input[type="text"]').forEach(input => input.value = '');
+                // Uncheck checkboxes
+                form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
                 form.classList.add('deleted');
                 form.style.display = 'none';
                 updateFormNumbers(imageFormset, 'image-form');

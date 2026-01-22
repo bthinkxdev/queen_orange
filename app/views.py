@@ -52,7 +52,7 @@ class ProductListView(ListView):
                 Q(name__icontains=query)
                 | Q(description__icontains=query)
                 | Q(category__name__icontains=query)
-                | Q(sku__icontains=query)
+                | Q(variants__sku__icontains=query)
             )
         
 

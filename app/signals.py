@@ -10,8 +10,12 @@ def delete_product_image_file(sender, instance, **kwargs):
     Delete image file from disk when ProductImage instance is deleted
     """
     if instance.image:
-        if os.path.isfile(instance.image.path):
-            os.remove(instance.image.path)
+        try:
+            if os.path.isfile(instance.image.path):
+                os.remove(instance.image.path)
+        except (ValueError, OSError):
+            # File doesn't exist or path is invalid - ignore
+            pass
 
 
 @receiver(pre_save, sender=ProductImage)
@@ -29,8 +33,12 @@ def delete_old_product_image_on_update(sender, instance, **kwargs):
 
     # If image has changed, delete the old one
     if old_image and old_image != instance.image:
-        if os.path.isfile(old_image.path):
-            os.remove(old_image.path)
+        try:
+            if os.path.isfile(old_image.path):
+                os.remove(old_image.path)
+        except (ValueError, OSError):
+            # File doesn't exist or path is invalid - ignore
+            pass
 
 
 @receiver(post_delete, sender=Category)
@@ -39,8 +47,12 @@ def delete_category_image_file(sender, instance, **kwargs):
     Delete image file from disk when Category instance is deleted
     """
     if instance.image:
-        if os.path.isfile(instance.image.path):
-            os.remove(instance.image.path)
+        try:
+            if os.path.isfile(instance.image.path):
+                os.remove(instance.image.path)
+        except (ValueError, OSError):
+            # File doesn't exist or path is invalid - ignore
+            pass
 
 
 @receiver(pre_save, sender=Category)
@@ -58,7 +70,11 @@ def delete_old_category_image_on_update(sender, instance, **kwargs):
 
     # If image has changed, delete the old one
     if old_image and old_image != instance.image:
-        if os.path.isfile(old_image.path):
-            os.remove(old_image.path)
+        try:
+            if os.path.isfile(old_image.path):
+                os.remove(old_image.path)
+        except (ValueError, OSError):
+            # File doesn't exist or path is invalid - ignore
+            pass
 
 
