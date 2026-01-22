@@ -39,32 +39,43 @@
             </div>
 
             <!-- Recent Orders Section -->
-            <div class="account-card">
-                <div class="card-header">
-                    <h2>Recent Orders</h2>
-                    <a href="{% url 'store:order_history' %}" class="btn btn-small">View All</a>
-                </div>
-                <div class="card-body">
-                    {% if recent_orders %}
-                        <div class="orders-list">
-                            {% for order in recent_orders %}
-                            <div class="order-item">
-                                <div class="order-info">
-                                    <span class="order-number">#{{ order.order_number }}</span>
-                                    <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
-                                </div>
-                                <div class="order-meta">
-                                    <span class="order-date">{{ order.created_at|date:"M d, Y" }}</span>
-                                    <span class="order-total">₹{{ order.total }}</span>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="empty-state">No orders yet. <a href="{% url 'store:product_list' %}">Start shopping!</a></p>
-                    {% endif %}
-                </div>
+        <div class="account-card">
+            <div class="card-header">
+                <h2>Recent Orders</h2>
+                <a href="{% url 'store:order_history' %}" class="btn btn-small">View All</a>
             </div>
+            <div class="card-body">
+                {% if recent_orders %}
+                    <div class="orders-list">
+                        {% for order in recent_orders %}
+                        <div class="order-item">
+                            <div class="order-left">
+                                <span class="order-number">#{{ order.order_number }}
+                                </span>
+                            </div>
+                            <div class="order-center">
+                                <span class="order-total">
+                                    ₹{{ order.total }}</span>
+                            </div>
+                            <div class="order-right">
+                                <span class="order-date">
+                                    {{ order.created_at|date:"M d, Y" }}
+                                </span>
+                                <span class="order-status status-{{ order.status }}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">
+                        No orders yet.
+                        <a href="{% url 'store:product_list' %}">Start shopping!</a>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
 
             <!-- Addresses Section -->
             <div class="account-card full-width">
@@ -148,6 +159,128 @@
 </div>
 
 <style>
+    .order-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.order-date {
+    font-size: 12px;
+    color: var(--color-text-light);
+    white-space: nowrap;
+}
+
+    .orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.order-item {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.2fr;
+    align-items: center;
+    padding: 16px 18px;
+    border-radius: 10px;
+    border: 1px solid #E0E0E0;
+    background: #FAFAFA;
+    transition: all 0.25s ease;
+    gap: 12px;
+}
+
+.order-item:hover {
+    background: #FFFFFF;
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.order-number {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.order-total {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.order-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.order-center {
+    text-align: center;
+    min-width: 0;
+}
+
+.order-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 0;
+}
+
+.order-date {
+    font-size: 13px;
+    color: var(--color-text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.order-status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.status-placed { background: #FFF3CD; color: #856404; }
+.status-confirmed { background: #D1ECF1; color: #0C5460; }
+.status-shipped { background: #CFE2FF; color: #084298; }
+.status-delivered { background: #D1F4DD; color: #0F5132; }
+.status-cancelled { background: #F8D7DA; color: #842029; }
+
+.empty-state {
+    text-align: center;
+    color: #757575;
+    padding: 16px;
+}
+
+.empty-state a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    .order-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        text-align: left;
+    }
+
+    .order-center,
+    .order-right {
+        text-align: left;
+    }
+}
 .account-page {
     padding: var(--space-8) 0;
     min-height: calc(100vh - 400px);
