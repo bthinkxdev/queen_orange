@@ -157,3 +157,7 @@ EMAIL_HOST_USER = 'achujozefsl0709@gmail.com'
 EMAIL_HOST_PASSWORD = 'mtbsaphoieurdqqe'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_NOTIFICATION_EMAILS = ['dineshvarkala@gmail.com']
+
+# Razorpay Configuration
+RZP_CLIENT_ID = "rzp_test_RXGSVMIVZ3rofY"
+RZP_CLIENT_SECRET = "Zb56Lz54I9lDcP2FNAoalXgE"

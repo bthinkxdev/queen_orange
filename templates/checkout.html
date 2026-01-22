@@ -140,22 +140,50 @@
                         <div class="form-section">
                             <h3>Payment Method</h3>
                             <div class="payment-options">
-                                {% for radio in form.payment %}
-                                    <label class="payment-option {% if radio.choice_value == 'cod' and not form.is_bound %}selected{% elif radio.choice_value == form.payment.value %}selected{% endif %}">
-                                        {{ radio.tag }}
-                                        <div class="payment-option-content">
-                                            <div class="payment-checkbox">
-                                                <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                                </svg>
-                                            </div>
-                                            <div class="payment-details">
-                                                <strong>{{ radio.choice_label }}</strong>
-                                                <p>{% if radio.choice_value == "cod" %}Pay when you receive your order{% else %}Complete order via WhatsApp chat{% endif %}</p>
-                                            </div>
+                                <label class="payment-option {% if form.payment.value == 'cod' or not form.is_bound %}selected{% endif %}">
+                                    <input type="radio" name="payment" value="cod" {% if form.payment.value == 'cod' or not form.is_bound %}checked{% endif %}>
+                                    <div class="payment-option-content">
+                                        <div class="payment-checkbox">
+                                            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
                                         </div>
-                                    </label>
-                                {% endfor %}
+                                        <div class="payment-details">
+                                            <strong>Cash on Delivery</strong>
+                                            <p>Pay when you receive your order</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
+                                    <input type="radio" name="payment" value="whatsapp" {% if form.payment.value == 'whatsapp' %}checked{% endif %}>
+                                    <div class="payment-option-content">
+                                        <div class="payment-checkbox">
+                                            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="payment-details">
+                                            <strong>WhatsApp Order</strong>
+                                            <p>Complete order via WhatsApp chat</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="payment-option {% if form.payment.value == 'razorpay' %}selected{% endif %}">
+                                    <input type="radio" name="payment" value="razorpay" {% if form.payment.value == 'razorpay' %}checked{% endif %}>
+                                    <div class="payment-option-content">
+                                        <div class="payment-checkbox">
+                                            <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="payment-details">
+                                            <strong>Online Payment</strong>
+                                            <p>Secure online payment</p>
+                                        </div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 

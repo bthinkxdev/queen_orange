@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q
@@ -6,9 +7,14 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
 
+import json
+import razorpay
+import hmac
+import hashlib
+
 from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
-from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant
+from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment
 from .services import CartError, CartService, OrderService, StockError
 
 
@@ -340,7 +346,13 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
             messages.error(self.request, str(exc))
             return redirect("store:checkout")
         self.request.session["last_order_number"] = order.order_number
-        if form.cleaned_data.get("payment") == "whatsapp":
+        
+        payment_method = form.cleaned_data.get("payment")
+        
+        if payment_method == "razorpay":
+            # Redirect to payment page for Razorpay
+            return redirect("store:razorpay_payment", order_number=order.order_number)
+        elif payment_method == "whatsapp":
             messages.info(self.request, "We will contact you on WhatsApp to confirm your order.")
         return redirect("store:order_success", order_number=order.order_number)
 
@@ -438,3 +450,136 @@ class NewsletterSubscribeView(FormView):
     def form_invalid(self, form):
         messages.error(self.request, "Please enter a valid email.")
         return redirect(self.get_success_url())
+
+class RazorpayPaymentView(LoginRequiredForActionMixin, View):
+    """Handle Razorpay payment initialization"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            order_number = request.POST.get('order_number')
+            order = Order.objects.select_related('address', 'user').get(order_number=order_number)
+            
+            # Check authorization
+            if order.user != request.user:
+                return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+            
+            # Get or create payment
+            payment, created = Payment.objects.get_or_create(
+                order=order,
+                defaults={
+                    'method': Payment.Method.RAZORPAY,
+                    'amount': order.total,
+                    'status': Payment.Status.PENDING
+                }
+            )
+            
+            # Initialize Razorpay client
+            client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
+            
+            # Create Razorpay order
+            razorpay_order = client.order.create(dict(
+                amount=int(order.total * 100),  # Amount in paise
+                currency='INR',
+                payment_capture='1'
+            ))
+            
+            # Store Razorpay order ID
+            payment.razorpay_order_id = razorpay_order['id']
+            payment.save(update_fields=['razorpay_order_id'])
+            
+            return JsonResponse({
+                'status': 'success',
+                'razorpay_order_id': razorpay_order['id'],
+                'razorpay_key_id': settings.RZP_CLIENT_ID,
+                'amount': int(order.total * 100),
+                'order_number': order.order_number,
+                'customer_name': order.address.full_name,
+                'customer_email': order.address.email or request.user.email,
+                'customer_phone': order.address.phone,
+            })
+        except Order.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    def get(self, request, *args, **kwargs):
+        """Display payment page"""
+        try:
+            order_number = kwargs.get('order_number')
+            order = Order.objects.select_related('address', 'user').get(order_number=order_number)
+            
+            # Check authorization
+            if order.user != request.user:
+                return HttpResponseForbidden()
+            
+            context = {
+                'order': order,
+                'razorpay_key_id': settings.RZP_CLIENT_ID,
+            }
+            return self.render_to_response(context)
+        except Order.DoesNotExist:
+            return redirect('store:checkout')
+    
+    def render_to_response(self, context):
+        from django.shortcuts import render
+        return render(self.request, 'razorpay_payment.html', context)
+
+
+
+class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
+    """Verify Razorpay payment signature"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            
+            razorpay_order_id = data.get('razorpay_order_id')
+            razorpay_payment_id = data.get('razorpay_payment_id')
+            razorpay_signature = data.get('razorpay_signature')
+            
+            payment = Payment.objects.select_related('order').get(
+                razorpay_order_id=razorpay_order_id
+            )
+            
+            # Verify signature
+            signature_data = f"{razorpay_order_id}|{razorpay_payment_id}"
+            signature_check = hmac.new(
+                settings.RZP_CLIENT_SECRET.encode(),
+                signature_data.encode(),
+                hashlib.sha256
+            ).hexdigest()
+            
+            if signature_check == razorpay_signature:
+                # Payment successful
+                payment.razorpay_payment_id = razorpay_payment_id
+                payment.razorpay_signature = razorpay_signature
+                payment.mark_paid()
+                
+                # Update order status
+                order = payment.order
+                order.status = Order.Status.CONFIRMED
+                order.save(update_fields=['status'])
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Payment verified successfully',
+                    'order_number': order.order_number
+                })
+            else:
+                payment.status = Payment.Status.FAILED
+                payment.save(update_fields=['status'])
+                
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Payment signature verification failed'
+                }, status=400)
+        except Payment.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Payment record not found'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)

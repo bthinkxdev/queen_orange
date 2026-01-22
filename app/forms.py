@@ -33,7 +33,7 @@ class CheckoutForm(forms.Form):
     
     # Payment
     payment = forms.ChoiceField(
-        choices=[("cod", "Cash on Delivery"), ("whatsapp", "WhatsApp Order")],
+        choices=[("cod", "Cash on Delivery"), ("whatsapp", "WhatsApp Order"), ("razorpay", "Online Payment")],
         widget=forms.RadioSelect,
     )
 

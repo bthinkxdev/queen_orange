@@ -232,6 +232,7 @@ class Payment(TimeStampedModel):
     class Method(models.TextChoices):
         COD = "cod", "Cash on Delivery"
         WHATSAPP = "whatsapp", "WhatsApp Order"
+        RAZORPAY = "razorpay", "Online Payment"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -243,6 +244,9 @@ class Payment(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     processed_at = models.DateTimeField(blank=True, null=True)
+    razorpay_order_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
 
     def mark_paid(self):
         self.status = self.Status.PAID
