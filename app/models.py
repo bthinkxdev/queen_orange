@@ -50,6 +50,7 @@ class Product(TimeStampedModel):
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=220, unique=True)
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="products/", blank=True, null=True, help_text="Featured product image")
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     original_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
@@ -116,7 +117,7 @@ class ProductVariant(TimeStampedModel):
     ]
     
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
-    sku = models.CharField(max_length=64, unique=True)
+    sku = models.CharField(max_length=64, unique=True, blank=True, null=True, help_text="Optional unique SKU")
     size_type = models.CharField(max_length=20, choices=SIZE_TYPES, default='none', help_text="Type of size measurement")
     size = models.CharField(max_length=20, blank=True, help_text="Size value: 2.4, 7, 18 inches, etc.")
     color = models.CharField(max_length=30, blank=True, help_text="Color tone: Gold, Rose Gold, etc.")
@@ -126,7 +127,6 @@ class ProductVariant(TimeStampedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["product", "size", "color", "design"], name="unique_variant"),
             models.CheckConstraint(condition=models.Q(stock_quantity__gte=0), name="stock_non_negative"),
         ]
         indexes = [

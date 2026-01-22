@@ -290,45 +290,49 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context["image_formset"] = ProductImageFormSet(self.request.POST, self.request.FILES)
-            context["variant_formset"] = ProductVariantFormSet(self.request.POST)
+            context["image_formset"] = ProductImageFormSet(self.request.POST, self.request.FILES, instance=None)
+            context["variant_formset"] = ProductVariantFormSet(self.request.POST, instance=None)
         else:
-            context["image_formset"] = ProductImageFormSet()
-            context["variant_formset"] = ProductVariantFormSet()
+            context["image_formset"] = ProductImageFormSet(instance=None)
+            context["variant_formset"] = ProductVariantFormSet(instance=None)
         context["active_menu"] = "products"
         context["form_title"] = "Create Product"
         return context
     
     def form_valid(self, form):
-        # Create formsets directly from POST data (don't use get_context_data here)
-        image_formset = ProductImageFormSet(self.request.POST, self.request.FILES)
-        variant_formset = ProductVariantFormSet(self.request.POST)
+        self.object = form.save()
+        image_formset = ProductImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
+        variant_formset = ProductVariantFormSet(self.request.POST, instance=self.object)
         
-        if image_formset.is_valid() and variant_formset.is_valid():
-            # Save the product first to get an instance
-            self.object = form.save()
-            # Now bind the formsets to the saved instance and save them
-            image_formset.instance = self.object
+        # Save image formset
+        if image_formset.is_valid():
             image_formset.save()
-            variant_formset.instance = self.object
-            variant_formset.save()
-            messages.success(self.request, "Product created successfully!")
-            return redirect(self.success_url)
         else:
-            # If formsets are invalid, store them and return form_invalid to show errors
-            self.image_formset = image_formset
-            self.variant_formset = variant_formset
-            return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        """Override to include formsets in context when form is invalid"""
-        context = self.get_context_data(form=form)
-        # Use stored formsets if they exist (from form_valid), otherwise use get_context_data ones
-        if hasattr(self, 'image_formset'):
-            context['image_formset'] = self.image_formset
-        if hasattr(self, 'variant_formset'):
-            context['variant_formset'] = self.variant_formset
-        return self.render_to_response(context)
+            print(f"Image formset errors: {image_formset.errors}")
+        if variant_formset.is_valid():
+            for i, variant_form in enumerate(variant_formset.forms):
+                if variant_form.cleaned_data.get('DELETE'):
+                    if variant_form.instance.pk:
+                        variant_form.instance.delete()
+                    continue
+                if not any([
+                    variant_form.cleaned_data.get('size'),
+                    variant_form.cleaned_data.get('color'),
+                    variant_form.cleaned_data.get('design'),
+                    variant_form.cleaned_data.get('sku'),
+                ]):
+                    continue
+                try:
+                    variant = variant_form.save(commit=False)
+                    variant.product = self.object
+                    variant.save()
+                except Exception as e:
+                    print(f"Error saving variant {i}: {e}")
+        else:
+            print(f"Variant formset errors: {variant_formset.errors}")
+        
+        messages.success(self.request, "Product created successfully!")
+        return redirect(self.success_url)
 
 
 class ProductUpdateView(StaffRequiredMixin, UpdateView):
@@ -354,7 +358,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        # Create formsets directly from POST data with the existing instance
+        self.object = form.save()
         image_formset = ProductImageFormSet(
             self.request.POST, self.request.FILES, instance=self.object
         )
@@ -362,29 +366,37 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
             self.request.POST, instance=self.object
         )
         
-        if image_formset.is_valid() and variant_formset.is_valid():
-            # Save the product first
-            self.object = form.save()
-            # Save the formsets (they're already bound to self.object)
+        if image_formset.is_valid():
             image_formset.save()
-            variant_formset.save()
-            messages.success(self.request, "Product updated successfully!")
-            return redirect(self.success_url)
         else:
-            # If formsets are invalid, store them and return form_invalid to show errors
-            self.image_formset = image_formset
-            self.variant_formset = variant_formset
-            return self.form_invalid(form)
-    
-    def form_invalid(self, form):
-        """Override to include formsets in context when form is invalid"""
-        context = self.get_context_data(form=form)
-        # Use stored formsets if they exist (from form_valid), otherwise use get_context_data ones
-        if hasattr(self, 'image_formset'):
-            context['image_formset'] = self.image_formset
-        if hasattr(self, 'variant_formset'):
-            context['variant_formset'] = self.variant_formset
-        return self.render_to_response(context)
+            print(f"Image formset errors: {image_formset.errors}")
+
+        if variant_formset.is_valid():
+            for i, variant_form in enumerate(variant_formset.forms):
+                if variant_form.cleaned_data.get('DELETE'):
+                    if variant_form.instance.pk:
+                        variant_form.instance.delete()
+                    continue
+                
+                if not any([
+                    variant_form.cleaned_data.get('size'),
+                    variant_form.cleaned_data.get('color'),
+                    variant_form.cleaned_data.get('design'),
+                    variant_form.cleaned_data.get('sku'),
+                ]):
+                    continue
+
+                try:
+                    variant = variant_form.save(commit=False)
+                    variant.product = self.object
+                    variant.save()
+                except Exception as e:
+                    print(f"Error saving variant {i}: {e}")
+        else:
+            print(f"Variant formset errors: {variant_formset.errors}")
+        
+        messages.success(self.request, "Product updated successfully!")
+        return redirect(self.success_url)
 
 
 class ProductDeleteView(StaffRequiredMixin, DeleteView):

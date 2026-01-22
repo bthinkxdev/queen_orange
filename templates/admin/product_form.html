@@ -697,13 +697,22 @@
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">Size * <small style="color: var(--gray-500);">(e.g., S, M, L, XL)</small></label>
+                                <label class="form-label">Size Type <small style="color: var(--gray-500);">(Bangle/Ring/Chain/etc)</small></label>
+                                {{ form.size_type }}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Size <small style="color: var(--gray-500);">(e.g., 2.4, 7, 18 inches)</small></label>
                                 {{ form.size }}
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label">Color <small style="color: var(--gray-500);">(Optional)</small></label>
                                 {{ form.color }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Design <small style="color: var(--gray-500);">(Optional)</small></label>
+                                {{ form.design }}
                             </div>
                             
                             <div class="form-group">

@@ -88,11 +88,18 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% with total_stock=product.variants.all|length %}
-                                        {% if total_stock > 0 %}
-                                            <span class="badge badge-success">{{ total_stock }} variants</span>
+                                    {% with total_variants=product.variants.all|length %}
+                                        {% if total_variants > 0 %}
+                                            <div>
+                                                <span class="badge badge-success">{{ total_variants }} Variant{% if total_variants != 1 %}s{% endif %}</span>
+                                            {% comment %} </div>
+                                            {% for variant in product.variants.all %}
+                                                <small class="d-block" style="color: var(--gray-600);">
+                                                    {{ variant.size }} {{ variant.color }} - <strong>{{ variant.stock_quantity }} in stock</strong>
+                                                </small>
+                                            {% endfor %} {% endcomment %}
                                         {% else %}
-                                            <span class="badge badge-danger">No variants</span>
+                                            <span class="badge badge-danger">No Variants</span>
                                         {% endif %}
                                     {% endwith %}
                                 </td>

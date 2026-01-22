@@ -67,6 +67,7 @@ class ProductForm(forms.ModelForm):
             "name",
             "slug",
             "description",
+            "image",
             "material",
             "plating_type",
             "finish",
@@ -84,6 +85,7 @@ class ProductForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Jewelry Name"}),
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "product-slug"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Detailed product description"}),
+            "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
             "material": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Brass, Copper, Alloy"}),
             "plating_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Gold Plated, Rose Gold Plated"}),
             "finish": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Polished, Matte, Antique"}),
@@ -107,6 +109,23 @@ class ProductForm(forms.ModelForm):
         self.fields["occasion"].required = False
         self.fields["style"].required = False
         self.fields["care_instructions"].required = False
+        self.fields["image"].required = False
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and hasattr(image, 'size'):
+            max_size = 5 * 1024 * 1024 
+            if image.size > max_size:
+                raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
+            try:
+                from PIL import Image
+                img = Image.open(image)
+                img.verify()
+                image.seek(0)
+            except Exception:
+                raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
+        
+        return image
 
 
 class ProductImageForm(forms.ModelForm):
@@ -169,6 +188,16 @@ class ProductVariantForm(forms.ModelForm):
             "size_type": "Select the appropriate size type based on category",
             "size": "Enter size value: 2.4 for bangles, 7 for rings, 18 inches for chains, etc.",
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sku"].required = False
+        self.fields["size_type"].required = False
+        self.fields["size"].required = False
+        self.fields["color"].required = False
+        self.fields["design"].required = False
+        self.fields["stock_quantity"].required = False
+        self.fields["is_active"].required = False
 
 
 ProductVariantFormSet = inlineformset_factory(
@@ -178,5 +207,6 @@ ProductVariantFormSet = inlineformset_factory(
     extra=3,  # Show 3 empty forms by default
     can_delete=True,
     max_num=50,  # Allow up to 50 variants (different sizes/colors)
+    validate_min=False,  # Don't require any minimum forms
 )
 
