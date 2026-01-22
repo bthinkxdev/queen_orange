@@ -532,6 +532,81 @@
             </div>
         </div>
         
+        <!-- Jewelry Specifications Section -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-gem"></i>
+                </div>
+                <div class="section-title">
+                    <h4>Jewelry Specifications</h4>
+                    <p class="section-subtitle">Detailed jewelry characteristics and care information</p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Material <small style="color: var(--gray-500);">(Optional)</small></label>
+                    {{ form.material }}
+                    {% if form.material.errors %}
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ form.material.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Plating Type <small style="color: var(--gray-500);">(Optional)</small></label>
+                    {{ form.plating_type }}
+                    {% if form.plating_type.errors %}
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ form.plating_type.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Finish <small style="color: var(--gray-500);">(Optional)</small></label>
+                    {{ form.finish }}
+                    {% if form.finish.errors %}
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ form.finish.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Occasion <small style="color: var(--gray-500);">(Optional)</small></label>
+                    {{ form.occasion }}
+                    {% if form.occasion.errors %}
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ form.occasion.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Style <small style="color: var(--gray-500);">(Optional)</small></label>
+                    {{ form.style }}
+                    {% if form.style.errors %}
+                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ form.style.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Care Instructions</label>
+                {{ form.care_instructions }}
+                {% if form.care_instructions.errors %}
+                    <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.care_instructions.errors }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
         <!-- Product Images Section -->
         <div class="form-section">
             <div class="section-header">

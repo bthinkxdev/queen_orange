@@ -57,12 +57,12 @@ class Product(TimeStampedModel):
     is_bestseller = models.BooleanField(default=False, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
     # Jewelry-specific fields
-    material = models.CharField(max_length=100, blank=True, help_text="e.g., Brass, Copper, Alloy")
-    plating_type = models.CharField(max_length=100, blank=True, help_text="e.g., Gold Plated, Rose Gold Plated, Silver Plated")
-    finish = models.CharField(max_length=50, blank=True, help_text="e.g., Polished, Matte, Antique")
+    material = models.CharField(max_length=100, blank=True, help_text="Material type: e.g., Brass, Gold, Silver")
+    plating_type = models.CharField(max_length=100, blank=True, help_text="Plating type: e.g., Gold Plated, Silver Plated")
+    finish = models.CharField(max_length=50, blank=True, help_text="Finish: e.g., Polished, Matte, Antique")
     care_instructions = models.TextField(blank=True, help_text="Instructions for jewelry care and maintenance")
-    occasion = models.CharField(max_length=100, blank=True, help_text="e.g., Daily Wear, Party Wear, Wedding, Festive")
-    style = models.CharField(max_length=50, blank=True, help_text="e.g., Traditional, Modern, Contemporary")
+    occasion = models.CharField(max_length=100, blank=True, help_text="Occasion: e.g., Daily Wear, Party Wear, Wedding")
+    style = models.CharField(max_length=50, blank=True, help_text="Style: e.g., Traditional, Modern, Contemporary")
 
     objects = ProductQuerySet.as_manager()
 

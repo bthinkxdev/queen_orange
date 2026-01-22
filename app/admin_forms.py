@@ -4,6 +4,21 @@ from django.forms import inlineformset_factory
 from .models import Category, Product, ProductImage, ProductVariant
 
 
+class DatalistWidget(forms.TextInput):
+    """Widget that allows both predefined choices and custom input using HTML5 datalist"""
+    template_name = 'widgets/datalist.html'
+    
+    def __init__(self, datalist=None, **kwargs):
+        super().__init__(**kwargs)
+        self.datalist = datalist or []
+    
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['datalist_id'] = f"datalist_{name}"
+        context['widget']['datalist_options'] = self.datalist
+        return context
+
+
 class AdminLoginForm(forms.Form):
     username = forms.CharField(
         max_length=150,
@@ -86,11 +101,11 @@ class ProductForm(forms.ModelForm):
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "product-slug"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Detailed product description"}),
             "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
-            "material": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Brass, Copper, Alloy"}),
-            "plating_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Gold Plated, Rose Gold Plated"}),
-            "finish": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Polished, Matte, Antique"}),
+            "material": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Brass, Gold, Silver, Copper"}),
+            "plating_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Gold Plated, Silver Plated, Rose Gold Plated"}),
+            "finish": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Polished, Matte, Antique, Brushed"}),
             "occasion": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Daily Wear, Party Wear, Wedding"}),
-            "style": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Traditional, Modern, Contemporary"}),
+            "style": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Traditional, Modern, Contemporary, Vintage"}),
             "care_instructions": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Instructions for jewelry care and maintenance"}),
             "price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00", "step": "0.01"}),
             "original_price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00 (optional)", "step": "0.01"}),
@@ -103,6 +118,11 @@ class ProductForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
         self.fields["original_price"].required = False
+        self.fields["material"].required = False
+        self.fields["plating_type"].required = False
+        self.fields["finish"].required = False
+        self.fields["occasion"].required = False
+        self.fields["style"].required = False
         self.fields["material"].required = False
         self.fields["plating_type"].required = False
         self.fields["finish"].required = False

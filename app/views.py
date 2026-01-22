@@ -25,6 +25,7 @@ class ProductListView(ListView):
         max_price = self.request.GET.get("max_price")
         size = self.request.GET.get("size")
         query = self.request.GET.get("q")
+        material = self.request.GET.get("material")
         plating = self.request.GET.get("plating")
         occasion = self.request.GET.get("occasion")
         style = self.request.GET.get("style")
@@ -39,6 +40,8 @@ class ProductListView(ListView):
             qs = qs.filter(price__lte=max_price)
         if size:
             qs = qs.filter(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
+        if material:
+            qs = qs.filter(material__icontains=material)
         if plating:
             qs = qs.filter(plating_type__icontains=plating)
         if occasion:
@@ -90,6 +93,7 @@ class ProductListView(ListView):
             "max_price": self.request.GET.get("max_price", ""),
             "size": self.request.GET.get("size", ""),
             "q": self.request.GET.get("q", ""),
+            "material": self.request.GET.get("material", ""),
             "plating": self.request.GET.get("plating", ""),
             "occasion": self.request.GET.get("occasion", ""),
             "style": self.request.GET.get("style", ""),
@@ -100,11 +104,26 @@ class ProductListView(ListView):
         # Category-aware size options
         context["size_config"] = self.get_size_config(category_slug)
         
+        # Get dynamic filter options from existing products
+        active_products = Product.objects.filter(is_active=True)
+        
+        # Helper function to get unique options (removes duplicates and normalizes)
+        def get_unique_options(queryset, field_name):
+            values = queryset.values_list(field_name, flat=True).distinct()
+            unique_dict = {}
+            for val in values:
+                if val and isinstance(val, str):
+                    normalized = val.strip()
+                    if normalized:
+                        unique_dict[normalized.lower()] = normalized
+            return sorted(unique_dict.values())
+        
         # Filter options
-        context["plating_options"] = ["Gold Plated", "Rose Gold Plated", "Silver Plated"]
-        context["occasion_options"] = ["Daily Wear", "Office Wear", "Party Wear", "Wedding", "Festive"]
-        context["style_options"] = ["Traditional", "Modern", "Contemporary", "Ethnic"]
-        context["finish_options"] = ["Polished", "Matte", "Antique"]
+        context["material_options"] = get_unique_options(active_products, 'material')
+        context["plating_options"] = get_unique_options(active_products, 'plating_type')
+        context["finish_options"] = get_unique_options(active_products, 'finish')
+        context["occasion_options"] = get_unique_options(active_products, 'occasion')
+        context["style_options"] = get_unique_options(active_products, 'style')
         
         return context
     

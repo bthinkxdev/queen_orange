@@ -79,15 +79,41 @@
                         </div>
                     </div>
 
-                    <!-- Plating/Material Filter -->
+                    <!-- Material Filter -->
                     <div class="filter-group">
                         <label class="filter-label">
-                            <i class="fas fa-gem"></i> Plating
+                            <i class="fas fa-gem"></i> Material
+                        </label>
+                        <select name="material" class="filter-select">
+                            <option value="">All Materials</option>
+                            {% for material_opt in material_options %}
+                                <option value="{{ material_opt }}" {% if filters.material == material_opt %}selected{% endif %}>{{ material_opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Plating Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-spray-can"></i> Plating
                         </label>
                         <select name="plating" class="filter-select">
-                            <option value="">All Types</option>
+                            <option value="">All Platings</option>
                             {% for plating_opt in plating_options %}
                                 <option value="{{ plating_opt }}" {% if filters.plating == plating_opt %}selected{% endif %}>{{ plating_opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Finish Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-star"></i> Finish
+                        </label>
+                        <select name="finish" class="filter-select">
+                            <option value="">All Finishes</option>
+                            {% for finish_opt in finish_options %}
+                                <option value="{{ finish_opt }}" {% if filters.finish == finish_opt %}selected{% endif %}>{{ finish_opt }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -114,19 +140,6 @@
                             <option value="">All Styles</option>
                             {% for style_opt in style_options %}
                                 <option value="{{ style_opt }}" {% if filters.style == style_opt %}selected{% endif %}>{{ style_opt }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Finish Filter -->
-                    <div class="filter-group">
-                        <label class="filter-label">
-                            <i class="fas fa-star"></i> Finish
-                        </label>
-                        <select name="finish" class="filter-select">
-                            <option value="">All Finishes</option>
-                            {% for finish_opt in finish_options %}
-                                <option value="{{ finish_opt }}" {% if filters.finish == finish_opt %}selected{% endif %}>{{ finish_opt }}</option>
                             {% endfor %}
                         </select>
                     </div>
