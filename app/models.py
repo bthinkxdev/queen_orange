@@ -50,11 +50,19 @@ class Product(TimeStampedModel):
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=220, unique=True)
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="products/", blank=True, null=True, help_text="Featured product image")
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     original_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     is_bestseller = models.BooleanField(default=False, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    # Jewelry-specific fields
+    material = models.CharField(max_length=100, blank=True, help_text="Material type: e.g., Brass, Gold, Silver")
+    plating_type = models.CharField(max_length=100, blank=True, help_text="Plating type: e.g., Gold Plated, Silver Plated")
+    finish = models.CharField(max_length=50, blank=True, help_text="Finish: e.g., Polished, Matte, Antique")
+    care_instructions = models.TextField(blank=True, help_text="Instructions for jewelry care and maintenance")
+    occasion = models.CharField(max_length=100, blank=True, help_text="Occasion: e.g., Daily Wear, Party Wear, Wedding")
+    style = models.CharField(max_length=50, blank=True, help_text="Style: e.g., Traditional, Modern, Contemporary")
 
     objects = ProductQuerySet.as_manager()
 
@@ -98,16 +106,27 @@ class ProductImage(TimeStampedModel):
 
 
 class ProductVariant(TimeStampedModel):
+    SIZE_TYPES = [
+        ('bangle', 'Bangle Size'),
+        ('ring', 'Ring Size'),
+        ('chain', 'Chain Length'),
+        ('necklace', 'Necklace Length'),
+        ('earring', 'Earring Type'),
+        ('adjustable', 'Adjustable/Free Size'),
+        ('none', 'No Size'),
+    ]
+    
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
-    sku = models.CharField(max_length=64, unique=True)
-    size = models.CharField(max_length=20)
-    color = models.CharField(max_length=30, blank=True)
+    sku = models.CharField(max_length=64, unique=True, blank=True, null=True, help_text="Optional unique SKU")
+    size_type = models.CharField(max_length=20, choices=SIZE_TYPES, default='none', help_text="Type of size measurement")
+    size = models.CharField(max_length=20, blank=True, help_text="Size value: 2.4, 7, 18 inches, etc.")
+    color = models.CharField(max_length=30, blank=True, help_text="Color tone: Gold, Rose Gold, etc.")
+    design = models.CharField(max_length=50, blank=True, help_text="Design variant if applicable")
     stock_quantity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True, db_index=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["product", "size", "color"], name="unique_variant"),
             models.CheckConstraint(condition=models.Q(stock_quantity__gte=0), name="stock_non_negative"),
         ]
         indexes = [
@@ -115,8 +134,14 @@ class ProductVariant(TimeStampedModel):
         ]
 
     def __str__(self):
-        color = f" / {self.color}" if self.color else ""
-        return f"{self.product.name} - {self.size}{color}"
+        parts = [self.product.name]
+        if self.design:
+            parts.append(self.design)
+        if self.size:
+            parts.append(f"Size {self.size}")
+        if self.color:
+            parts.append(self.color)
+        return " - ".join(parts)
 
 
 class Cart(TimeStampedModel):

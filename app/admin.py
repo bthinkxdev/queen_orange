@@ -25,7 +25,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
-    extra = 1
+    extra = 0
+    fields = ("image", "is_primary", "alt_text")
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -39,6 +40,23 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("category", "is_featured", "is_bestseller", "is_active")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
+    fieldsets = (
+        ("Basic Information", {
+            "fields": ("name", "slug", "category", "description")
+        }),
+        ("Image", {
+            "fields": ("image",)
+        }),
+        ("Pricing", {
+            "fields": ("price", "original_price")
+        }),
+        ("Jewelry Details", {
+            "fields": ("material", "plating_type", "finish", "occasion", "style", "care_instructions")
+        }),
+        ("Status", {
+            "fields": ("is_active", "is_featured", "is_bestseller")
+        }),
+    )
     inlines = [ProductImageInline, ProductVariantInline]
 
 

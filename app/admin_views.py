@@ -290,30 +290,49 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context["image_formset"] = ProductImageFormSet(self.request.POST, self.request.FILES)
-            context["variant_formset"] = ProductVariantFormSet(self.request.POST)
+            context["image_formset"] = ProductImageFormSet(self.request.POST, self.request.FILES, instance=None)
+            context["variant_formset"] = ProductVariantFormSet(self.request.POST, instance=None)
         else:
-            context["image_formset"] = ProductImageFormSet()
-            context["variant_formset"] = ProductVariantFormSet()
+            context["image_formset"] = ProductImageFormSet(instance=None)
+            context["variant_formset"] = ProductVariantFormSet(instance=None)
         context["active_menu"] = "products"
         context["form_title"] = "Create Product"
         return context
     
     def form_valid(self, form):
-        context = self.get_context_data()
-        image_formset = context["image_formset"]
-        variant_formset = context["variant_formset"]
+        self.object = form.save()
+        image_formset = ProductImageFormSet(self.request.POST, self.request.FILES, instance=self.object)
+        variant_formset = ProductVariantFormSet(self.request.POST, instance=self.object)
         
-        if image_formset.is_valid() and variant_formset.is_valid():
-            self.object = form.save()
-            image_formset.instance = self.object
+        # Save image formset
+        if image_formset.is_valid():
             image_formset.save()
-            variant_formset.instance = self.object
-            variant_formset.save()
-            messages.success(self.request, "Product created successfully!")
-            return redirect(self.success_url)
         else:
-            return self.form_invalid(form)
+            print(f"Image formset errors: {image_formset.errors}")
+        if variant_formset.is_valid():
+            for i, variant_form in enumerate(variant_formset.forms):
+                if variant_form.cleaned_data.get('DELETE'):
+                    if variant_form.instance.pk:
+                        variant_form.instance.delete()
+                    continue
+                if not any([
+                    variant_form.cleaned_data.get('size'),
+                    variant_form.cleaned_data.get('color'),
+                    variant_form.cleaned_data.get('design'),
+                    variant_form.cleaned_data.get('sku'),
+                ]):
+                    continue
+                try:
+                    variant = variant_form.save(commit=False)
+                    variant.product = self.object
+                    variant.save()
+                except Exception as e:
+                    print(f"Error saving variant {i}: {e}")
+        else:
+            print(f"Variant formset errors: {variant_formset.errors}")
+        
+        messages.success(self.request, "Product created successfully!")
+        return redirect(self.success_url)
 
 
 class ProductUpdateView(StaffRequiredMixin, UpdateView):
@@ -339,20 +358,45 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        context = self.get_context_data()
-        image_formset = context["image_formset"]
-        variant_formset = context["variant_formset"]
+        self.object = form.save()
+        image_formset = ProductImageFormSet(
+            self.request.POST, self.request.FILES, instance=self.object
+        )
+        variant_formset = ProductVariantFormSet(
+            self.request.POST, instance=self.object
+        )
         
-        if image_formset.is_valid() and variant_formset.is_valid():
-            self.object = form.save()
-            image_formset.instance = self.object
+        if image_formset.is_valid():
             image_formset.save()
-            variant_formset.instance = self.object
-            variant_formset.save()
-            messages.success(self.request, "Product updated successfully!")
-            return redirect(self.success_url)
         else:
-            return self.form_invalid(form)
+            print(f"Image formset errors: {image_formset.errors}")
+
+        if variant_formset.is_valid():
+            for i, variant_form in enumerate(variant_formset.forms):
+                if variant_form.cleaned_data.get('DELETE'):
+                    if variant_form.instance.pk:
+                        variant_form.instance.delete()
+                    continue
+                
+                if not any([
+                    variant_form.cleaned_data.get('size'),
+                    variant_form.cleaned_data.get('color'),
+                    variant_form.cleaned_data.get('design'),
+                    variant_form.cleaned_data.get('sku'),
+                ]):
+                    continue
+
+                try:
+                    variant = variant_form.save(commit=False)
+                    variant.product = self.object
+                    variant.save()
+                except Exception as e:
+                    print(f"Error saving variant {i}: {e}")
+        else:
+            print(f"Variant formset errors: {variant_formset.errors}")
+        
+        messages.success(self.request, "Product updated successfully!")
+        return redirect(self.success_url)
 
 
 class ProductDeleteView(StaffRequiredMixin, DeleteView):
@@ -361,8 +405,32 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
     
     def post(self, request, *args, **kwargs):
         product = self.get_object()
-        messages.success(request, f"Product '{product.name}' deleted successfully!")
-        return super().post(request, *args, **kwargs)
+        
+        # Check if there are any non-terminal orders for this product
+        pending_orders = OrderItem.objects.filter(
+            product=product
+        ).select_related('order').values_list('order', flat=True).distinct()
+        
+        if pending_orders.exists():
+            non_terminal_orders = Order.objects.filter(
+                id__in=pending_orders
+            ).exclude(
+                status__in=['delivered', 'cancelled']
+            )
+            
+            if non_terminal_orders.exists():
+                pending_count = non_terminal_orders.count()
+                messages.error(
+                    request, 
+                    f"Cannot mark product as inactive! There are {pending_count} order(s) for this product. "
+                    f"All orders must be delivered or cancelled first."
+                )
+                return redirect(self.success_url)
+        
+        product.is_active = False
+        product.save()
+        messages.success(request, f"Product '{product.name}' has been marked as inactive!")
+        return redirect(self.success_url)
 
 
 # Order Management Views

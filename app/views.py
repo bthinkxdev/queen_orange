@@ -25,6 +25,12 @@ class ProductListView(ListView):
         max_price = self.request.GET.get("max_price")
         size = self.request.GET.get("size")
         query = self.request.GET.get("q")
+        material = self.request.GET.get("material")
+        plating = self.request.GET.get("plating")
+        occasion = self.request.GET.get("occasion")
+        style = self.request.GET.get("style")
+        finish = self.request.GET.get("finish")
+        sort_by = self.request.GET.get("sort", "newest")
 
         if category and category != "all":
             qs = qs.filter(category__slug=category)
@@ -34,35 +40,136 @@ class ProductListView(ListView):
             qs = qs.filter(price__lte=max_price)
         if size:
             qs = qs.filter(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
+        if material:
+            qs = qs.filter(material__icontains=material)
+        if plating:
+            qs = qs.filter(plating_type__icontains=plating)
+        if occasion:
+            qs = qs.filter(occasion__icontains=occasion)
+        if style:
+            qs = qs.filter(style__icontains=style)
+        if finish:
+            qs = qs.filter(finish__icontains=finish)
         if query:
             qs = qs.filter(
                 Q(name__icontains=query)
                 | Q(description__icontains=query)
                 | Q(category__name__icontains=query)
+                | Q(variants__sku__icontains=query)
             )
+        
+
+        # Sorting
+        if sort_by == "price_low":
+            qs = qs.order_by("price")
+        elif sort_by == "price_high":
+            qs = qs.order_by("-price")
+        elif sort_by == "newest":
+            qs = qs.order_by("-created_at")
+        elif sort_by == "popular":
+            qs = qs.filter(is_bestseller=True).order_by("-created_at")
         
         # Apply distinct then prefetch_related for images
         return qs.distinct().prefetch_related("images")
 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True)
-        context["page_title"] = "Shop All Products"
+        context["page_title"] = "Shop All Jewelry"
         context["active_page"] = "collection"
+        
         category_slug = self.request.GET.get("category")
+        selected_category = None
         if category_slug and category_slug != "all":
-            category = Category.objects.filter(slug=category_slug).first()
-            if category:
-                context["page_title"] = category.name
+            selected_category = Category.objects.filter(slug=category_slug).first()
+            if selected_category:
+                context["page_title"] = selected_category.name
+        
+        context["selected_category"] = selected_category
         context["filters"] = {
             "category": self.request.GET.get("category", "all"),
             "min_price": self.request.GET.get("min_price", ""),
             "max_price": self.request.GET.get("max_price", ""),
             "size": self.request.GET.get("size", ""),
             "q": self.request.GET.get("q", ""),
+            "material": self.request.GET.get("material", ""),
+            "plating": self.request.GET.get("plating", ""),
+            "occasion": self.request.GET.get("occasion", ""),
+            "style": self.request.GET.get("style", ""),
+            "finish": self.request.GET.get("finish", ""),
+            "sort": self.request.GET.get("sort", "newest"),
         }
-        context["size_options"] = ["S", "M", "L", "XL", "XXL", "6M", "12M", "18M", "24M", "3Y"]
+        
+        # Category-aware size options
+        context["size_config"] = self.get_size_config(category_slug)
+        
+        # Get dynamic filter options from existing products
+        active_products = Product.objects.filter(is_active=True)
+        
+        # Helper function to get unique options (removes duplicates and normalizes)
+        def get_unique_options(queryset, field_name):
+            values = queryset.values_list(field_name, flat=True).distinct()
+            unique_dict = {}
+            for val in values:
+                if val and isinstance(val, str):
+                    normalized = val.strip()
+                    if normalized:
+                        unique_dict[normalized.lower()] = normalized
+            return sorted(unique_dict.values())
+        
+        # Filter options
+        context["material_options"] = get_unique_options(active_products, 'material')
+        context["plating_options"] = get_unique_options(active_products, 'plating_type')
+        context["finish_options"] = get_unique_options(active_products, 'finish')
+        context["occasion_options"] = get_unique_options(active_products, 'occasion')
+        context["style_options"] = get_unique_options(active_products, 'style')
+        
         return context
+    
+    def get_size_config(self, category_slug):
+        """Return category-specific size configuration"""
+        if not category_slug or category_slug == "all":
+            return {"type": "none", "label": "Size", "options": []}
+        
+        category_lower = category_slug.lower()
+        
+        if "bangle" in category_lower or "kada" in category_lower:
+            return {
+                "type": "bangle",
+                "label": "Bangle Size (Diameter)",
+                "options": ["2.2", "2.4", "2.6", "2.8", "2.10", "Adjustable"]
+            }
+        elif "ring" in category_lower:
+            return {
+                "type": "ring",
+                "label": "Ring Size",
+                "options": ["6", "7", "8", "9", "10", "11", "12", "Adjustable"]
+            }
+        elif "chain" in category_lower:
+            return {
+                "type": "chain",
+                "label": "Chain Length",
+                "options": ["16 inches", "18 inches", "20 inches", "22 inches", "24 inches"]
+            }
+        elif "necklace" in category_lower:
+            return {
+                "type": "necklace",
+                "label": "Necklace Length",
+                "options": ["Choker", "Short", "Medium", "Long"]
+            }
+        elif "earring" in category_lower:
+            return {
+                "type": "earring",
+                "label": "Earring Type",
+                "options": ["Studs", "Drops", "Hoops", "Chandbali", "Jhumka"]
+            }
+        else:
+            return {
+                "type": "none",
+                "label": "Size",
+                "options": ["Free Size", "Adjustable"]
+            }
 
 
 class HomeView(TemplateView):

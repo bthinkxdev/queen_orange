@@ -4,6 +4,21 @@ from django.forms import inlineformset_factory
 from .models import Category, Product, ProductImage, ProductVariant
 
 
+class DatalistWidget(forms.TextInput):
+    """Widget that allows both predefined choices and custom input using HTML5 datalist"""
+    template_name = 'widgets/datalist.html'
+    
+    def __init__(self, datalist=None, **kwargs):
+        super().__init__(**kwargs)
+        self.datalist = datalist or []
+    
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['datalist_id'] = f"datalist_{name}"
+        context['widget']['datalist_options'] = self.datalist
+        return context
+
+
 class AdminLoginForm(forms.Form):
     username = forms.CharField(
         max_length=150,
@@ -39,7 +54,8 @@ class CategoryForm(forms.ModelForm):
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
-        if image:
+        # Only validate if a new image is being uploaded (not an existing file)
+        if image and hasattr(image, 'size'):
             # Check file size (5MB = 5 * 1024 * 1024 bytes)
             max_size = 5 * 1024 * 1024  # 5MB in bytes
             if image.size > max_size:
@@ -66,6 +82,13 @@ class ProductForm(forms.ModelForm):
             "name",
             "slug",
             "description",
+            "image",
+            "material",
+            "plating_type",
+            "finish",
+            "occasion",
+            "style",
+            "care_instructions",
             "price",
             "original_price",
             "is_featured",
@@ -74,9 +97,16 @@ class ProductForm(forms.ModelForm):
         ]
         widgets = {
             "category": forms.Select(attrs={"class": "form-control"}),
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Product Name"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Jewelry Name"}),
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "product-slug"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Product Description"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Detailed product description"}),
+            "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
+            "material": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Brass, Gold, Silver, Copper"}),
+            "plating_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Gold Plated, Silver Plated, Rose Gold Plated"}),
+            "finish": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Polished, Matte, Antique, Brushed"}),
+            "occasion": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Daily Wear, Party Wear, Wedding"}),
+            "style": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Traditional, Modern, Contemporary, Vintage"}),
+            "care_instructions": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Instructions for jewelry care and maintenance"}),
             "price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00", "step": "0.01"}),
             "original_price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00 (optional)", "step": "0.01"}),
             "is_featured": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -88,6 +118,34 @@ class ProductForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
         self.fields["original_price"].required = False
+        self.fields["material"].required = False
+        self.fields["plating_type"].required = False
+        self.fields["finish"].required = False
+        self.fields["occasion"].required = False
+        self.fields["style"].required = False
+        self.fields["material"].required = False
+        self.fields["plating_type"].required = False
+        self.fields["finish"].required = False
+        self.fields["occasion"].required = False
+        self.fields["style"].required = False
+        self.fields["care_instructions"].required = False
+        self.fields["image"].required = False
+    
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and hasattr(image, 'size'):
+            max_size = 5 * 1024 * 1024 
+            if image.size > max_size:
+                raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
+            try:
+                from PIL import Image
+                img = Image.open(image)
+                img.verify()
+                image.seek(0)
+            except Exception:
+                raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
+        
+        return image
 
 
 class ProductImageForm(forms.ModelForm):
@@ -102,7 +160,8 @@ class ProductImageForm(forms.ModelForm):
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
-        if image:
+        # Only validate if a new image is being uploaded (not an existing file)
+        if image and hasattr(image, 'size'):
             # Check file size (5MB = 5 * 1024 * 1024 bytes)
             max_size = 5 * 1024 * 1024  # 5MB in bytes
             if image.size > max_size:
@@ -135,14 +194,30 @@ ProductImageFormSet = inlineformset_factory(
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["sku", "size", "color", "stock_quantity", "is_active"]
+        fields = ["sku", "size_type", "size", "color", "design", "stock_quantity", "is_active"]
         widgets = {
             "sku": forms.TextInput(attrs={"class": "form-control", "placeholder": "SKU"}),
-            "size": forms.TextInput(attrs={"class": "form-control", "placeholder": "Size (e.g., S, M, L)"}),
-            "color": forms.TextInput(attrs={"class": "form-control", "placeholder": "Color (optional)"}),
+            "size_type": forms.Select(attrs={"class": "form-control"}),
+            "size": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., 2.4, 7, 18 inches"}),
+            "color": forms.TextInput(attrs={"class": "form-control", "placeholder": "Color Tone (e.g., Gold, Rose Gold)"}),
+            "design": forms.TextInput(attrs={"class": "form-control", "placeholder": "Design variant (optional)"}),
             "stock_quantity": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0", "min": "0"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+        help_texts = {
+            "size_type": "Select the appropriate size type based on category",
+            "size": "Enter size value: 2.4 for bangles, 7 for rings, 18 inches for chains, etc.",
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sku"].required = False
+        self.fields["size_type"].required = False
+        self.fields["size"].required = False
+        self.fields["color"].required = False
+        self.fields["design"].required = False
+        self.fields["stock_quantity"].required = False
+        self.fields["is_active"].required = False
 
 
 ProductVariantFormSet = inlineformset_factory(
@@ -152,5 +227,6 @@ ProductVariantFormSet = inlineformset_factory(
     extra=3,  # Show 3 empty forms by default
     can_delete=True,
     max_num=50,  # Allow up to 50 variants (different sizes/colors)
+    validate_min=False,  # Don't require any minimum forms
 )
 
