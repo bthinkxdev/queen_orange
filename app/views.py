@@ -102,7 +102,7 @@ class ProductListView(ListView):
         }
         
         # Category-aware size options
-        context["size_config"] = self.get_size_config(category_slug)
+        # context["size_config"] = self.get_size_config(category_slug)
         
         # Get dynamic filter options from existing products
         active_products = Product.objects.filter(is_active=True)
