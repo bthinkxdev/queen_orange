@@ -405,8 +405,32 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
     
     def post(self, request, *args, **kwargs):
         product = self.get_object()
-        messages.success(request, f"Product '{product.name}' deleted successfully!")
-        return super().post(request, *args, **kwargs)
+        
+        # Check if there are any non-terminal orders for this product
+        pending_orders = OrderItem.objects.filter(
+            product=product
+        ).select_related('order').values_list('order', flat=True).distinct()
+        
+        if pending_orders.exists():
+            non_terminal_orders = Order.objects.filter(
+                id__in=pending_orders
+            ).exclude(
+                status__in=['delivered', 'cancelled']
+            )
+            
+            if non_terminal_orders.exists():
+                pending_count = non_terminal_orders.count()
+                messages.error(
+                    request, 
+                    f"Cannot mark product as inactive! There are {pending_count} order(s) for this product. "
+                    f"All orders must be delivered or cancelled first."
+                )
+                return redirect(self.success_url)
+        
+        product.is_active = False
+        product.save()
+        messages.success(request, f"Product '{product.name}' has been marked as inactive!")
+        return redirect(self.success_url)
 
 
 # Order Management Views
