@@ -55,7 +55,8 @@
                     </div>
 
                     <div style="margin-top: 1rem; padding: 1rem; background-color: var(--primary-light); border-radius: var(--radius-md); text-align: center;">
-                        <strong>Payment Method:</strong> {{ order.payment.get_method_display }}
+                        <strong>Payment Method:</strong> {{ order.payment.get_method_display }}<br>
+                        <strong>Payment Status:</strong> <span style="color: {% if order.payment.status == 'paid' %}#28a745{% else %}#ffc107{% endif %}; font-weight: 600;">{{ order.payment.get_status_display }}</span>
                     </div>
                 </div>
 

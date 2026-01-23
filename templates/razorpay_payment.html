@@ -5,7 +5,6 @@
 {% block meta_description %}Complete your payment with Razorpay{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/auth.css' %}">
 <style>
     .payment-container {
         max-width: 600px;
@@ -25,6 +24,11 @@
         font-size: 28px;
         margin-bottom: 10px;
         color: #333;
+    }
+    
+    .payment-header p {
+        font-size: 14px;
+        color: #666;
     }
     
     .order-details {
@@ -70,7 +74,7 @@
     .payment-button {
         width: 100%;
         padding: 14px;
-        background:  #E91E63;
+        background: #E91E63;
         color: white;
         border: none;
         border-radius: 6px;
@@ -80,8 +84,8 @@
         transition: background 0.3s;
     }
     
-    .payment-button:hover {
-        background: #0056b3;
+    .payment-button:hover:not(:disabled) {
+        background: #C2185B;
     }
     
     .payment-button:disabled {
@@ -122,9 +126,8 @@
 {% endblock %}
 
 {% block content %}
-<section class="checkout-page">
-    <div class="container">
-        <div class="payment-container">
+<div style="padding: 60px 20px; min-height: 60vh; display: flex; align-items: center; justify-content: center;">
+    <div class="payment-container">
             <div class="payment-header">
                 <h1>Complete Payment</h1>
                 <p>Secure payment via Razorpay</p>
@@ -164,27 +167,54 @@
             </div>
         </div>
     </div>
-</section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-    const orderNumber = "{{ order.order_number }}";
+    console.log('Payment page loaded');
+    
+    // Extract order number from URL as fallback
+    const urlPath = window.location.pathname;
+    const urlOrderNumber = urlPath.split('/').filter(Boolean)[2]; // /payment/razorpay/ORDER_NUMBER/
+    
+    const orderNumber = "{{ order.order_number }}" || urlOrderNumber;
     const totalAmount = "{{ order.total }}";
     const csrfToken = "{{ csrf_token }}";
+    
+    console.log('Order Number:', orderNumber);
+    console.log('Total Amount:', totalAmount);
+    console.log('CSRF Token:', csrfToken);
+    console.log('URL Order Number:', urlOrderNumber);
+    
+    if (!orderNumber) {
+        console.error('Order number is empty!');
+        document.getElementById('errorMessage').textContent = 'Error: Order not found';
+        document.getElementById('errorMessage').style.display = 'block';
+    }
     
     function initializePayment() {
         const button = document.getElementById('razorpayButton');
         const loading = document.getElementById('loadingSpinner');
         const errorDiv = document.getElementById('errorMessage');
         
+        // Validate order number
+        if (!orderNumber || orderNumber.trim() === '') {
+            showError('Error: Order number not found. Please refresh the page.');
+            return;
+        }
+        
         button.disabled = true;
         loading.style.display = 'block';
         errorDiv.style.display = 'none';
         
         // Fetch Razorpay order details from server
-        fetch("{% url 'store:razorpay_payment' order.order_number %}", {
+        const fetchUrl = "/payment/razorpay/" + orderNumber + "/";
+        console.log('Fetch URL:', fetchUrl);
+        console.log('Body:', 'order_number=' + orderNumber);
+        
+        fetch(fetchUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -216,7 +246,6 @@
             amount: paymentData.amount,
             currency: 'INR',
             order_id: paymentData.razorpay_order_id,
-            customer_notif: 1,
             name: 'Queen Orange',
             description: 'Order #' + paymentData.order_number,
             customer_details: {

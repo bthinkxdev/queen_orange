@@ -6,6 +6,7 @@ from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
+from django.utils import timezone
 
 import json
 import razorpay
@@ -368,7 +369,7 @@ class OrderSuccessView(DetailView):
     slug_field = "order_number"
 
     def get_queryset(self):
-        return Order.objects.select_related("address").prefetch_related("items")
+        return Order.objects.select_related("address", "payment").prefetch_related("items")
 
     def dispatch(self, request, *args, **kwargs):
         order_number = kwargs.get("order_number")
@@ -456,11 +457,18 @@ class RazorpayPaymentView(LoginRequiredForActionMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+            
             order_number = request.POST.get('order_number')
+            logger.info(f"POST request for order: {order_number}")
+            
             order = Order.objects.select_related('address', 'user').get(order_number=order_number)
+            logger.info(f"Order found: {order.order_number}, User: {order.user}")
             
             # Check authorization
             if order.user != request.user:
+                logger.warning(f"Unauthorized access attempt for order {order_number}")
                 return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
             
             # Get or create payment
@@ -477,11 +485,11 @@ class RazorpayPaymentView(LoginRequiredForActionMixin, View):
             client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
             
             # Create Razorpay order
-            razorpay_order = client.order.create(dict(
-                amount=int(order.total * 100),  # Amount in paise
-                currency='INR',
-                payment_capture='1'
-            ))
+            razorpay_order = client.order.create({
+                'amount': int(order.total * 100), 
+                'currency': 'INR',
+                'payment_capture': 1 
+            })
             
             # Store Razorpay order ID
             payment.razorpay_order_id = razorpay_order['id']
@@ -498,8 +506,14 @@ class RazorpayPaymentView(LoginRequiredForActionMixin, View):
                 'customer_phone': order.address.phone,
             })
         except Order.DoesNotExist:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Order not found: {order_number}")
             return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Payment initialization error: {str(e)}", exc_info=True)
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
     def get(self, request, *args, **kwargs):
@@ -531,11 +545,16 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+            
             data = json.loads(request.body)
             
             razorpay_order_id = data.get('razorpay_order_id')
             razorpay_payment_id = data.get('razorpay_payment_id')
             razorpay_signature = data.get('razorpay_signature')
+            
+            logger.info(f"Payment verification attempt - Order: {razorpay_order_id}, Payment: {razorpay_payment_id}")
             
             payment = Payment.objects.select_related('order').get(
                 razorpay_order_id=razorpay_order_id
@@ -549,37 +568,46 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 hashlib.sha256
             ).hexdigest()
             
+            logger.debug(f"Signature verification - Expected: {signature_check}, Received: {razorpay_signature}")
+            
             if signature_check == razorpay_signature:
-                # Payment successful
+                # Payment successful - update all payment fields
                 payment.razorpay_payment_id = razorpay_payment_id
                 payment.razorpay_signature = razorpay_signature
-                payment.mark_paid()
+                payment.status = Payment.Status.PAID
+                payment.processed_at = timezone.now()
+                payment.save(update_fields=['status', 'processed_at', 'razorpay_payment_id', 'razorpay_signature'])
                 
-                # Update order status
-                order = payment.order
-                order.status = Order.Status.CONFIRMED
-                order.save(update_fields=['status'])
+                logger.info(f"Payment successful - Order: {payment.order.order_number}, Payment: {razorpay_payment_id}, Status: PAID")
                 
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Payment verified successfully',
-                    'order_number': order.order_number
+                    'order_number': payment.order.order_number
                 })
             else:
                 payment.status = Payment.Status.FAILED
                 payment.save(update_fields=['status'])
+                
+                logger.warning(f"Signature mismatch for order {razorpay_order_id}")
                 
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Payment signature verification failed'
                 }, status=400)
         except Payment.DoesNotExist:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Payment record not found for order: {razorpay_order_id}")
             return JsonResponse({
                 'status': 'error',
                 'message': 'Payment record not found'
             }, status=404)
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Payment verification error: {str(e)}", exc_info=True)
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
+                'message': f'Payment verification error: {str(e)}'
             }, status=500)
