@@ -29,6 +29,11 @@
                             <div class="order-status status-{{ order.status }}" style="margin-bottom: 12px;">
                                 Status: {{ order.get_status_display }}
                             </div>
+                            {% if order.payment %}
+                            <div class="payment-status status-{{ order.payment.status }}" style="margin-bottom: 12px;">
+                                Payment Status: {{ order.payment.get_status_display }}
+                            </div>
+                            {% endif %}
                             <div class="order-items-list">
                                 {% for item in order.items.all %}
                                     <div class="order-item-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F5F5F5;">

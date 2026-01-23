@@ -52,6 +52,9 @@
                                 <div class="order-info">
                                     <span class="order-number">#{{ order.order_number }}</span>
                                     <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+                                    {% if order.payment %}
+                                        <span class="payment-status status-{{ order.payment.status }}">Payment: {{ order.payment.get_status_display }}</span>
+                                    {% endif %}
                                 </div>
                                 <div class="order-meta">
                                     <span class="order-date">{{ order.created_at|date:"M d, Y" }}</span>
