@@ -2948,7 +2948,7 @@ input, textarea, select {
 }
 
 .product-description ul li::before {
-    content: '✓';
+    /* content: '✓'; */
     position: absolute;
     left: 0;
     color: var(--primary-dark);
@@ -5237,6 +5237,18 @@ input, textarea, select {
     .contact-card p {
         font-size: 14px;
     }
+}
+
+/* ============================================
+   SPECIFICATIONS CHECKMARKS
+   ============================================ */
+
+.specifications-list li::before {
+    content: "✓";
+    color: #7B1FA2;
+    font-weight: bold;
+    margin-right: var(--space-5);
+    font-size: 18px;
 }
 
 /* ============================================
