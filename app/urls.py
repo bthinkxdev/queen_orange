@@ -23,5 +23,6 @@ urlpatterns = [
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter_subscribe"),
     path("privacy/", views.StaticPageView.as_view(template_name="privacy.html", extra_context={"active_page": "privacy"}), name="privacy"),
     path("terms/", views.StaticPageView.as_view(template_name="terms.html", extra_context={"active_page": "terms"}), name="terms"),
+    path("refund/", views.StaticPageView.as_view(template_name="refund.html", extra_context={"active_page": "refund"}), name="refund"),
 ]
 
