@@ -1,4 +1,4 @@
-// Queen Orange - UI JavaScript
+// Golden Elegance - UI JavaScript
 
 document.addEventListener("DOMContentLoaded", () => {
     initMobileMenu();

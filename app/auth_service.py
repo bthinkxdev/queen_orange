@@ -71,17 +71,22 @@ class OTPService:
         """
         email = email.lower().strip()
         
+        print(f"\n🔑 Creating OTP for: {email}")
+        
         # Check rate limiting
         if cls.is_rate_limited(email):
             remaining = cls.get_cooldown_remaining(email)
+            print(f"⏱️  Rate limited: {remaining}s remaining")
             raise RateLimitError(f"Please wait {remaining} seconds before requesting another OTP.")
         
         # Invalidate old OTPs
+        print(f"🗑️  Invalidating old OTPs for {email}")
         cls.invalidate_old_otps(email)
         
         # Generate new OTP
         plain_otp = OTPRequest.generate_otp()
         otp_hash = OTPRequest.hash_otp(plain_otp)
+        print(f"🎲 Generated OTP: {plain_otp}")
         
         # Create OTP request
         otp_request = OTPRequest.objects.create(
@@ -90,9 +95,11 @@ class OTPService:
             expires_at=timezone.now() + timedelta(minutes=cls.OTP_EXPIRY_MINUTES),
             ip_address=ip_address,
         )
+        print(f"💾 OTP saved to database (ID: {otp_request.id})")
         
         # Set rate limit
         cls.set_rate_limit(email)
+        print(f"⏱️  Rate limit set for {cls.RATE_LIMIT_SECONDS}s")
         
         return otp_request, plain_otp
     
@@ -101,11 +108,19 @@ class OTPService:
         """Send OTP via email"""
         email = email.lower().strip()
         
+        print(f"\n{'='*60}")
+        print(f"📧 SENDING OTP EMAIL")
+        print(f"{'='*60}")
+        print(f"To: {email}")
+        print(f"OTP: {otp}")
+        print(f"From: {settings.DEFAULT_FROM_EMAIL}")
+        print(f"{'='*60}\n")
+        
         # Prepare email context
         context = {
             'otp': otp,
             'expiry_minutes': cls.OTP_EXPIRY_MINUTES,
-            'site_name': 'Queen Orange',
+            'site_name': 'Golden Elegance',
             'support_email': settings.DEFAULT_FROM_EMAIL,
         }
         
@@ -115,6 +130,7 @@ class OTPService:
         
         # Send email
         try:
+            print("📤 Attempting to send email...")
             send_mail(
                 subject='Your One-Time Login Code',
                 message=plain_message,
@@ -123,9 +139,15 @@ class OTPService:
                 html_message=html_message,
                 fail_silently=False,
             )
+            print("✅ Email sent successfully!")
+            print(f"{'='*60}\n")
             return True
         except Exception as e:
-            print(f"Error sending OTP email: {e}")
+            print(f"❌ Error sending OTP email: {e}")
+            print(f"Error type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
+            print(f"{'='*60}\n")
             return False
     
     @classmethod

@@ -1,4 +1,4 @@
-// Queen Orange - Cart Management
+// Golden Elegance - Cart Management
 
 // Initialize cart from localStorage
 function initCart() {
@@ -105,10 +105,10 @@ function updateCartCount() {
 function generateWhatsAppMessage() {
     const cart = getCart();
     if (cart.length === 0) {
-        return 'Hello Queen Orange! I am interested in your products.';
+        return 'Hello Golden Elegance! I am interested in your products.';
     }
     
-    let message = 'Hello Queen Orange! I want to order:\n\n';
+    let message = 'Hello Golden Elegance! I want to order:\n\n';
     cart.forEach((item, index) => {
         message += `${index + 1}. ${item.name}\n`;
         message += `   Size: ${item.size}\n`;

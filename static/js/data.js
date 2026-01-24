@@ -1,4 +1,4 @@
-// Queen Orange - Product Data
+// Golden Elegance - Product Data
 
 const CATEGORIES = [
     { id: 'full-nighty', name: 'Full Nighty', slug: 'full-nighty', image: 'images/full_nighty.jpg' },
