@@ -5,8 +5,13 @@
 {% block content %}
     <section class="banner-section">
         <div class="container">
-            <div class="banner-wrapper">
-                <img src="{% static 'images/banner.png' %}" alt="Fashion Banner" class="banner-image">
+            <div class="banner-slider" id="bannerSlider">
+                <div class="banner-slide active">
+                    <img src="{% static 'images/banner1.png' %}" alt="Fashion Banner 1" class="banner-image">
+                </div>
+                <div class="banner-slide">
+                    <img src="{% static 'images/banner2.png' %}" alt="Fashion Banner 2" class="banner-image">
+                </div>
             </div>
         </div>
     </section>

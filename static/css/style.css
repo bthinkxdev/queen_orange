@@ -5271,3 +5271,27 @@ input, textarea, select {
         break-inside: avoid;
     }
 }
+.banner-slider {
+    position: relative;
+    overflow: hidden;
+}
+.banner-slide {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.7s cubic-bezier(0.57, 0.09, 0.38, 1), visibility 0.7s;
+}
+.banner-slide.active {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+    z-index: 1;
+}
+.banner-image {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+}

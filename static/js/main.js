@@ -207,3 +207,18 @@ document.addEventListener("DOMContentLoaded", () => {
     initQuickAddToCart();
 });
 
+(function() {
+    var slider = document.getElementById('bannerSlider');
+    if (!slider) return;
+    var slides = slider.querySelectorAll('.banner-slide');
+    var current = 0;
+    function showSlide(idx) {
+        slides.forEach(function(slide, i) {
+            slide.classList.toggle('active', i === idx);
+        });
+    }
+    setInterval(function() {
+        current = (current + 1) % slides.length;
+        showSlide(current);
+    }, 3400);
+})();
