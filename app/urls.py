@@ -24,5 +24,6 @@ urlpatterns = [
     path("privacy/", views.StaticPageView.as_view(template_name="privacy.html", extra_context={"active_page": "privacy"}), name="privacy"),
     path("terms/", views.StaticPageView.as_view(template_name="terms.html", extra_context={"active_page": "terms"}), name="terms"),
     path("refund/", views.StaticPageView.as_view(template_name="refund.html", extra_context={"active_page": "refund"}), name="refund"),
+    path("shipping/", views.StaticPageView.as_view(template_name="shipping.html", extra_context={"active_page": "shipping"}), name="shipping"),
 ]
 
