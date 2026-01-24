@@ -2,11 +2,17 @@
 {% load static %}
 {% block title %}Golden Elegance - Premium Gold-Plated Jewelry & Ornaments{% endblock %}
 {% block meta_description %}Shop exquisite gold-plated jewelry collection including necklaces, earrings, bangles, and bridal sets at Golden Elegance.{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/banner-slider.css' %}">
+{% endblock %}
 {% block content %}
     <section class="banner-section">
         <div class="container">
-            <div class="banner-wrapper">
-                <img src="{% static 'images/banner.png' %}" alt="Fashion Banner" class="banner-image">
+            <div class="banner-slider-wrapper">
+                <div class="banner-slider" id="bannerSlider">
+                    <img src="{% static 'images/banner1.png' %}" alt="Golden Elegance - Slide 1" class="banner-slide">
+                    <img src="{% static 'images/banner2.png' %}" alt="Golden Elegance - Slide 2" class="banner-slide">
+                </div>
             </div>
         </div>
     </section>
@@ -408,4 +414,8 @@
         </div>
     </section>
 
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'js/banner-slider.js' %}"></script>
 {% endblock %}
