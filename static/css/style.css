@@ -209,6 +209,12 @@ input, textarea, select {
     transform: scale(1.02);
 }
 
+.logo-image {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
+}
+
 .logo-icon {
     font-size: 26px;
 }
@@ -3312,10 +3318,30 @@ input, textarea, select {
     }
     
     /* Header */
+    .header-main {
+        padding: var(--space-2) 0;
+    }
+    
     .mobile-menu-toggle {
         display: flex;
         width: 40px;
         height: 40px;
+    }
+    
+    /* Logo mobile styles */
+    .logo {
+        gap: var(--space-1);
+    }
+    
+    .logo-image {
+        height: 28px;
+    }
+    
+    .logo-text {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .nav-actions {
@@ -3729,6 +3755,19 @@ input, textarea, select {
 @media (max-width: 480px) {
     :root {
         --container-padding: var(--space-4);
+    }
+    
+    /* Extra compact logo for small phones */
+    .logo {
+        gap: 6px;
+    }
+    
+    .logo-image {
+        height: 24px;
+    }
+    
+    .logo-text {
+        font-size: 12px;
     }
     
     .hero {
