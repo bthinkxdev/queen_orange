@@ -255,8 +255,130 @@
         <div class="filter-sheet-body">
             <!-- Mobile filters (same as sidebar) -->
             <form method="get" action="{% url 'store:product_list' %}" id="mobileFilterForm">
-                <!-- All filter groups duplicated here for mobile -->
-                <!-- (Same structure as desktop sidebar) -->
+                <!-- Search Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-search"></i> Search
+                    </label>
+                    <input type="text" name="q" class="filter-input" placeholder="Search jewelry..." value="{{ filters.q }}">
+                </div>
+
+                <!-- Category Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-th-large"></i> Category
+                    </label>
+                    <select name="category" class="filter-select">
+                        <option value="all" {% if filters.category == 'all' %}selected{% endif %}>All Categories</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.slug }}" {% if filters.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Dynamic Size Filter -->
+                {% if size_config.options %}
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-ruler"></i> {{ size_config.label }}
+                    </label>
+                    <div class="size-options-grid">
+                        {% for size_opt in size_config.options %}
+                            <label class="size-option-label">
+                                <input type="radio" name="size" value="{{ size_opt }}" {% if filters.size == size_opt %}checked{% endif %}>
+                                <span class="size-option-btn">{{ size_opt }}</span>
+                            </label>
+                        {% endfor %}
+                        <label class="size-option-label">
+                            <input type="radio" name="size" value="" {% if not filters.size %}checked{% endif %}>
+                            <span class="size-option-btn">All</span>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Price Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-rupee-sign"></i> Price Range
+                    </label>
+                    <div class="price-inputs">
+                        <input type="number" name="min_price" placeholder="Min" class="filter-input" value="{{ filters.min_price }}">
+                        <span>–</span>
+                        <input type="number" name="max_price" placeholder="Max" class="filter-input" value="{{ filters.max_price }}">
+                    </div>
+                    <div class="price-quick-filters">
+                        <button type="button" class="price-tag" data-min="0" data-max="999">Under ₹999</button>
+                        <button type="button" class="price-tag" data-min="1000" data-max="2999">₹1,000 - ₹2,999</button>
+                        <button type="button" class="price-tag" data-min="3000" data-max="4999">₹3,000 - ₹4,999</button>
+                        <button type="button" class="price-tag" data-min="5000" data-max="">₹5,000+</button>
+                    </div>
+                </div>
+
+                <!-- Material Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-gem"></i> Material
+                    </label>
+                    <select name="material" class="filter-select">
+                        <option value="">All Materials</option>
+                        {% for material_opt in material_options %}
+                            <option value="{{ material_opt }}" {% if filters.material == material_opt %}selected{% endif %}>{{ material_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Plating Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-spray-can"></i> Plating
+                    </label>
+                    <select name="plating" class="filter-select">
+                        <option value="">All Platings</option>
+                        {% for plating_opt in plating_options %}
+                            <option value="{{ plating_opt }}" {% if filters.plating == plating_opt %}selected{% endif %}>{{ plating_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Finish Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-star"></i> Finish
+                    </label>
+                    <select name="finish" class="filter-select">
+                        <option value="">All Finishes</option>
+                        {% for finish_opt in finish_options %}
+                            <option value="{{ finish_opt }}" {% if filters.finish == finish_opt %}selected{% endif %}>{{ finish_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Occasion Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-calendar-alt"></i> Occasion
+                    </label>
+                    <select name="occasion" class="filter-select">
+                        <option value="">All Occasions</option>
+                        {% for occasion_opt in occasion_options %}
+                            <option value="{{ occasion_opt }}" {% if filters.occasion == occasion_opt %}selected{% endif %}>{{ occasion_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Style Filter -->
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-palette"></i> Style
+                    </label>
+                    <select name="style" class="filter-select">
+                        <option value="">All Styles</option>
+                        {% for style_opt in style_options %}
+                            <option value="{{ style_opt }}" {% if filters.style == style_opt %}selected{% endif %}>{{ style_opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </form>
         </div>
         <div class="filter-sheet-footer">
@@ -282,13 +404,16 @@ document.getElementById('sortSelect')?.addEventListener('change', function() {
     window.location.href = url.toString();
 });
 
-// Price quick filters
+// Price quick filters (for both desktop and mobile)
 document.querySelectorAll('.price-tag').forEach(btn => {
     btn.addEventListener('click', function() {
         const min = this.dataset.min;
         const max = this.dataset.max;
-        document.querySelector('input[name="min_price"]').value = min;
-        document.querySelector('input[name="max_price"]').value = max;
+        const form = this.closest('form');
+        const minInput = form.querySelector('input[name="min_price"]');
+        const maxInput = form.querySelector('input[name="max_price"]');
+        if (minInput) minInput.value = min;
+        if (maxInput) maxInput.value = max;
     });
 });
 
@@ -297,6 +422,7 @@ const mobileFilterBtn = document.getElementById('mobileFilterBtn');
 const mobileFilterSheet = document.getElementById('mobileFilterSheet');
 const filterSheetOverlay = document.getElementById('filterSheetOverlay');
 const filterSheetClose = document.getElementById('filterSheetClose');
+const clearMobileFilters = document.getElementById('clearMobileFilters');
 
 function openFilterSheet() {
     mobileFilterSheet.classList.add('active');
@@ -312,11 +438,9 @@ mobileFilterBtn?.addEventListener('click', openFilterSheet);
 filterSheetOverlay?.addEventListener('click', closeFilterSheet);
 filterSheetClose?.addEventListener('click', closeFilterSheet);
 
-// Auto-submit on filter change (optional UX enhancement)
-document.querySelectorAll('.filter-select').forEach(select => {
-    select.addEventListener('change', function() {
-        // Optionally auto-submit: document.getElementById('filterForm').submit();
-    });
+// Clear mobile filters
+clearMobileFilters?.addEventListener('click', function() {
+    window.location.href = '{% url "store:product_list" %}';
 });
 </script>
 {% endblock %}
