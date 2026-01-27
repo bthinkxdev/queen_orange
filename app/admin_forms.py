@@ -39,19 +39,29 @@ class CategoryForm(forms.ModelForm):
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
-        if image:
+        if image and hasattr(image, 'size'):
             # Check file size (5MB = 5 * 1024 * 1024 bytes)
             max_size = 5 * 1024 * 1024  # 5MB in bytes
             if image.size > max_size:
                 raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
             
-            # Check if it's a valid image file
+            # Check pixel count (5MP)
             try:
                 from PIL import Image
                 img = Image.open(image)
+                width, height = img.size
+                if width * height > 5_000_000:
+                    raise forms.ValidationError(
+                        f'Image resolution cannot exceed 5 megapixels (5,000,000 pixels).\n'
+                        f'Selected image: {getattr(image, "name", "uploaded file")}\n'
+                        f'Resolution: {width} x {height} = {width * height:,} pixels.\n'
+                        'Please choose a smaller image or resize/compress it before uploading.'
+                    )
                 img.verify()
                 # Reset file pointer after verification
                 image.seek(0)
+            except forms.ValidationError:
+                raise
             except Exception:
                 raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
         
@@ -102,19 +112,29 @@ class ProductImageForm(forms.ModelForm):
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
-        if image:
+        if image and hasattr(image, 'size'):
             # Check file size (5MB = 5 * 1024 * 1024 bytes)
             max_size = 5 * 1024 * 1024  # 5MB in bytes
             if image.size > max_size:
                 raise forms.ValidationError(f'Image file size cannot exceed 5MB. Current size: {image.size / (1024 * 1024):.2f}MB')
             
-            # Check if it's a valid image file
+            # Check pixel count (5MP)
             try:
                 from PIL import Image
                 img = Image.open(image)
+                width, height = img.size
+                if width * height > 5_000_000:
+                    raise forms.ValidationError(
+                        f'Image resolution cannot exceed 5 megapixels (5,000,000 pixels).\n'
+                        f'Selected image: {getattr(image, "name", "uploaded file")}\n'
+                        f'Resolution: {width} x {height} = {width * height:,} pixels.\n'
+                        'Please choose a smaller image or resize/compress it before uploading.'
+                    )
                 img.verify()
                 # Reset file pointer after verification
                 image.seek(0)
+            except forms.ValidationError:
+                raise
             except Exception:
                 raise forms.ValidationError('Invalid image file. Please upload a valid image (JPG, PNG, GIF, WebP).')
         
