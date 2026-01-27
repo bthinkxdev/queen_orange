@@ -136,6 +136,14 @@
                             </div>
                             <div class="featured-product-info">
                                 <div class="featured-product-category">{{ product.category.name }}</div>
+                                {% with variant=product.variants.first %}
+                                    {% if variant %}
+                                        <div style="font-size: 0.75em; color: #666;">
+                                            <span style="font-weight: 500;">Default:</span>
+                                            <span>Color: {{ variant.color|default:'N/A' }}, Size: {{ variant.size|default:'N/A' }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
                                 <h3 class="featured-product-name">{{ product.name }}</h3>
                                 <div class="featured-product-price">
                                     <span class="current-price">₹{{ product.price }}</span>
@@ -206,6 +214,14 @@
                                 </div>
                                 <div class="bestseller-info">
                                     <h3 class="bestseller-name">{{ product.name }}</h3>
+                                    {% with variant=product.variants.first %}
+                                        {% if variant %}
+                                            <div style="font-size: 0.75em; color: #666; margin: 0; line-height: 1.1;">
+                                                <span style="font-weight: 500;">Default:</span>
+                                                <span>Color: {{ variant.color|default:'N/A' }}, Size: {{ variant.size|default:'N/A' }}</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
                                     <div class="bestseller-rating">
                                         <span class="rating-stars">⭐⭐⭐⭐⭐</span>
                                         <span class="rating-count">(120+)</span>

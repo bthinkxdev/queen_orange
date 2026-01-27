@@ -1600,7 +1600,7 @@ input, textarea, select {
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 40px;
+    min-height: 25px;
     margin-bottom: var(--space-2);
 }
 
