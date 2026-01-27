@@ -26,5 +26,11 @@ urlpatterns = [
     path("", include("app.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Always serve media files (WhiteNoise handles static files)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Custom error handlers
+handler400 = 'app.error_handlers.error_400'
+handler403 = 'app.error_handlers.error_403'
+handler404 = 'app.error_handlers.error_404'
+handler500 = 'app.error_handlers.error_500'
