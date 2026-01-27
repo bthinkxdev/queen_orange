@@ -16,15 +16,19 @@
 </head>
 <body>
     <header class="header">
-        {% comment %} <div class="header-announcement">
+        <div class="header-announcement coming-soon-banner">
             <div class="container">
-                <p class="announcement-text">Free Shipping on Orders Above ₹999 | COD Available ✨</p>
+                <div class="coming-soon-content">
+                    <span class="coming-soon-badge">🎉 COMING SOON</span>
+                    <p class="coming-soon-text">Exciting new collections launching soon! Stay tuned ✨</p>
+                </div>
             </div>
-        </div> {% endcomment %}
+        </div>
         <nav class="header-main">
             <div class="container">
                 <div class="nav-wrapper">
                     <a href="{% url 'store:home' %}" class="logo">
+                        <img src="{% static 'images/logo.png' %}" alt="Queen Orange Logo" class="logo-image">
                         <span class="logo-text">Queen Orange</span>
                     </a>
 
@@ -132,6 +136,7 @@
             <div class="footer-grid">
                 <div class="footer-brand">
                     <div class="footer-logo">
+                        <img src="{% static 'images/logo.png' %}" alt="Queen Orange Logo" class="footer-logo-image">
                         <span class="logo-text">Queen Orange</span>
                     </div>
                     <p class="footer-description">Your destination for premium women's nightwear and babies clothing. Quality, comfort, and style in every stitch.</p>

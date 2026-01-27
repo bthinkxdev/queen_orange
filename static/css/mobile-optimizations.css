@@ -1,6 +1,28 @@
 /* Mobile Optimizations for Product, Category, and Orders Pages */
 
 /* ============================================
+   COMING SOON BANNER - MOBILE OPTIMIZATIONS
+   ============================================ */
+
+@media (max-width: 768px) {
+    .coming-soon-content {
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: 0 var(--space-4);
+    }
+    
+    .coming-soon-badge {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+    
+    .coming-soon-text {
+        font-size: 12px;
+        text-align: center;
+    }
+}
+
+/* ============================================
    PRODUCT DETAIL PAGE - MOBILE OPTIMIZATIONS
    ============================================ */
 
