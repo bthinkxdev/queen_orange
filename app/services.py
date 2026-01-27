@@ -1,11 +1,58 @@
 from dataclasses import dataclass
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import F
+from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 
 from .models import Address, Cart, CartItem, Order, OrderItem, Payment, ProductVariant
+
+def send_order_notification_email(order, request=None):
+    """Send order notification email to admin/owner when a new order is placed."""
+    admin_emails = getattr(settings, 'ADMIN_NOTIFICATION_EMAILS', [])
+    if not admin_emails:
+        print("No admin emails configured for order notifications")
+        return False
+    if request:
+        order_url = request.build_absolute_uri(f'/dashboard/orders/{order.order_number}/')
+    else:
+        # Fallback URL - adjust domain as needed
+        site_domain = getattr(settings, 'SITE_DOMAIN', 'http://127.0.0.1:8000')
+        order_url = f"{site_domain}/dashboard/orders/{order.order_number}/"
+
+    payment_method = "Cash on Delivery"
+    if hasattr(order, 'payment'):
+        payment_method = order.payment.get_method_display()
+    
+    context = {
+        'order': order,
+        'order_url': order_url,
+        'payment_method': payment_method,
+        'site_name': 'Queen Orange',
+    }
+    
+    html_message = render_to_string('admin/order_notification_email.html', context)
+    plain_message = render_to_string('admin/order_notification_email.txt', context)
+    
+    try:
+        print(f"Sending order notification email for order {order.order_number}...")
+        send_mail(
+            subject=f'New Order #{order.order_number} - ₹{order.total}',
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=admin_emails,
+            html_message=html_message,
+            fail_silently=False,
+        )
+        print(f"Order notification email sent successfully to {admin_emails}")
+        return True
+    except Exception as e:
+        print(f"Error sending order notification email: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 class CartError(Exception):
@@ -194,6 +241,9 @@ class OrderService:
         cart.status = Cart.Status.ORDERED
         cart.save(update_fields=["status"])
         cart.items.all().delete()
+
+        # Send order notification email to admin/owner
+        send_order_notification_email(order)
 
         return order
 
