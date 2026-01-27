@@ -20,7 +20,7 @@ def send_order_notification_email(order, request=None):
     if request:
         order_url = request.build_absolute_uri(f'/dashboard/orders/{order.order_number}/')
     else:
-        site_domain = getattr(settings, 'SITE_DOMAIN', 'http://127.0.0.1:8000')
+        site_domain = getattr(settings, 'SITE_DOMAIN', 'https://queenorange.shop/')
         order_url = f"{site_domain}/dashboard/orders/{order.order_number}/"
 
     payment_method = "Cash on Delivery"
