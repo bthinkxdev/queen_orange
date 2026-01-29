@@ -47,9 +47,12 @@
                     </div>
                 {% endif %}
                 {% if form.instance.image|file_exists %}
-                    <div style="margin-top: 1rem;">
+                    <div style="margin-top: 1rem; display: flex; flex-direction: column; align-items: center;">
                         <img src="{{ form.instance.image.url }}" alt="Current image" 
                              style="max-width: 200px; border-radius: 8px; border: 1px solid var(--gray-200);">
+                        <span style="margin: 0.5rem 0 0.25rem 0; font-size: 0.85rem; color: var(--gray-500); text-align: center;">
+                            <b>File name:</b> {{ form.instance.image.name|default_if_none:""|cut:"categories/" }}
+                        </span>
                     </div>
                 {% elif form.instance.image %}
                     <div style="margin-top: 1rem; background: var(--gray-100); padding: 1rem; border-radius: 8px; text-align: center; color: var(--gray-600); max-width: 200px;">
