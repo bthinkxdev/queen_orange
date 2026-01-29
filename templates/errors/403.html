@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="error-main-centered" style="margin-top: 3.5rem;">
+	<div class="error-main-card enhanced-error-card gradient-border">
+		<h1 class="error-heading enhanced-error-heading gradient-text">Access Forbidden (403)</h1>
+		<div class="error-message enhanced-error-message">You do not have permission to access this resource. Please check your access rights or go back to the previous page.</div>
+		<div class="error-links enhanced-error-links">
+			<a href="/" class="btn-primary home-btn enhanced-home-btn gradient-btn">Back to Home</a>
+			<div class="error-link-row enhanced-link-row">
+				<a href="/collection/">Shop All</a>
+				<span class="divider">|</span>
+				<a href="/contact/">Contact us</a>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
