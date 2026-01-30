@@ -1,3 +1,14 @@
+/* Hide search button when mobile menu is open (mobile only) */
+@media (max-width: 1024px) {
+    .nav-menu.active ~ .nav-actions .search-btn,
+    .nav-wrapper .nav-menu.active ~ .nav-actions .search-btn,
+    .nav-wrapper .nav-actions .search-btn {
+        display: none !important;
+    }
+    .nav-menu.active + .nav-actions .search-btn {
+        display: none !important;
+    }
+}
 /* ============================================
    QUEEN ORANGE - PREMIUM iOS-LEVEL DESIGN
    Mobile-First, Elegant & Modern
