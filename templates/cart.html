@@ -29,12 +29,12 @@
                                     <p class="cart-item-meta">Size: {{ item.variant.size }}{% if item.variant.color %} | Color: {{ item.variant.color }}{% endif %}</p>
                                     <p class="cart-item-price">₹{{ item.unit_price }}</p>
                                     <div class="cart-item-actions">
-                                        <form method="post" action="{% url 'store:cart_update' %}" class="quantity-controls">
+                                        <form method="post" action="{% url 'store:cart_update' %}" class="quantity-controls js-cart-qty-form">
                                             {% csrf_token %}
                                             <input type="hidden" name="item_id" value="{{ item.id }}">
-                                            <button class="quantity-btn" name="quantity" value="{{ item.quantity|add:'-1' }}">−</button>
+                                            <button type="button" class="quantity-btn js-cart-qty-btn" data-direction="decrease">−</button>
                                             <input type="number" class="quantity-input" value="{{ item.quantity }}" readonly style="width: 60px;">
-                                            <button class="quantity-btn" name="quantity" value="{{ item.quantity|add:'1' }}">+</button>
+                                            <button type="button" class="quantity-btn js-cart-qty-btn" data-direction="increase">+</button>
                                         </form>
                                         <form method="post" action="{% url 'store:cart_remove' item_id=item.id %}">
                                             {% csrf_token %}

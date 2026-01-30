@@ -297,7 +297,7 @@ class AddToCartView(LoginRequiredForActionMixin, View):
             if is_ajax:
                 return JsonResponse({"success": False, "error": str(exc)}, status=400)
         else:
-            messages.success(request, "Added to cart.")
+            # messages.success(request, "Added to cart.")
             if is_ajax:
                 cart_count = sum(item.quantity for item in cart.items.all())
                 return JsonResponse({"success": True, "cart_count": cart_count})
@@ -306,7 +306,9 @@ class AddToCartView(LoginRequiredForActionMixin, View):
             return redirect("store:checkout")
         if action == "whatsapp":
             return redirect(f"{reverse_lazy('store:checkout')}?payment=whatsapp")
-        return redirect("store:cart")
+                # Add ?added=1 to cart redirect for notification
+        url = reverse("store:cart") + "?added=1"
+        return redirect(url)
 
 
 class UpdateCartItemView(LoginRequiredForActionMixin, View):

@@ -1,5 +1,50 @@
 // Golden Elegance - UI JavaScript
+(function() {
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('.js-cart-qty-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+            });
+            form.querySelectorAll('.js-cart-qty-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const input = form.querySelector('.quantity-input');
+                    let quantity = parseInt(input.value, 10);
+                    if (btn.dataset.direction === 'increase') {
+                        quantity += 1;
+                    } else if (btn.dataset.direction === 'decrease') {
+                        quantity -= 1;
+                    }
+                    if (quantity < 1) return; // Optionally, handle remove if 0
 
+                    const formData = new FormData(form);
+                    formData.set('quantity', quantity);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network error');
+                        return response.text();
+                    })
+                    .then(() => {
+                        input.value = quantity;
+                        // Optionally, update price, totals, etc. via AJAX or reload part of the cart
+                        location.reload(); // For now, reload to update totals. For full SPA, update DOM here.
+                    })
+                    .catch(() => {
+                        alert('Could not update cart. Please try again.');
+                    });
+                });
+            });
+        });
+    });
+})();
 document.addEventListener("DOMContentLoaded", () => {
     initMobileMenu();
     initMobileSearch();
