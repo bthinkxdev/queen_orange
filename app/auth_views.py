@@ -155,6 +155,8 @@ class OTPLoginView(View):
             messages.success(request, 'Login successful!')
             
             # Redirect to next URL or default
+            if next_url == '/cart/add/':
+                return redirect('/')
             return redirect(next_url or '/')
         else:
             messages.error(request, message)
