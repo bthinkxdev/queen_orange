@@ -140,8 +140,8 @@
                         <div class="form-section">
                             <h3>Payment Method</h3>
                             <div class="payment-options">
-                                <label class="payment-option {% if form.payment.value == 'cod' or not form.is_bound %}selected{% endif %}">
-                                    <input type="radio" name="payment" value="cod" {% if form.payment.value == 'cod' or not form.is_bound %}checked{% endif %}>
+                                <label class="payment-option {% if form.payment.value == 'cod' %}selected{% endif %}">
+                                    <input type="radio" name="payment" value="cod" {% if form.payment.value == 'cod' %}checked{% endif %}>
                                     <div class="payment-option-content">
                                         <div class="payment-checkbox">
                                             <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -155,7 +155,7 @@
                                     </div>
                                 </label>
 
-                                <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
+                                {% comment %} <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
                                     <input type="radio" name="payment" value="whatsapp" {% if form.payment.value == 'whatsapp' %}checked{% endif %}>
                                     <div class="payment-option-content">
                                         <div class="payment-checkbox">
@@ -168,10 +168,10 @@
                                             <p>Complete order via WhatsApp chat</p>
                                         </div>
                                     </div>
-                                </label>
+                                </label> {% endcomment %}
 
-                                <label class="payment-option {% if form.payment.value == 'razorpay' %}selected{% endif %}">
-                                    <input type="radio" name="payment" value="razorpay" {% if form.payment.value == 'razorpay' %}checked{% endif %}>
+                                <label class="payment-option {% if form.payment.value == 'razorpay' or not form.is_bound %}selected{% endif %}">
+                                    <input type="radio" name="payment" value="razorpay" {% if form.payment.value == 'razorpay' or not form.is_bound %}checked{% endif %}>
                                     <div class="payment-option-content">
                                         <div class="payment-checkbox">
                                             <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">

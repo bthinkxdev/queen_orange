@@ -40,7 +40,7 @@ class CheckoutForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields["payment"].initial = "cod"
+        self.fields["payment"].initial = "razorpay"
         for field in self.fields.values():
             if isinstance(field.widget, (forms.RadioSelect, forms.HiddenInput)):
                 continue
