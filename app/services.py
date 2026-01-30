@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -8,6 +9,17 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 
 from .models import Address, Cart, CartItem, Order, OrderItem, Payment, ProductVariant
+
+
+def send_order_notification_email_async(order, request=None):
+    """Send order notification email asynchronously in a background thread."""
+    thread = threading.Thread(
+        target=send_order_notification_email,
+        args=(order, request),
+        daemon=True
+    )
+    thread.start()
+    return thread
 
 
 def send_order_notification_email(order, request=None):
@@ -243,8 +255,8 @@ class OrderService:
         cart.save(update_fields=["status"])
         cart.items.all().delete()
 
-        # Send order notification email to admin/owner
-        send_order_notification_email(order)
+        # Send order notification email to admin/owner (non-blocking)
+        send_order_notification_email_async(order)
 
         return order
 
