@@ -672,11 +672,14 @@
                         </div>
                         
                         {% if form.instance.image|file_exists %}
-                            <div class="image-preview">
+                            <div class="image-preview" style="display: flex; flex-direction: column; align-items: center;">
                                 <img src="{{ form.instance.image.url }}" alt="Current image">
-                                <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray-600); text-align: center;">
+                                <span style="margin: 0.5rem 0 0.25rem 0; font-size: 0.85rem; color: var(--gray-500); text-align: center;">
+                                    <b>File name:</b> {{ form.instance.image.name|default_if_none:""|cut:"products/" }}
+                                </span>
+                                <span style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--gray-600); text-align: center;">
                                     <i class="fas fa-info-circle"></i> Select a new file above to replace this image
-                                </p>
+                                </span>
                             </div>
                         {% elif form.instance.image %}
                             <div class="image-preview" style="background: var(--gray-100); padding: 1rem; border-radius: 8px; text-align: center; color: var(--gray-600);">

@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -53,6 +54,12 @@ def send_order_notification_email(order, request=None):
         import traceback
         traceback.print_exc()
         return False
+
+def send_order_notification_email_async(order, request=None):
+    """Send order notification email to admin/owner when a new order is placed."""
+    thread = threading.Thread(target=send_order_notification_email, args=(order, request))
+    thread.start()
+    return thread
 
 
 class CartError(Exception):
@@ -242,8 +249,8 @@ class OrderService:
         cart.save(update_fields=["status"])
         cart.items.all().delete()
 
-        # Send order notification email to admin/owner
-        send_order_notification_email(order)
+        # Send order notification email to admin/owner asynchronously
+        send_order_notification_email_async(order)
 
         return order
 
