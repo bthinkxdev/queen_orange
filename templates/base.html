@@ -129,6 +129,17 @@
         </div>
     {% endif %}
 
+ <script>
+        // Auto-hide notifications after 1 second
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.querySelectorAll('.notification').forEach(function(el) {
+                    el.classList.add('hide');
+                });
+            }, 1000);
+        });
+    </script>
+
     {% block content %}{% endblock %}
 
     <footer class="footer">
