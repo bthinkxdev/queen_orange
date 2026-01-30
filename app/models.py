@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 import hashlib
 import secrets
+import string
+import random
 
 
 class TimeStampedModel(models.Model):
@@ -30,7 +32,19 @@ class Category(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            self.slug = base_slug
+            
+            # Check for duplicate slug and append random string if needed
+            counter = 0
+            while Category.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                # Generate 4-character random string (lowercase letters and digits)
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                self.slug = f"{base_slug}-{random_suffix}"
+                counter += 1
+                # Safety check to prevent infinite loop
+                if counter > 100:
+                    raise ValueError("Unable to generate unique slug after 100 attempts")
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -76,7 +90,19 @@ class Product(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            self.slug = base_slug
+            
+            # Check for duplicate slug and append random string if needed
+            counter = 0
+            while Product.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                # Generate 4-character random string (lowercase letters and digits)
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                self.slug = f"{base_slug}-{random_suffix}"
+                counter += 1
+                # Safety check to prevent infinite loop
+                if counter > 100:
+                    raise ValueError("Unable to generate unique slug after 100 attempts")
         super().save(*args, **kwargs)
 
     @property
