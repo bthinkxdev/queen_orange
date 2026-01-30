@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 import hashlib
 import secrets
+import string
+import random
 
 
 class TimeStampedModel(models.Model):
@@ -30,7 +32,14 @@ class Category(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            self.slug = base_slug
+            
+            # Handle duplicate slugs by appending 4-character random string
+            while Category.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                self.slug = f"{base_slug}-{random_suffix}"
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -68,7 +77,14 @@ class Product(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            self.slug = base_slug
+            
+            # Handle duplicate slugs by appending 4-character random string
+            while Product.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                self.slug = f"{base_slug}-{random_suffix}"
+        
         super().save(*args, **kwargs)
 
     @property
