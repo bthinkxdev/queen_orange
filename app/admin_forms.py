@@ -98,6 +98,12 @@ class ProductForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
         self.fields["original_price"].required = False
+        self.fields["description"].required = False
+        
+        for field_name, field in self.fields.items():
+            # Remove required attribute from widget
+            if hasattr(field.widget, 'attrs'):
+                field.widget.attrs.pop('required', None)
 
 
 class ProductImageForm(forms.ModelForm):
@@ -109,6 +115,13 @@ class ProductImageForm(forms.ModelForm):
             "is_primary": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "alt_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "Alt text"}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["alt_text"].required = False
+        for field_name, field in self.fields.items():
+            if hasattr(field.widget, 'attrs'):
+                field.widget.attrs.pop('required', None)
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
@@ -163,6 +176,14 @@ class ProductVariantForm(forms.ModelForm):
             "stock_quantity": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0", "min": "0"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["color"].required = False
+        
+        for field_name, field in self.fields.items():
+            if hasattr(field.widget, 'attrs'):
+                field.widget.attrs.pop('required', None)
     
     def clean_sku(self):
         sku = self.cleaned_data.get('sku', '').strip()

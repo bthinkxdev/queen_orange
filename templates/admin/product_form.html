@@ -469,7 +469,7 @@
 
 {% block content %}
 <div class="product-form-wrapper">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         
         <!-- Basic Information Section -->
@@ -489,8 +489,10 @@
                     <label class="form-label">Name *</label>
                     {{ form.name }}
                     {% if form.name.errors %}
-                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                            {{ form.name.errors }}
+                        <div class="form-error-message">
+                            {% for error in form.name.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
                         </div>
                     {% endif %}
                 </div>
@@ -499,8 +501,10 @@
                     <label class="form-label">Category *</label>
                     {{ form.category }}
                     {% if form.category.errors %}
-                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                            {{ form.category.errors }}
+                        <div class="form-error-message">
+                            {% for error in form.category.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
                         </div>
                     {% endif %}
                 </div>
@@ -510,8 +514,10 @@
                 <label class="form-label">Slug (optional - auto-generated)</label>
                 {{ form.slug }}
                 {% if form.slug.errors %}
-                    <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                        {{ form.slug.errors }}
+                    <div class="form-error-message">
+                        {% for error in form.slug.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
                     </div>
                 {% endif %}
             </div>
@@ -520,8 +526,10 @@
                 <label class="form-label">Description</label>
                 {{ form.description }}
                 {% if form.description.errors %}
-                    <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                        {{ form.description.errors }}
+                    <div class="form-error-message">
+                        {% for error in form.description.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
                     </div>
                 {% endif %}
             </div>
@@ -531,8 +539,10 @@
                     <label class="form-label">Price (₹) *</label>
                     {{ form.price }}
                     {% if form.price.errors %}
-                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                            {{ form.price.errors }}
+                        <div class="form-error-message">
+                            {% for error in form.price.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
                         </div>
                     {% endif %}
                 </div>
@@ -541,8 +551,10 @@
                     <label class="form-label">Original Price (₹) - Optional</label>
                     {{ form.original_price }}
                     {% if form.original_price.errors %}
-                        <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
-                            {{ form.original_price.errors }}
+                        <div class="form-error-message">
+                            {% for error in form.original_price.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
                         </div>
                     {% endif %}
                 </div>
@@ -626,6 +638,13 @@
                                 <small style="color: var(--gray-500);">(Max 5MB, JPG/PNG/GIF/WebP)</small>
                             </label>
                             {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="form-error-message">
+                                    {% for error in form.image.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         
                         {% if form.instance.image %}
@@ -638,6 +657,13 @@
                             <div class="form-group">
                                 <label class="form-label">Alt Text <small>(optional for SEO)</small></label>
                                 {{ form.alt_text }}
+                                {% if form.alt_text.errors %}
+                                    <div class="form-error-message">
+                                        {% for error in form.alt_text.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="form-check">
@@ -1011,7 +1037,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Field Validation - Mark fields with errors and hide on input
+    // Field Validation
+    document.querySelectorAll('.form-section .form-group').forEach(formGroup => {
+        const errorMessage = formGroup.querySelector('.form-error-message');
+        if (errorMessage) {
+            
+            const field = formGroup.querySelector('input[type="text"], input[type="number"], input[type="email"], textarea, select, input[type="file"]');
+            if (field) {
+                field.classList.add('is-invalid');
+                
+                
+                if (!document.querySelector('input.is-invalid.scrolled, textarea.is-invalid.scrolled, select.is-invalid.scrolled')) {
+                    setTimeout(() => {
+                        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        field.focus();
+                        field.classList.add('scrolled');
+                    }, 100);
+                }
+                
+                field.addEventListener('input', function() {
+                    this.classList.remove('is-invalid');
+                    const errorMsg = formGroup.querySelector('.form-error-message');
+                    if (errorMsg) {
+                        errorMsg.style.display = 'none';
+                    }
+                });
+                
+                field.addEventListener('change', function() {
+                    this.classList.remove('is-invalid');
+                    const errorMsg = formGroup.querySelector('.form-error-message');
+                    if (errorMsg) {
+                        errorMsg.style.display = 'none';
+                    }
+                });
+            }
+        }
+    });
+
+    // Field Validation - Mark variant fields with errors and hide on input
     if (variantFormset) {
         variantFormset.querySelectorAll('.form-group').forEach(formGroup => {
             // Check if this form group contains an error message
