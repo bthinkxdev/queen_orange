@@ -11,6 +11,11 @@ def delete_product_image_file(sender, instance, **kwargs):
     """
     if instance.image:
         if os.path.isfile(instance.image.path):
+            try:
+                if hasattr(instance.image, 'close'):
+                    instance.image.close()
+            except Exception:
+                pass
             os.remove(instance.image.path)
 
 
@@ -30,6 +35,11 @@ def delete_old_product_image_on_update(sender, instance, **kwargs):
     # If image has changed, delete the old one
     if old_image and old_image != instance.image:
         if os.path.isfile(old_image.path):
+            try:
+                if hasattr(old_image, 'close'):
+                    old_image.close()
+            except Exception:
+                pass
             os.remove(old_image.path)
 
 
@@ -40,6 +50,11 @@ def delete_category_image_file(sender, instance, **kwargs):
     """
     if instance.image:
         if os.path.isfile(instance.image.path):
+            try:
+                if hasattr(instance.image, 'close'):
+                    instance.image.close()
+            except Exception:
+                pass
             os.remove(instance.image.path)
 
 
@@ -59,6 +74,11 @@ def delete_old_category_image_on_update(sender, instance, **kwargs):
     # If image has changed, delete the old one
     if old_image and old_image != instance.image:
         if os.path.isfile(old_image.path):
+            try:
+                if hasattr(old_image, 'close'):
+                    old_image.close()
+            except Exception:
+                pass
             os.remove(old_image.path)
 
 
