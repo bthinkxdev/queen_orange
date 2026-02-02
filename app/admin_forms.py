@@ -163,6 +163,43 @@ class ProductVariantForm(forms.ModelForm):
             "stock_quantity": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0", "min": "0"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+    
+    def clean_sku(self):
+        sku = self.cleaned_data.get('sku', '').strip()
+        
+        if not sku:
+            raise forms.ValidationError('SKU is required.')
+        
+        # Check for duplicate SKU (excluding current instance if editing)
+        sku_exists = ProductVariant.objects.filter(sku=sku)
+        
+        # If updating, exclude current instance
+        if self.instance.pk:
+            sku_exists = sku_exists.exclude(pk=self.instance.pk)
+        
+        if sku_exists.exists():
+            raise forms.ValidationError('This SKU already exists. Please use a unique SKU.')
+        
+        return sku
+    
+    def clean_size(self):
+        size = self.cleaned_data.get('size', '').strip()
+        
+        if not size:
+            raise forms.ValidationError('Size is required.')
+        
+        return size
+    
+    def clean_stock_quantity(self):
+        stock = self.cleaned_data.get('stock_quantity')
+        
+        if stock is None or stock == '':
+            raise forms.ValidationError('Stock quantity is required.')
+        
+        if stock < 0:
+            raise forms.ValidationError('Stock quantity cannot be negative.')
+        
+        return stock
 
 
 ProductVariantFormSet = inlineformset_factory(
