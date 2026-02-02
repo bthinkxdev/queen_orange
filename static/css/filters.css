@@ -368,16 +368,18 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
-.current-price {
-    font-size: 1.125rem;
+.product-price .current-price {
+    font-size: 1rem;
     font-weight: 700;
     color: var(--primary);
 }
 
-.original-price {
-    font-size: 0.9375rem;
+.product-price .original-price {
+    font-size: 0.75rem;
     color: var(--gray-500);
     text-decoration: line-through;
 }
@@ -603,8 +605,8 @@
         font-size: 0.875rem;
     }
     
-    .current-price {
-        font-size: 1rem;
+    .product-price .current-price {
+        font-size: 0.875rem;
     }
 }
 

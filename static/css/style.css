@@ -1436,16 +1436,18 @@ input, textarea, select {
     align-items: baseline;
     gap: var(--space-2);
     margin-top: auto;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .featured-product-price .current-price {
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--primary-dark);
 }
 
 .featured-product-price .original-price {
-    font-size: 15px;
+    font-size: 12px;
     color: var(--gray-400);
     text-decoration: line-through;
 }
@@ -1648,16 +1650,18 @@ input, textarea, select {
     align-items: baseline;
     gap: var(--space-2);
     margin-top: auto;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .bestseller-price .current-price {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--primary-dark);
 }
 
 .bestseller-price .original-price {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--gray-400);
     text-decoration: line-through;
 }
@@ -1783,16 +1787,18 @@ input, textarea, select {
     align-items: baseline;
     gap: var(--space-2);
     margin-top: auto;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
-.current-price {
-    font-size: 20px;
+.product-price .current-price {
+    font-size: 16px;
     font-weight: 700;
     color: var(--primary-dark);
 }
 
-.original-price {
-    font-size: 14px;
+.product-price .original-price {
+    font-size: 12px;
     color: var(--gray-400);
     text-decoration: line-through;
 }
@@ -3514,7 +3520,7 @@ input, textarea, select {
     }
     
     .featured-product-price .current-price {
-        font-size: 20px;
+        font-size: 15px;
     }
     
     .featured-add-to-cart {
@@ -3885,11 +3891,11 @@ input, textarea, select {
     }
     
     .product-price .current-price {
-        font-size: 17px;
+        font-size: 14px;
     }
     
     .product-price .original-price {
-        font-size: 13px;
+        font-size: 11px;
     }
     
     .add-to-cart-btn {
@@ -3925,11 +3931,11 @@ input, textarea, select {
     }
     
     .featured-product-price .current-price {
-        font-size: 17px;
+        font-size: 14px;
     }
     
     .featured-product-price .original-price {
-        font-size: 13px;
+        font-size: 11px;
     }
     
     .featured-add-to-cart {
@@ -3969,7 +3975,11 @@ input, textarea, select {
     }
     
     .bestseller-price .current-price {
-        font-size: 16px;
+        font-size: 13px;
+    }
+    
+    .bestseller-price .original-price {
+        font-size: 10px;
     }
     
     .bestseller-add-to-cart {

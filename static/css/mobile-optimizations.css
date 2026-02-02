@@ -66,11 +66,12 @@
         gap: 4px;
     }
     
-    .current-price {
+    /* Product detail page only - keep prices prominent */
+    .product-price-section .current-price {
         font-size: 28px !important;
     }
     
-    .original-price {
+    .product-price-section .original-price {
         font-size: 18px !important;
     }
     
@@ -125,8 +126,13 @@
         height: 300px !important;
     }
     
-    .current-price {
+    /* Product detail page only */
+    .product-price-section .current-price {
         font-size: 24px !important;
+    }
+    
+    .product-price-section .original-price {
+        font-size: 16px !important;
     }
     
     .size-option {
@@ -225,12 +231,12 @@
         -webkit-box-orient: vertical;
     }
     
-    .product-price {
-        font-size: 15px !important;
+    .product-price .current-price {
+        font-size: 14px !important;
     }
     
-    .product-original-price {
-        font-size: 12px !important;
+    .product-price .original-price {
+        font-size: 11px !important;
     }
     
     .discount-badge {
@@ -267,8 +273,12 @@
         font-size: 12px !important;
     }
     
-    .product-price {
-        font-size: 14px !important;
+    .product-price .current-price {
+        font-size: 13px !important;
+    }
+    
+    .product-price .original-price {
+        font-size: 10px !important;
     }
 }
 
