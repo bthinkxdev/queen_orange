@@ -11,11 +11,6 @@ def delete_product_image_file(sender, instance, **kwargs):
     """
     if instance.image:
         if os.path.isfile(instance.image.path):
-            try:
-                if hasattr(instance.image, 'close'):
-                    instance.image.close()
-            except Exception:
-                pass
             os.remove(instance.image.path)
 
 
