@@ -361,6 +361,29 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
     
     def post(self, request, *args, **kwargs):
         product = self.get_object()
+        
+        # Check if product has any active orders (not delivered or cancelled)
+        active_orders = Order.objects.filter(
+            items__product=product
+        ).exclude(
+            status__in=["delivered", "cancelled"]
+        ).distinct()
+        
+        if active_orders.exists():
+            # Count the number of active orders
+            order_count = active_orders.count()
+            order_numbers = ", ".join([order.order_number for order in active_orders[:5]])
+            if order_count > 5:
+                order_numbers += f", and {order_count - 5} more"
+            
+            messages.error(
+                request,
+                f"Cannot delete product '{product.name}' because it has {order_count} active order(s) "
+                f"({order_numbers}). This product can only be deleted once all associated orders are "
+                f"delivered or cancelled."
+            )
+            return redirect("admin_panel:product_list")
+        
         messages.success(request, f"Product '{product.name}' deleted successfully!")
         return super().post(request, *args, **kwargs)
 
