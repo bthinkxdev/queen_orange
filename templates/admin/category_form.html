@@ -18,7 +18,7 @@
                 <label class="form-label">Name *</label>
                 {{ form.name }}
                 {% if form.name.errors %}
-                    <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                    <div class="form-error-message" style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
                         {{ form.name.errors }}
                     </div>
                 {% endif %}
@@ -28,7 +28,7 @@
                 <label class="form-label">Slug (optional - auto-generated)</label>
                 {{ form.slug }}
                 {% if form.slug.errors %}
-                    <div style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
+                    <div class="form-error-message" style="color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem;">
                         {{ form.slug.errors }}
                     </div>
                 {% endif %}
@@ -82,6 +82,29 @@
 
 {% block extra_js %}
 <script>
+    // Hide name and slug errors when user starts typing
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameField = document.getElementById('{{ form.name.id_for_label }}');
+        const slugField = document.getElementById('{{ form.slug.id_for_label }}');
+        
+        if (nameField) {
+            nameField.addEventListener('input', function() {
+                const errorDiv = this.parentElement.querySelector('.form-error-message');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+            });
+        }
+        
+        if (slugField) {
+            slugField.addEventListener('input', function() {
+                const errorDiv = this.parentElement.querySelector('.form-error-message');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+            });
+        }
+    });
 document.addEventListener('DOMContentLoaded', function() {
     // File size validation
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
