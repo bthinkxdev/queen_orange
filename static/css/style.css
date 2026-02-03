@@ -5447,3 +5447,30 @@ input, textarea, select {
     display: block;
     object-fit: cover;
 }
+
+/* Product name and badge container */
+.product-name-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Out of stock badge */
+.out-of-stock-badge {
+    background-color: #dc2626;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Sticky out of stock notification */
+.out-of-stock-notification {
+    position: sticky;
+    top: 20px;
+    opacity: 1;
+    z-index: 100;
+}
