@@ -258,9 +258,8 @@
             },
             modal: {
                 ondismiss: function() {
-                    document.getElementById('razorpayButton').disabled = false;
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                    showError('Payment cancelled. Please try again.');
+                    // Payment cancelled - delete the order and redirect to cart
+                    cancelPayment(orderNumber);
                 }
             },
             prefill: {
@@ -275,6 +274,44 @@
         
         const rzp = new Razorpay(options);
         rzp.open();
+    }
+    
+    function cancelPayment(orderNumber) {
+        // User cancelled payment - delete the order
+        const loading = document.getElementById('loadingSpinner');
+        loading.style.display = 'block';
+        
+        fetch("{% url 'store:razorpay_cancel' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                order_number: orderNumber
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            // Show error message
+            showError('Payment cancelled. Returning to cart...');
+            
+            // Redirect to cart after 2 seconds
+            setTimeout(() => {
+                window.location.href = data.redirect || '/cart/';
+            }, 2000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loading.style.display = 'none';
+            showError('Payment cancelled. Returning to cart...');
+            
+            // Redirect to cart after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/cart/';
+            }, 2000);
+        });
     }
     
     function verifyPayment(response, razorpayOrderId) {
@@ -300,15 +337,28 @@
                 // Redirect to success page
                 window.location.href = "{% url 'store:order_success' order.order_number %}";
             } else {
+                // Payment failed - show error and redirect to cart after a delay
                 showError(data.message || 'Payment verification failed');
                 document.getElementById('razorpayButton').disabled = false;
+                
+                // Redirect to cart after 2 seconds to show error message
+                if (data.redirect) {
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 2000);
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
             loading.style.display = 'none';
-            showError('An error occurred while verifying payment');
+            showError('An error occurred while verifying payment. Redirecting to cart...');
             document.getElementById('razorpayButton').disabled = false;
+            
+            // Redirect to cart after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/cart/';
+            }, 2000);
         });
     }
     

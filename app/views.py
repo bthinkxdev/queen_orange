@@ -15,7 +15,7 @@ import hashlib
 
 from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
-from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment
+from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment, Cart
 from .services import CartError, CartService, OrderService, StockError
 
 
@@ -342,19 +342,53 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
 
     def form_valid(self, form):
         cart = CartService.get_or_create_cart(self.request)
+        payment_method = form.cleaned_data.get("payment")
+        
+        # For Razorpay, don't create order yet - only create after payment verification
+        if payment_method == "razorpay":
+            # Store form data in session for later order creation
+            self.request.session["pending_checkout_data"] = form.cleaned_data
+            
+            # Validate cart and stock before payment
+            try:
+                items = (
+                    cart.items.select_related("variant", "product")
+                    .select_for_update(of=("self", "variant"))
+                    .all()
+                )
+                if not items:
+                    raise CartError("Cart is empty.")
+                for item in items:
+                    if item.quantity > item.variant.stock_quantity:
+                        raise StockError(f"{item.product.name} is out of stock.")
+            except (CartError, StockError) as exc:
+                messages.error(self.request, str(exc))
+                return redirect("store:checkout")
+            
+            # Create a temporary order placeholder for payment (we'll finalize after payment)
+            # For Razorpay, don't clear cart yet - only clear after payment verification
+            try:
+                order = OrderService.create_order(cart, form.cleaned_data, self.request.user, clear_cart=False)
+                # Mark order as pending payment
+                order.status = Order.Status.PLACED  # Will be confirmed only after payment
+                order.save(update_fields=['status'])
+            except (CartError, StockError) as exc:
+                messages.error(self.request, str(exc))
+                return redirect("store:checkout")
+            
+            self.request.session["last_order_number"] = order.order_number
+            # Redirect to payment page for Razorpay
+            return redirect("store:razorpay_payment", order_number=order.order_number)
+        
+        # For COD and WhatsApp, create order immediately and clear cart
         try:
-            order = OrderService.create_order(cart, form.cleaned_data, self.request.user)
+            order = OrderService.create_order(cart, form.cleaned_data, self.request.user, clear_cart=True)
         except (CartError, StockError) as exc:
             messages.error(self.request, str(exc))
             return redirect("store:checkout")
         self.request.session["last_order_number"] = order.order_number
         
-        payment_method = form.cleaned_data.get("payment")
-        
-        if payment_method == "razorpay":
-            # Redirect to payment page for Razorpay
-            return redirect("store:razorpay_payment", order_number=order.order_number)
-        elif payment_method == "whatsapp":
+        if payment_method == "whatsapp":
             messages.info(self.request, "We will contact you on WhatsApp to confirm your order.")
         return redirect("store:order_success", order_number=order.order_number)
 
@@ -572,7 +606,7 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
             logger.debug(f"Signature verification - Expected: {signature_check}, Received: {razorpay_signature}")
             
             if signature_check == razorpay_signature:
-                # Payment successful - update all payment fields
+                # Payment successful - update payment fields
                 payment.razorpay_payment_id = razorpay_payment_id
                 payment.razorpay_signature = razorpay_signature
                 payment.status = Payment.Status.PAID
@@ -581,34 +615,137 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 
                 logger.info(f"Payment successful - Order: {payment.order.order_number}, Payment: {razorpay_payment_id}, Status: PAID")
                 
+                # Clear cart after successful payment
+                cart = CartService.get_or_create_cart(request)
+                if cart.items.exists():
+                    cart.status = Cart.Status.ORDERED
+                    cart.save(update_fields=["status"])
+                    cart.items.all().delete()
+                
+                # Clear pending checkout data from session
+                if "pending_checkout_data" in request.session:
+                    del request.session["pending_checkout_data"]
+                
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Payment verified successfully',
                     'order_number': payment.order.order_number
                 })
             else:
+                # Payment signature verification failed
                 payment.status = Payment.Status.FAILED
                 payment.save(update_fields=['status'])
                 
-                logger.warning(f"Signature mismatch for order {razorpay_order_id}")
+                # Delete the order since payment failed
+                order = payment.order
+                order_number = order.order_number
+                logger.warning(f"Signature mismatch for order {razorpay_order_id} - Deleting order {order_number}")
+                order.delete()  # This will cascade delete the payment and order items
+                
+                # Clear pending checkout data from session
+                if "pending_checkout_data" in request.session:
+                    del request.session["pending_checkout_data"]
                 
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Payment signature verification failed'
+                    'message': 'Payment verification failed. Please try again.',
+                    'redirect': '/cart/'
                 }, status=400)
         except Payment.DoesNotExist:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Payment record not found for order: {razorpay_order_id}")
+            
+            # Clear pending checkout data from session
+            if "pending_checkout_data" in request.session:
+                del request.session["pending_checkout_data"]
+            
             return JsonResponse({
                 'status': 'error',
-                'message': 'Payment record not found'
+                'message': 'Payment record not found',
+                'redirect': '/cart/'
             }, status=404)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Payment verification error: {str(e)}", exc_info=True)
+            
+            # Clear pending checkout data from session
+            if "pending_checkout_data" in request.session:
+                del request.session["pending_checkout_data"]
+            
             return JsonResponse({
                 'status': 'error',
-                'message': f'Payment verification error: {str(e)}'
+                'message': f'Payment verification error: {str(e)}',
+                'redirect': '/cart/'
             }, status=500)
+
+
+class RazorpayPaymentCancelView(LoginRequiredForActionMixin, View):
+    """Handle Razorpay payment cancellation (user closes payment modal)"""
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            data = json.loads(request.body)
+            order_number = data.get('order_number')
+            
+            logger.info(f"Payment cancellation request for order: {order_number}")
+            
+            # Get the order
+            order = Order.objects.select_related('user', 'address').get(order_number=order_number)
+            
+            # Check authorization
+            if order.user != request.user:
+                logger.warning(f"Unauthorized cancellation attempt for order {order_number}")
+                return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+            
+            # Get payment record
+            try:
+                payment = order.payment
+            except Payment.DoesNotExist:
+                payment = None
+            
+            # Delete the order (cascade deletes payment and items)
+            logger.info(f"Deleting order {order_number} due to payment cancellation")
+            order.delete()
+            
+            # Clear pending checkout data from session
+            if "pending_checkout_data" in request.session:
+                del request.session["pending_checkout_data"]
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment cancelled. Your order has been cancelled.',
+                'redirect': '/cart/'
+            })
+        except Order.DoesNotExist:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Order not found for cancellation: {order_number}")
+            
+            # Clear pending checkout data from session
+            if "pending_checkout_data" in request.session:
+                del request.session["pending_checkout_data"]
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Returning to cart...',
+                'redirect': '/cart/'
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Payment cancellation error: {str(e)}", exc_info=True)
+            
+            # Clear pending checkout data from session
+            if "pending_checkout_data" in request.session:
+                del request.session["pending_checkout_data"]
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Returning to cart...',
+                'redirect': '/cart/'
+            })

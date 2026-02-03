@@ -172,7 +172,7 @@ class OrderService:
 
     @classmethod
     @transaction.atomic
-    def create_order(cls, cart, form_data, user=None):
+    def create_order(cls, cart, form_data, user=None, clear_cart=True):
         items = (
             cart.items.select_related("variant", "product")
             .select_for_update(of=("self", "variant"))
@@ -251,9 +251,11 @@ class OrderService:
             amount=totals.total,
         )
 
-        cart.status = Cart.Status.ORDERED
-        cart.save(update_fields=["status"])
-        cart.items.all().delete()
+        # Only clear cart for COD/WhatsApp. For Razorpay, clear after payment verification
+        if clear_cart:
+            cart.status = Cart.Status.ORDERED
+            cart.save(update_fields=["status"])
+            cart.items.all().delete()
 
         # Send order notification email to admin/owner (non-blocking)
         send_order_notification_email_async(order)
