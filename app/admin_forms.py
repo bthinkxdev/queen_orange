@@ -104,6 +104,20 @@ class ProductForm(forms.ModelForm):
             # Remove required attribute from widget
             if hasattr(field.widget, 'attrs'):
                 field.widget.attrs.pop('required', None)
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        price = cleaned_data.get('price')
+        original_price = cleaned_data.get('original_price')
+        
+        # Only validate if original_price is provided
+        if original_price and price:
+            if original_price <= price:
+                raise forms.ValidationError(
+                    "Original price must be greater than the selling price."
+                )
+        
+        return cleaned_data
 
 
 class ProductImageForm(forms.ModelForm):

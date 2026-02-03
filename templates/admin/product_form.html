@@ -1144,6 +1144,57 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Original price validation - must be greater than selling price
+    const priceInput = document.getElementById('{{ form.price.id_for_label }}');
+    const originalPriceInput = document.getElementById('{{ form.original_price.id_for_label }}');
+    
+    function validatePrices() {
+        if (!priceInput || !originalPriceInput) return;
+        
+        const price = parseFloat(priceInput.value) || 0;
+        const originalPrice = parseFloat(originalPriceInput.value) || 0;
+        
+        const originalPriceGroup = originalPriceInput.closest('.form-group');
+        let errorDiv = originalPriceGroup.querySelector('.price-error-message');
+        
+        if (originalPrice > 0 && originalPrice <= price) {
+            // Show error
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'form-error-message price-error-message';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Original price must be greater than the selling price.';
+                originalPriceGroup.appendChild(errorDiv);
+            }
+            originalPriceInput.classList.add('is-invalid');
+        } else {
+            // Hide error
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+            originalPriceInput.classList.remove('is-invalid');
+        }
+    }
+    
+    // Add event listeners for real-time validation
+    if (priceInput) {
+        priceInput.addEventListener('input', validatePrices);
+        priceInput.addEventListener('change', validatePrices);
+    }
+    if (originalPriceInput) {
+        originalPriceInput.addEventListener('input', validatePrices);
+        originalPriceInput.addEventListener('change', validatePrices);
+    }
+    
+    // Also hide error when user starts typing in original price field
+    if (originalPriceInput) {
+        originalPriceInput.addEventListener('input', function() {
+            const errorDiv = this.closest('.form-group').querySelector('.form-error-message');
+            if (errorDiv && !errorDiv.classList.contains('price-error-message')) {
+                errorDiv.style.display = 'none';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
