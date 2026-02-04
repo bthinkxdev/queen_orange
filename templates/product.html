@@ -56,22 +56,8 @@
                     <form method="post" action="{% url 'store:cart_add' %}">
                         {% csrf_token %}
                         <input type="hidden" name="product_id" value="{{ product.id }}">
-                        <input type="hidden" name="color" id="selectedColor" value="{% if colors %}{{ colors.0 }}{% endif %}">
+                        <input type="hidden" name="color" id="selectedColor" value="">
                         <input type="hidden" name="size" id="selectedSize" value="{% if sizes %}{{ sizes.0 }}{% endif %}">
-
-                        {% if colors %}
-                            <div class="color-selector">
-                                <label>Select Color</label>
-                                <div class="color-options">
-                                    {% for color in colors %}
-                                        <div class="color-option {% if forloop.first %}selected{% endif %}" data-color="{{ color }}">
-                                            <div class="color-option-inner" style="background-color: {{ color|lower|cut:' ' }}"></div>
-                                            <span class="color-option-name">{{ color }}</span>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endif %}
 
                         <div class="size-selector">
                             <label>Select Size</label>
@@ -81,6 +67,21 @@
                                 {% endfor %}
                             </div>
                         </div>
+
+                        {% if colors %}
+                            <div class="color-selector">
+                                <label>Color</label>
+                                <div id="colorMessage" style="display: none; color: #FF9800; margin: 10px 0; font-weight: 500; padding: 10px; background: #FFF3E0; border-radius: 4px;">Color: N/A</div>
+                                <div class="color-options" id="colorOptions">
+                                    {% for color in colors %}
+                                        <div class="color-option {% if forloop.first %}selected{% endif %}" data-color="{{ color }}" data-available="true">
+                                            <div class="color-option-inner" style="background-color: {{ color|lower|cut:' ' }}"></div>
+                                            <span class="color-option-name">{{ color }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
 
                         <div class="quantity-selector">
                             <label>Quantity</label>
@@ -171,30 +172,9 @@
 
 {% block extra_js %}
 <script>
-    document.querySelectorAll('.image-thumbnail').forEach((thumb) => {
-        thumb.addEventListener('click', () => {
-            const mainImage = document.getElementById('mainImage');
-            mainImage.src = thumb.dataset.src;
-            document.querySelectorAll('.image-thumbnail').forEach((item) => item.classList.remove('active'));
-            thumb.classList.add('active');
-        });
-    });
-
-    document.querySelectorAll('.size-option').forEach((option) => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.size-option').forEach((item) => item.classList.remove('selected'));
-            option.classList.add('selected');
-            document.getElementById('selectedSize').value = option.dataset.size;
-        });
-    });
-
-    document.querySelectorAll('.color-option').forEach((option) => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.color-option').forEach((item) => item.classList.remove('selected'));
-            option.classList.add('selected');
-            document.getElementById('selectedColor').value = option.dataset.color;
-        });
-    });
+    // Pass the size-color-stock mapping to the external script
+    window.sizeColorStock = {{ size_color_stock_json|safe }};
 </script>
+<script src="{% static 'js/product-detail.js' %}"></script>
 {% endblock %}
 

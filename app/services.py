@@ -241,9 +241,12 @@ class OrderService:
                 unit_price=item.unit_price,
                 quantity=item.quantity,
             )
-            ProductVariant.objects.filter(pk=item.variant_id).update(
-                stock_quantity=F("stock_quantity") - item.quantity
-            )
+            # Only reduce stock immediately for COD/WhatsApp payments
+            # For Razorpay, stock will be reduced after successful payment verification
+            if form_data.get("payment") != Payment.Method.RAZORPAY:
+                ProductVariant.objects.filter(pk=item.variant_id).update(
+                    stock_quantity=F("stock_quantity") - item.quantity
+                )
 
         Payment.objects.create(
             order=order,

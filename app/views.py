@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, F
 from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -124,6 +124,20 @@ class ProductDetailView(DetailView):
         context["variants"] = variants
         context["sizes"] = sorted({variant.size for variant in variants})
         context["colors"] = sorted({variant.color for variant in variants if variant.color})
+        
+        # Create a mapping of size -> colors with stock status
+        # Format: size_color_stock = { "L": {"red": true, "blue": true, "no_color": true} }
+        size_color_stock = {}
+        for variant in variants:
+            if variant.size not in size_color_stock:
+                size_color_stock[variant.size] = {}
+            
+            color_key = variant.color if variant.color else "no_color"
+            # Mark as in stock if stock_quantity > 0
+            size_color_stock[variant.size][color_key] = variant.stock_quantity > 0
+        
+        context["size_color_stock_json"] = json.dumps(size_color_stock)
+        
         context["related_products"] = (
             Product.objects.active()
             .filter(category=product.category)
@@ -172,17 +186,28 @@ class AddToCartView(LoginRequiredForActionMixin, View):
             return redirect("store:cart")
         data = form.cleaned_data
         product = get_object_or_404(Product, pk=data["product_id"])
-        if ProductVariant.objects.filter(product=product, color__isnull=False).exclude(color="").exists():
-            if not data.get("color"):
-                messages.error(request, "Please select a color.")
-                if is_ajax:
-                    return JsonResponse({"success": False, "error": "Please select a color."}, status=400)
-                return redirect("store:product_detail", slug=product.slug)
+        
+        # Check if the selected size has any IN-STOCK colors
+        size_has_instock_colors = ProductVariant.objects.filter(
+            product=product, 
+            size=data["size"],
+            color__isnull=False,
+            is_active=True,
+            stock_quantity__gt=0
+        ).exclude(color="").exists()
+        
+        # Only require color if this specific size has IN-STOCK colors
+        if size_has_instock_colors and not data.get("color"):
+            messages.error(request, "Please select a color.")
+            if is_ajax:
+                return JsonResponse({"success": False, "error": "Please select a color."}, status=400)
+            return redirect("store:product_detail", slug=product.slug)
         variant = ProductVariant.objects.filter(
             product=product,
             size=data["size"],
             color=data.get("color", ""),
             is_active=True,
+            stock_quantity__gt=0
         ).first()
         if not variant:
             messages.error(request, "Selected variant is unavailable.")
@@ -615,6 +640,13 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 
                 logger.info(f"Payment successful - Order: {payment.order.order_number}, Payment: {razorpay_payment_id}, Status: PAID")
                 
+                # Now reduce stock after successful payment
+                order = payment.order
+                for item in order.items.all():
+                    ProductVariant.objects.filter(pk=item.variant_id).update(
+                        stock_quantity=F("stock_quantity") - item.quantity
+                    )
+                
                 # Clear cart after successful payment
                 cart = CartService.get_or_create_cart(request)
                 if cart.items.exists():
@@ -636,7 +668,7 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 payment.status = Payment.Status.FAILED
                 payment.save(update_fields=['status'])
                 
-                # Delete the order since payment failed
+                # Delete the order since payment failed (no stock was reduced)
                 order = payment.order
                 order_number = order.order_number
                 logger.warning(f"Signature mismatch for order {razorpay_order_id} - Deleting order {order_number}")
