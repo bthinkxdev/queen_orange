@@ -101,16 +101,21 @@ class ProductForm(forms.ModelForm):
         self.fields["description"].required = False
         
         for field_name, field in self.fields.items():
-            # Remove required attribute from widget
-            if hasattr(field.widget, 'attrs'):
-                field.widget.attrs.pop('required', None)
+            if field.required and hasattr(field.widget, 'attrs'):
+                field.widget.attrs['required'] = 'required'
     
     def clean(self):
         cleaned_data = super().clean()
         price = cleaned_data.get('price')
         original_price = cleaned_data.get('original_price')
         
-        # Only validate if original_price is provided
+        # If original_price is set, price must also be set
+        if original_price and not price:
+            raise forms.ValidationError(
+                "Selling price is required when original price is set."
+            )
+        
+        # If both are set, original_price must be greater than price
         if original_price and price:
             if original_price <= price:
                 raise forms.ValidationError(
@@ -134,8 +139,8 @@ class ProductImageForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["alt_text"].required = False
         for field_name, field in self.fields.items():
-            if hasattr(field.widget, 'attrs'):
-                field.widget.attrs.pop('required', None)
+            if field.required and hasattr(field.widget, 'attrs'):
+                field.widget.attrs['required'] = 'required'
     
     def clean_image(self):
         image = self.cleaned_data.get('image')
@@ -196,8 +201,8 @@ class ProductVariantForm(forms.ModelForm):
         self.fields["color"].required = False
         
         for field_name, field in self.fields.items():
-            if hasattr(field.widget, 'attrs'):
-                field.widget.attrs.pop('required', None)
+            if field.required and hasattr(field.widget, 'attrs'):
+                field.widget.attrs['required'] = 'required'
     
     def clean_sku(self):
         sku = self.cleaned_data.get('sku', '').strip()
