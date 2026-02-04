@@ -362,15 +362,18 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         product = self.get_object()
         
-        # Check if product has any active orders (not delivered or cancelled)
-        active_orders = Order.objects.filter(
+        # Check if product has any orders at all
+        all_orders = Order.objects.filter(
             items__product=product
-        ).exclude(
+        ).distinct()
+        
+        # Check if product has any active orders (not delivered or cancelled)
+        active_orders = all_orders.exclude(
             status__in=["delivered", "cancelled"]
         ).distinct()
         
         if active_orders.exists():
-            # Count the number of active orders
+            # Cannot delete - has active orders
             order_count = active_orders.count()
             order_numbers = ", ".join([order.order_number for order in active_orders[:5]])
             if order_count > 5:
@@ -379,13 +382,68 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
             messages.error(
                 request,
                 f"Cannot delete product '{product.name}' because it has {order_count} active order(s) "
-                f"({order_numbers}). This product can only be deleted once all associated orders are "
+                f"({order_numbers}). This product can only be inactive once all associated orders are "
                 f"delivered or cancelled."
             )
             return redirect("admin_panel:product_list")
         
-        messages.success(request, f"Product '{product.name}' deleted successfully!")
-        return super().post(request, *args, **kwargs)
+        # If there are no orders at all, completely delete
+        if not all_orders.exists():
+            messages.success(request, f"Product '{product.name}' deleted successfully!")
+            return super().post(request, *args, **kwargs)
+        
+        # If all orders are delivered/cancelled, set to inactive instead of deleting
+        if all_orders.exists():
+            product.is_active = False
+            product.save()
+            messages.success(
+                request,
+                f"Product '{product.name}' has been set to inactive."
+            )
+            return redirect("admin_panel:product_list")
+
+
+class ProductDeleteCheckView(StaffRequiredMixin, View):
+    """Check if a product can be deleted and return deletion status"""
+    
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        
+        # Check if product has any orders at all
+        all_orders = Order.objects.filter(
+            items__product=product
+        ).distinct()
+        
+        # Check if product has any active orders (not delivered or cancelled)
+        active_orders = all_orders.exclude(
+            status__in=["delivered", "cancelled"]
+        ).distinct()
+        
+        if active_orders.exists():
+            # Cannot delete - has active orders
+            return JsonResponse({
+                'can_delete': False,
+                'has_active_orders': True,
+                'has_orders': True,
+                'message': f'Cannot delete: {active_orders.count()} active order(s)'
+            })
+        
+        if not all_orders.exists():
+            # Can completely delete - no orders
+            return JsonResponse({
+                'can_delete': True,
+                'will_delete_completely': True,
+                'has_orders': False,
+                'message': 'Product will be completely deleted'
+            })
+        
+        # Can deactivate - all orders are delivered/cancelled
+        return JsonResponse({
+            'can_delete': True,
+            'will_delete_completely': False,
+            'has_orders': True,
+            'message': 'Product will be set to inactive'
+        })
 
 
 # Order Management Views
