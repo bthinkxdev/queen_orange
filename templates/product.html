@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load color_tags %}
 {% block title %}{{ product.name }} - Queen Orange{% endblock %}
 {% block meta_description %}View product details, select size, and add to cart.{% endblock %}
 {% block content %}
@@ -75,7 +76,7 @@
                                 <div class="color-options" id="colorOptions">
                                     {% for color in colors %}
                                         <div class="color-option {% if forloop.first %}selected{% endif %}" data-color="{{ color }}" data-available="true">
-                                            <div class="color-option-inner" style="background-color: {{ color|lower|cut:' ' }}"></div>
+                                            <div class="color-option-inner" style="background-color: {{ color|color_to_hex }}"></div>
                                             <span class="color-option-name">{{ color }}</span>
                                         </div>
                                     {% endfor %}
