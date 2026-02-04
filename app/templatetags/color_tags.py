@@ -117,7 +117,7 @@ def color_to_hex(color_name):
     If the color name is not found, returns a default white color (#FFFFFF).
     """
     if not color_name:
-        return "#FFFFFF"  # Default gray for empty values
+        return "#FFFFFF"  # Default white for empty values
     
     color_str = str(color_name).strip()
     
@@ -128,5 +128,5 @@ def color_to_hex(color_name):
     # Convert to lowercase and look up in the map
     color_lower = color_str.lower()
     
-    # Return mapped color or default gray if not found
+    # Return mapped color or default white if not found
     return COLOR_MAP.get(color_lower, '#FFFFFF')
