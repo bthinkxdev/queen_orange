@@ -24,47 +24,53 @@ def send_order_notification_email_async(order, request=None):
 
 def send_order_notification_email(order, request=None):
     """Send order notification email to admin/owner when a new order is placed."""
-    admin_emails = getattr(settings, 'ADMIN_NOTIFICATION_EMAILS', [])
-    if not admin_emails:
-        print("No admin emails configured for order notifications")
-        return False
-    
-    if request:
-        order_url = request.build_absolute_uri(f'/dashboard/orders/{order.order_number}/')
-    else:
-        site_domain = getattr(settings, 'SITE_DOMAIN', 'https://queenorange.shop/')
-        order_url = f"{site_domain}/dashboard/orders/{order.order_number}/"
-
-    payment_method = "Cash on Delivery"
-    if hasattr(order, 'payment'):
-        payment_method = order.payment.get_method_display()
-    
-    context = {
-        'order': order,
-        'order_url': order_url,
-        'payment_method': payment_method,
-        'site_name': 'Golden Elegance',
-    }
-    
-    html_message = render_to_string('admin/order_notification_email.html', context)
-    plain_message = render_to_string('admin/order_notification_email.txt', context)
-    
     try:
-        print(f"Sending order notification email for order {order.order_number}...")
-        send_mail(
-            subject=f'New Order #{order.order_number} - ₹{order.total}',
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=admin_emails,
-            html_message=html_message,
-            fail_silently=False,
-        )
-        print(f"Order notification email sent successfully to {admin_emails}")
-        return True
-    except Exception as e:
-        print(f"Error sending order notification email: {e}")
-        import traceback
-        traceback.print_exc()
+        admin_emails = getattr(settings, 'ADMIN_NOTIFICATION_EMAILS', [])
+        if not admin_emails:
+            return False
+        
+        try:
+            if request:
+                order_url = request.build_absolute_uri(f'/dashboard/orders/{order.order_number}/')
+            else:
+                site_domain = getattr(settings, 'SITE_DOMAIN', 'https://queenorange.shop/')
+                order_url = f"{site_domain}/dashboard/orders/{order.order_number}/"
+        except Exception:
+            order_url = f"Order #{order.order_number}"
+
+        payment_method = "Cash on Delivery"
+        try:
+            if hasattr(order, 'payment') and order.payment:
+                payment_method = order.payment.get_method_display()
+        except Exception:
+            pass
+        
+        context = {
+            'order': order,
+            'order_url': order_url,
+            'payment_method': payment_method,
+            'site_name': 'Golden Elegance',
+        }
+        
+        try:
+            html_message = render_to_string('admin/order_notification_email.html', context)
+            plain_message = render_to_string('admin/order_notification_email.txt', context)
+        except Exception:
+            return False
+        
+        try:
+            send_mail(
+                subject=f'New Order #{order.order_number} - ₹{order.total}',
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=admin_emails,
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return True
+        except Exception:
+            return False
+    except Exception:
         return False
 
 
@@ -116,50 +122,63 @@ class CartService:
 
     @staticmethod
     def compute_totals(cart):
-        subtotal = sum(item.line_total for item in cart.items.select_related("product"))
-        shipping_threshold = getattr(settings, "FREE_SHIPPING_THRESHOLD", 999)
-        shipping_fee = getattr(settings, "FLAT_SHIPPING_FEE", 50)
-        shipping = 0 if subtotal >= shipping_threshold else shipping_fee
-        total = subtotal + shipping
-        return CartTotals(subtotal=subtotal, shipping=shipping, total=total)
+        try:
+            subtotal = sum(item.line_total for item in cart.items.select_related("product"))
+            shipping_threshold = getattr(settings, "FREE_SHIPPING_THRESHOLD", 999)
+            shipping_fee = getattr(settings, "FLAT_SHIPPING_FEE", 50)
+            shipping = 0 if subtotal >= shipping_threshold else shipping_fee
+            total = subtotal + shipping
+            return CartTotals(subtotal=subtotal, shipping=shipping, total=total)
+        except Exception:
+            return CartTotals(subtotal=0, shipping=0, total=0)
 
     @staticmethod
     def add_item(cart, variant, quantity):
-        if not variant.is_active or variant.stock_quantity <= 0:
-            raise StockError("This item is out of stock.")
-        max_qty = getattr(settings, "MAX_CART_QTY", 10)
-        quantity = max(1, min(quantity, max_qty))
-        if quantity > variant.stock_quantity:
-            raise StockError("Requested quantity exceeds available stock.")
-        item = CartItem.objects.filter(cart=cart, variant=variant).first()
-        if item:
-            new_quantity = min(item.quantity + quantity, max_qty)
-            if new_quantity > variant.stock_quantity:
+        try:
+            if not variant.is_active or variant.stock_quantity <= 0:
+                raise StockError("This item is out of stock.")
+            max_qty = getattr(settings, "MAX_CART_QTY", 10)
+            quantity = max(1, min(quantity, max_qty))
+            if quantity > variant.stock_quantity:
                 raise StockError("Requested quantity exceeds available stock.")
-            item.quantity = new_quantity
-            item.unit_price = variant.product.price
-            item.save(update_fields=["quantity", "unit_price", "updated_at"])
-            return item
-        return CartItem.objects.create(
-            cart=cart,
-            variant=variant,
-            product=variant.product,
-            quantity=quantity,
-            unit_price=variant.product.price,
-        )
+            item = CartItem.objects.filter(cart=cart, variant=variant).first()
+            if item:
+                new_quantity = min(item.quantity + quantity, max_qty)
+                if new_quantity > variant.stock_quantity:
+                    raise StockError("Requested quantity exceeds available stock.")
+                item.quantity = new_quantity
+                item.unit_price = variant.product.price
+                item.save(update_fields=["quantity", "unit_price", "updated_at"])
+                return item
+            return CartItem.objects.create(
+                cart=cart,
+                variant=variant,
+                product=variant.product,
+                quantity=quantity,
+                unit_price=variant.product.price,
+            )
+        except StockError:
+            raise
+        except Exception as e:
+            raise CartError(f"Failed to add item to cart: {str(e)}")
 
     @staticmethod
     def update_item(item, quantity):
-        if quantity <= 0:
-            item.delete()
-            return
-        max_qty = getattr(settings, "MAX_CART_QTY", 10)
-        quantity = min(quantity, max_qty)
-        if quantity > item.variant.stock_quantity:
-            raise StockError("Requested quantity exceeds available stock.")
-        item.quantity = quantity
-        item.unit_price = item.variant.product.price
-        item.save(update_fields=["quantity", "unit_price", "updated_at"])
+        try:
+            if quantity <= 0:
+                item.delete()
+                return
+            max_qty = getattr(settings, "MAX_CART_QTY", 10)
+            quantity = min(quantity, max_qty)
+            if quantity > item.variant.stock_quantity:
+                raise StockError("Requested quantity exceeds available stock.")
+            item.quantity = quantity
+            item.unit_price = item.variant.product.price
+            item.save(update_fields=["quantity", "unit_price", "updated_at"])
+        except StockError:
+            raise
+        except Exception as e:
+            raise CartError(f"Failed to update cart item: {str(e)}")
 
 
 class OrderService:

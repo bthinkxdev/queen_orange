@@ -48,43 +48,53 @@ class CheckoutForm(forms.Form):
             field.widget.attrs["class"] = f"{existing} form-input".strip()
     
     def clean(self):
-        cleaned_data = super().clean()
-        selected_address = cleaned_data.get('selected_address')
-        use_new_address = cleaned_data.get('use_new_address')
-        
-        # If using existing address
-        if selected_address and not use_new_address:
-            try:
-                address = Address.objects.get(pk=selected_address, user=self.user, is_snapshot=False)
-                # Populate form data from selected address
-                cleaned_data['full_name'] = address.full_name
-                cleaned_data['phone'] = address.phone
-                cleaned_data['email'] = address.email
-                cleaned_data['address_line'] = address.address_line
-                cleaned_data['city'] = address.city
-                cleaned_data['state'] = address.state
-                cleaned_data['pincode'] = address.pincode
-            except Address.DoesNotExist:
-                raise forms.ValidationError("Selected address not found.")
-        else:
-            # If not using existing address and no saved addresses, require new address
-            if not use_new_address and not selected_address:
-                # Check if user has any saved addresses
-                if self.user and Address.objects.filter(user=self.user, is_snapshot=False).exists():
-                    raise forms.ValidationError("Please select an address or add a new one.")
-                else:
-                    # No saved addresses, require new address
-                    use_new_address = True
-                    cleaned_data['use_new_address'] = True
+        try:
+            cleaned_data = super().clean()
+            selected_address = cleaned_data.get('selected_address')
+            use_new_address = cleaned_data.get('use_new_address')
             
-            # Validate new address fields
-            if use_new_address:
-                required_fields = ['full_name', 'phone', 'address_line', 'city', 'state', 'pincode']
-                for field in required_fields:
-                    if not cleaned_data.get(field):
-                        self.add_error(field, 'This field is required.')
-        
-        return cleaned_data
+            # If using existing address
+            if selected_address and not use_new_address:
+                try:
+                    address = Address.objects.get(pk=selected_address, user=self.user, is_snapshot=False)
+                    # Populate form data from selected address
+                    cleaned_data['full_name'] = address.full_name
+                    cleaned_data['phone'] = address.phone
+                    cleaned_data['email'] = address.email
+                    cleaned_data['address_line'] = address.address_line
+                    cleaned_data['city'] = address.city
+                    cleaned_data['state'] = address.state
+                    cleaned_data['pincode'] = address.pincode
+                except Address.DoesNotExist:
+                    raise forms.ValidationError("Selected address not found.")
+                except Exception as e:
+                    raise forms.ValidationError("Failed to retrieve address. Please try again.")
+            else:
+                # If not using existing address and no saved addresses, require new address
+                if not use_new_address and not selected_address:
+                    try:
+                        # Check if user has any saved addresses
+                        if self.user and Address.objects.filter(user=self.user, is_snapshot=False).exists():
+                            raise forms.ValidationError("Please select an address or add a new one.")
+                        else:
+                            # No saved addresses, require new address
+                            use_new_address = True
+                            cleaned_data['use_new_address'] = True
+                    except Exception as e:
+                        raise forms.ValidationError("Failed to retrieve addresses. Please try again.")
+                
+                # Validate new address fields
+                if use_new_address:
+                    required_fields = ['full_name', 'phone', 'address_line', 'city', 'state', 'pincode']
+                    for field in required_fields:
+                        if not cleaned_data.get(field):
+                            self.add_error(field, 'This field is required.')
+            
+            return cleaned_data
+        except forms.ValidationError:
+            raise
+        except Exception as e:
+            raise forms.ValidationError("An error occurred. Please try again.")
 
 
 class ContactForm(forms.ModelForm):
