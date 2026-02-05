@@ -100,6 +100,17 @@ class ProductForm(forms.ModelForm):
         self.fields["original_price"].required = False
         self.fields["description"].required = False
         
+        # Filter categories to only show active ones
+        active_categories = Category.objects.filter(is_active=True)
+        
+        # If editing an existing product, include its current category even if inactive
+        if self.instance and self.instance.pk:
+            current_category = self.instance.category
+            if current_category and not current_category.is_active:
+                active_categories = active_categories | Category.objects.filter(pk=current_category.pk)
+        
+        self.fields["category"].queryset = active_categories.order_by('name')
+        
         for field_name, field in self.fields.items():
             if field.required and hasattr(field.widget, 'attrs'):
                 field.widget.attrs['required'] = 'required'
