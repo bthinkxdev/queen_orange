@@ -13,6 +13,9 @@ import razorpay
 import hmac
 import hashlib
 
+import logging
+logger = logging.getLogger(__name__)
+
 from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
 from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment, Cart
@@ -25,31 +28,35 @@ class ProductListView(ListView):
     paginate_by = 24
 
     def get_queryset(self):
-        qs = Product.objects.active().select_related("category")
-        
-        category = self.request.GET.get("category")
-        min_price = self.request.GET.get("min_price")
-        max_price = self.request.GET.get("max_price")
-        size = self.request.GET.get("size")
-        query = self.request.GET.get("q")
+        try:
+            qs = Product.objects.active().select_related("category")
+            
+            category = self.request.GET.get("category")
+            min_price = self.request.GET.get("min_price")
+            max_price = self.request.GET.get("max_price")
+            size = self.request.GET.get("size")
+            query = self.request.GET.get("q")
 
-        if category and category != "all":
-            qs = qs.filter(category__slug=category)
-        if min_price:
-            qs = qs.filter(price__gte=min_price)
-        if max_price:
-            qs = qs.filter(price__lte=max_price)
-        if size:
-            qs = qs.filter(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
-        if query:
-            qs = qs.filter(
-                Q(name__icontains=query)
-                | Q(description__icontains=query)
-                | Q(category__name__icontains=query)
-            )
-        
-        # Apply distinct then prefetch_related for images
-        return qs.distinct().prefetch_related("images")
+            if category and category != "all":
+                qs = qs.filter(category__slug=category)
+            if min_price:
+                qs = qs.filter(price__gte=min_price)
+            if max_price:
+                qs = qs.filter(price__lte=max_price)
+            if size:
+                qs = qs.filter(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
+            if query:
+                qs = qs.filter(
+                    Q(name__icontains=query)
+                    | Q(description__icontains=query)
+                    | Q(category__name__icontains=query)
+                )
+            
+            # Apply distinct then prefetch_related for images
+            return qs.distinct().prefetch_related("images")
+        except Exception as e:
+            logger.error(f"Error in ProductListView.get_queryset: {str(e)}", exc_info=True)
+            return Product.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -76,30 +83,39 @@ class HomeView(TemplateView):
     template_name = "index.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(is_active=True)
-        variant_qs = ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0).order_by("id")
-        image_qs = ProductImage.objects.order_by("-is_primary", "id")
-        context["featured_products"] = (
-            Product.objects.active()
-            .filter(is_featured=True)
-            .select_related("category")
-            .prefetch_related(
-                Prefetch("images", queryset=image_qs),
-                Prefetch("variants", queryset=variant_qs)
-            )[:8]
-        )
-        context["bestseller_products"] = (
-            Product.objects.active()
-            .filter(is_bestseller=True)
-            .select_related("category")
-            .prefetch_related(
-                Prefetch("images", queryset=image_qs),
-                Prefetch("variants", queryset=variant_qs)
-            )[:8]
-        )
-        context["active_page"] = "home"
-        return context
+        try:
+            context = super().get_context_data(**kwargs)
+            context["categories"] = Category.objects.filter(is_active=True)
+            variant_qs = ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0).order_by("id")
+            image_qs = ProductImage.objects.order_by("-is_primary", "id")
+            context["featured_products"] = (
+                Product.objects.active()
+                .filter(is_featured=True)
+                .select_related("category")
+                .prefetch_related(
+                    Prefetch("images", queryset=image_qs),
+                    Prefetch("variants", queryset=variant_qs)
+                )[:8]
+            )
+            context["bestseller_products"] = (
+                Product.objects.active()
+                .filter(is_bestseller=True)
+                .select_related("category")
+                .prefetch_related(
+                    Prefetch("images", queryset=image_qs),
+                    Prefetch("variants", queryset=variant_qs)
+                )[:8]
+            )
+            context["active_page"] = "home"
+            return context
+        except Exception as e:
+            logger.error(f"Error in HomeView.get_context_data: {str(e)}", exc_info=True)
+            context = super().get_context_data(**kwargs)
+            context["active_page"] = "home"
+            context["featured_products"] = []
+            context["bestseller_products"] = []
+            context["categories"] = []
+            return context
 
 
 class ProductDetailView(DetailView):
@@ -118,55 +134,74 @@ class ProductDetailView(DetailView):
         )
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        product = context["product"]
-        variants = list(product.variants.all())
-        context["variants"] = variants
-        context["sizes"] = sorted({variant.size for variant in variants})
-        context["colors"] = sorted({variant.color for variant in variants if variant.color})
-        
-        # Create a mapping of size -> colors with stock status
-        # Format: size_color_stock = { "L": {"red": true, "blue": true, "no_color": true} }
-        size_color_stock = {}
-        for variant in variants:
-            if variant.size not in size_color_stock:
-                size_color_stock[variant.size] = {}
+        try:
+            context = super().get_context_data(**kwargs)
+            product = context["product"]
+            variants = list(product.variants.all())
+            context["variants"] = variants
+            context["sizes"] = sorted({variant.size for variant in variants})
+            context["colors"] = sorted({variant.color for variant in variants if variant.color})
             
-            color_key = variant.color if variant.color else "no_color"
-            # Mark as in stock if stock_quantity > 0
-            size_color_stock[variant.size][color_key] = variant.stock_quantity > 0
-        
-        context["size_color_stock_json"] = json.dumps(size_color_stock)
-        
-        context["related_products"] = (
-            Product.objects.active()
-            .filter(category=product.category)
-            .exclude(pk=product.pk)
-            .select_related("category")[:4]
-        )
-        context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
-        context["active_page"] = "collection"
-        return context
+            # Create a mapping of size -> colors with stock status
+            # Format: size_color_stock = { "L": {"red": true, "blue": true, "no_color": true} }
+            size_color_stock = {}
+            for variant in variants:
+                if variant.size not in size_color_stock:
+                    size_color_stock[variant.size] = {}
+                
+                color_key = variant.color if variant.color else "no_color"
+                # Mark as in stock if stock_quantity > 0
+                size_color_stock[variant.size][color_key] = variant.stock_quantity > 0
+            
+            try:
+                context["size_color_stock_json"] = json.dumps(size_color_stock)
+            except (TypeError, ValueError) as je:
+                context["size_color_stock_json"] = json.dumps({})
+            
+            context["related_products"] = (
+                Product.objects.active()
+                .filter(category=product.category)
+                .exclude(pk=product.pk)
+                .select_related("category")[:4]
+            )
+            context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
+            context["active_page"] = "collection"
+            return context
+        except Exception as e:
+            logger.error(f"Error in ProductDetailView.get_context_data: {str(e)}", exc_info=True)
+            raise
 
 
 class CartView(LoginRequiredForActionMixin, TemplateView):
     template_name = "cart.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cart = CartService.get_or_create_cart(self.request)
-        items = cart.items.select_related("product", "variant").prefetch_related("product__images").all()
-        totals = CartService.compute_totals(cart)
-        context.update(
-            {
-                "cart": cart,
-                "items": items,
-                "totals": totals,
+        try:
+            context = super().get_context_data(**kwargs)
+            cart = CartService.get_or_create_cart(self.request)
+            items = cart.items.select_related("product", "variant").prefetch_related("product__images").all()
+            totals = CartService.compute_totals(cart)
+            context.update(
+                {
+                    "cart": cart,
+                    "items": items,
+                    "totals": totals,
+                    "update_form": CartUpdateForm(),
+                    "active_page": "cart",
+                }
+            )
+            return context
+        except Exception as e:
+            logger.error(f"Error in CartView.get_context_data: {str(e)}", exc_info=True)
+            context = super().get_context_data(**kwargs)
+            context.update({
+                "cart": None,
+                "items": [],
+                "totals": {"subtotal": 0, "shipping": 0, "total": 0},
                 "update_form": CartUpdateForm(),
                 "active_page": "cart",
-            }
-        )
-        return context
+            })
+            return context
 
 
 class AddToCartView(LoginRequiredForActionMixin, View):
@@ -256,10 +291,14 @@ class RemoveCartItemView(LoginRequiredForActionMixin, View):
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
-        cart = CartService.get_or_create_cart(request)
-        item = get_object_or_404(CartItem, pk=kwargs.get("item_id"), cart=cart)
-        item.delete()
-        messages.success(request, "Item removed.")
+        try:
+            cart = CartService.get_or_create_cart(request)
+            item = get_object_or_404(CartItem, pk=kwargs.get("item_id"), cart=cart)
+            item.delete()
+            messages.success(request, "Item removed.")
+        except Exception as e:
+            logger.error(f"Error in RemoveCartItemView: {str(e)}", exc_info=True)
+            messages.error(request, "Failed to remove item from cart.")
         return redirect("store:cart")
 
 
@@ -280,43 +319,57 @@ class CheckoutView(LoginRequiredForActionMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cart = CartService.get_or_create_cart(self.request)
-        totals = CartService.compute_totals(cart)
-        
-        # Get user's saved addresses
-        from .models import Address
-        addresses = Address.objects.filter(
-            user=self.request.user,
-            is_snapshot=False
-        ).order_by('-is_default', '-created_at')
-        
-        # Get default address
-        default_address = addresses.filter(is_default=True).first()
-        
-        # Prepare initial form data
-        payment_method = self.request.GET.get("payment")
-        if payment_method not in {"cod", "whatsapp"}:
-            payment_method = None
-        
-        initial = {"payment": payment_method} if payment_method else {}
-        
-        # If default address exists, pre-select it
-        if default_address:
-            initial['selected_address'] = default_address.id
-        
-        context.update(
-            {
-                "cart": cart,
-                "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
-                "totals": totals,
-                "form": CheckoutForm(initial=initial, user=self.request.user),
-                "addresses": addresses,
-                "default_address": default_address,
+        try:
+            context = super().get_context_data(**kwargs)
+            cart = CartService.get_or_create_cart(self.request)
+            totals = CartService.compute_totals(cart)
+            
+            # Get user's saved addresses
+            from .models import Address
+            addresses = Address.objects.filter(
+                user=self.request.user,
+                is_snapshot=False
+            ).order_by('-is_default', '-created_at')
+            
+            # Get default address
+            default_address = addresses.filter(is_default=True).first()
+            
+            # Prepare initial form data
+            payment_method = self.request.GET.get("payment")
+            if payment_method not in {"cod", "whatsapp"}:
+                payment_method = None
+            
+            initial = {"payment": payment_method} if payment_method else {}
+            
+            # If default address exists, pre-select it
+            if default_address:
+                initial['selected_address'] = default_address.id
+            
+            context.update(
+                {
+                    "cart": cart,
+                    "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
+                    "totals": totals,
+                    "form": CheckoutForm(initial=initial, user=self.request.user),
+                    "addresses": addresses,
+                    "default_address": default_address,
+                    "active_page": "cart",
+                }
+            )
+            return context
+        except Exception as e:
+            logger.error(f"Error in CheckoutView.get_context_data: {str(e)}", exc_info=True)
+            context = super().get_context_data(**kwargs)
+            context.update({
+                "cart": None,
+                "items": [],
+                "totals": {"subtotal": 0, "shipping": 0, "total": 0},
+                "form": CheckoutForm(user=self.request.user),
+                "addresses": [],
+                "default_address": None,
                 "active_page": "cart",
-            }
-        )
-        return context
+            })
+            return context
 
 
 class OrderCreateView(LoginRequiredForActionMixin, FormView):
@@ -432,15 +485,23 @@ class OrderSuccessView(DetailView):
         return Order.objects.select_related("address", "payment").prefetch_related("items")
 
     def dispatch(self, request, *args, **kwargs):
-        order_number = kwargs.get("order_number")
-        order = get_object_or_404(Order, order_number=order_number)
-        if request.user.is_authenticated:
-            if order.user and order.user != request.user:
-                return HttpResponseForbidden()
-        else:
-            if request.session.get("last_order_number") != order_number:
-                return HttpResponseForbidden()
-        return super().dispatch(request, *args, **kwargs)
+        try:
+            order_number = kwargs.get("order_number")
+            order = get_object_or_404(Order, order_number=order_number)
+            if request.user.is_authenticated:
+                if order.user and order.user != request.user:
+                    return HttpResponseForbidden()
+            else:
+                if request.session.get("last_order_number") != order_number:
+                    return HttpResponseForbidden()
+            return super().dispatch(request, *args, **kwargs)
+        except Http404:
+            logger.warning(f"Order not found: {order_number}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in OrderSuccessView.dispatch: {str(e)}", exc_info=True)
+            messages.error(request, "Failed to retrieve order details.")
+            return redirect("store:home")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -454,11 +515,15 @@ class OrderHistoryView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return (
-            Order.objects.filter(user=self.request.user)
-            .select_related("address")
-            .prefetch_related("items")
-        )
+        try:
+            return (
+                Order.objects.filter(user=self.request.user)
+                .select_related("address")
+                .prefetch_related("items")
+            )
+        except Exception as e:
+            logger.error(f"Error in OrderHistoryView.get_queryset: {str(e)}", exc_info=True)
+            return Order.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -472,8 +537,12 @@ class ContactView(FormView):
     success_url = reverse_lazy("store:contact")
 
     def form_valid(self, form):
-        form.save()
-        messages.success(self.request, "Thanks for reaching out! We will respond soon.")
+        try:
+            form.save()
+            messages.success(self.request, "Thanks for reaching out! We will respond soon.")
+        except Exception as e:
+            logger.error(f"Error in ContactView.form_valid: {str(e)}", exc_info=True)
+            messages.error(self.request, "Failed to save your message. Please try again.")
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -500,12 +569,16 @@ class NewsletterSubscribeView(FormView):
         return self.request.META.get("HTTP_REFERER", str(self.success_url))
 
     def form_valid(self, form):
-        email = form.cleaned_data["email"].lower()
-        subscription, created = form._meta.model.objects.get_or_create(email=email)
-        if not created and not subscription.is_active:
-            subscription.is_active = True
-            subscription.save(update_fields=["is_active"])
-        messages.success(self.request, "Thanks for subscribing!")
+        try:
+            email = form.cleaned_data["email"].lower()
+            subscription, created = form._meta.model.objects.get_or_create(email=email)
+            if not created and not subscription.is_active:
+                subscription.is_active = True
+                subscription.save(update_fields=["is_active"])
+            messages.success(self.request, "Thanks for subscribing!")
+        except Exception as e:
+            logger.error(f"Error in NewsletterSubscribeView.form_valid: {str(e)}", exc_info=True)
+            messages.error(self.request, "Failed to subscribe. Please try again.")
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -566,7 +639,6 @@ class RazorpayPaymentView(LoginRequiredForActionMixin, View):
                 'customer_phone': order.address.phone,
             })
         except Order.DoesNotExist:
-            import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Order not found: {order_number}")
             return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
@@ -605,7 +677,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
-            import logging
             logger = logging.getLogger(__name__)
             
             data = json.loads(request.body)
@@ -628,8 +699,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 hashlib.sha256
             ).hexdigest()
             
-            logger.debug(f"Signature verification - Expected: {signature_check}, Received: {razorpay_signature}")
-            
             if signature_check == razorpay_signature:
                 # Payment successful - update payment fields
                 payment.razorpay_payment_id = razorpay_payment_id
@@ -637,8 +706,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 payment.status = Payment.Status.PAID
                 payment.processed_at = timezone.now()
                 payment.save(update_fields=['status', 'processed_at', 'razorpay_payment_id', 'razorpay_signature'])
-                
-                logger.info(f"Payment successful - Order: {payment.order.order_number}, Payment: {razorpay_payment_id}, Status: PAID")
                 
                 # Now reduce stock after successful payment
                 order = payment.order
@@ -671,7 +738,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 # Delete the order since payment failed (no stock was reduced)
                 order = payment.order
                 order_number = order.order_number
-                logger.warning(f"Signature mismatch for order {razorpay_order_id} - Deleting order {order_number}")
                 order.delete()  # This will cascade delete the payment and order items
                 
                 # Clear pending checkout data from session
@@ -684,10 +750,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                     'redirect': '/cart/'
                 }, status=400)
         except Payment.DoesNotExist:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Payment record not found for order: {razorpay_order_id}")
-            
             # Clear pending checkout data from session
             if "pending_checkout_data" in request.session:
                 del request.session["pending_checkout_data"]
@@ -698,10 +760,6 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 'redirect': '/cart/'
             }, status=404)
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Payment verification error: {str(e)}", exc_info=True)
-            
             # Clear pending checkout data from session
             if "pending_checkout_data" in request.session:
                 del request.session["pending_checkout_data"]
@@ -718,20 +776,15 @@ class RazorpayPaymentCancelView(LoginRequiredForActionMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
-            import logging
-            logger = logging.getLogger(__name__)
-            
             data = json.loads(request.body)
             order_number = data.get('order_number')
-            
-            logger.info(f"Payment cancellation request for order: {order_number}")
             
             # Get the order
             order = Order.objects.select_related('user', 'address').get(order_number=order_number)
             
             # Check authorization
             if order.user != request.user:
-                logger.warning(f"Unauthorized cancellation attempt for order {order_number}")
+                logger.warning(f"Unauthorized access attempt for order {order_number}")
                 return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
             
             # Get payment record
@@ -741,7 +794,6 @@ class RazorpayPaymentCancelView(LoginRequiredForActionMixin, View):
                 payment = None
             
             # Delete the order (cascade deletes payment and items)
-            logger.info(f"Deleting order {order_number} due to payment cancellation")
             order.delete()
             
             # Clear pending checkout data from session
@@ -768,10 +820,6 @@ class RazorpayPaymentCancelView(LoginRequiredForActionMixin, View):
                 'redirect': '/cart/'
             })
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Payment cancellation error: {str(e)}", exc_info=True)
-            
             # Clear pending checkout data from session
             if "pending_checkout_data" in request.session:
                 del request.session["pending_checkout_data"]
