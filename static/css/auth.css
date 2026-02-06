@@ -218,6 +218,22 @@
     color: #d32f2f;
     font-size: 13px;
     margin-top: 6px;
+    font-weight: 500;
+}
+
+/* Form Group with Error */
+.form-group.has-error input,
+.form-group.has-error textarea,
+.form-group.has-error select {
+    border-color: #d32f2f !important;
+    background-color: #ffebee;
+}
+
+.form-group.has-error input:focus,
+.form-group.has-error textarea:focus,
+.form-group.has-error select:focus {
+    border-color: #d32f2f !important;
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1) !important;
 }
 
 /* Spinner Animation */

@@ -471,7 +471,6 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
         return redirect("store:order_success", order_number=order.order_number)
 
     def form_invalid(self, form):
-        messages.error(self.request, "Please correct the errors in the form.")
         return self.render_to_response(self.get_context_data(form=form))
 
 

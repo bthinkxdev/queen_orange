@@ -21,7 +21,7 @@
                     {% csrf_token %}
                     
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group {% if form.full_name.errors %}has-error{% endif %}">
                             <label for="{{ form.full_name.id_for_label }}">Full Name *</label>
                             {{ form.full_name }}
                             {% if form.full_name.errors %}
@@ -29,7 +29,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group {% if form.phone.errors %}has-error{% endif %}">
                             <label for="{{ form.phone.id_for_label }}">Phone Number *</label>
                             {{ form.phone }}
                             {% if form.phone.errors %}
@@ -38,7 +38,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group {% if form.address_line.errors %}has-error{% endif %}">
                         <label for="{{ form.address_line.id_for_label }}">Street Address *</label>
                         {{ form.address_line }}
                         {% if form.address_line.errors %}
@@ -47,7 +47,7 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group {% if form.city.errors %}has-error{% endif %}">
                             <label for="{{ form.city.id_for_label }}">City *</label>
                             {{ form.city }}
                             {% if form.city.errors %}
@@ -55,7 +55,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group {% if form.state.errors %}has-error{% endif %}">
                             <label for="{{ form.state.id_for_label }}">State *</label>
                             {{ form.state }}
                             {% if form.state.errors %}
@@ -63,7 +63,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group {% if form.pincode.errors %}has-error{% endif %}">
                             <label for="{{ form.pincode.id_for_label }}">PIN Code *</label>
                             {{ form.pincode }}
                             {% if form.pincode.errors %}
