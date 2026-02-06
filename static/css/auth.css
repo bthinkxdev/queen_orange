@@ -309,5 +309,28 @@
         font-size: 13px;
         min-height: 32px;
     }
+    
+    /* Address Form Mobile Adjustments */
+    .form-error {
+        font-size: 14px;
+        margin-top: 8px;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .form-group {
+        margin-bottom: var(--space-2);
+    }
+    
+    .form-group.has-error {
+        margin-bottom: var(--space-4);
+    }
+    
+    .form-input,
+    .form-control {
+        font-size: 16px;
+        padding: 14px 16px;
+    }
 }
 
