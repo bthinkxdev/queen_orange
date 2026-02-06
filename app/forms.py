@@ -89,12 +89,68 @@ class CheckoutForm(forms.Form):
                     for field in required_fields:
                         if not cleaned_data.get(field):
                             self.add_error(field, 'This field is required.')
+                    
+                    # Validate phone number if provided
+                    if cleaned_data.get('phone'):
+                        self._validate_phone(cleaned_data.get('phone'))
+                    
+                    # Validate pincode if provided
+                    if cleaned_data.get('pincode'):
+                        self._validate_pincode(cleaned_data.get('pincode'))
             
             return cleaned_data
         except forms.ValidationError:
             raise
         except Exception as e:
             raise forms.ValidationError("An error occurred. Please try again.")
+    
+    def _validate_phone(self, phone):
+        """Validate phone number"""
+        if not phone:
+            self.add_error('phone', 'Phone number is required.')
+            return
+        
+        phone = phone.strip()
+        # Remove common separators and country code
+        cleaned_phone = phone.replace('+91', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+        
+        # Check if it's all digits
+        if not cleaned_phone.isdigit():
+            self.add_error('phone', 'Phone number should contain only digits (and optional +91 prefix).')
+            return
+        
+        # Check length - should be 10 digits for India
+        if len(cleaned_phone) != 10:
+            self.add_error('phone', 'Phone number must be exactly 10 digits.')
+            return
+        
+        # Check if first digit is 6, 7, 8, or 9 (valid for Indian mobile numbers)
+        if cleaned_phone[0] not in ['6', '7', '8', '9']:
+            self.add_error('phone', 'Phone number should start with 6, 7, 8, or 9.')
+    
+    def _validate_pincode(self, pincode):
+        """Validate pincode"""
+        if not pincode:
+            self.add_error('pincode', 'PIN code is required.')
+            return
+        
+        pincode = pincode.strip()
+        # Remove spaces and dashes
+        cleaned_pincode = pincode.replace('-', '').replace(' ', '')
+        
+        # Check if it's all digits
+        if not cleaned_pincode.isdigit():
+            self.add_error('pincode', 'PIN code should contain only digits.')
+            return
+        
+        # Check length - should be 6 digits for India
+        if len(cleaned_pincode) != 6:
+            self.add_error('pincode', 'PIN code must be exactly 6 digits.')
+            return
+        
+        # Check if pincode doesn't start with 0 (Indian pincodes don't start with 0)
+        if cleaned_pincode[0] == '0':
+            self.add_error('pincode', 'PIN code cannot start with 0.')
 
 
 class ContactForm(forms.ModelForm):
@@ -187,9 +243,38 @@ class UserProfileForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Phone Number',
+            'placeholder': 'Phone Number (10 digits)',
+            'inputmode': 'tel',
+            'pattern': r'[0-9+\s\-()]*',
+            'data-only-numbers': 'true',
+            'autocomplete': 'tel',
         })
     )
+    
+    def clean_phone(self):
+        """Validate phone number"""
+        phone = self.cleaned_data.get('phone', '').strip()
+        
+        # If phone is empty, it's optional so return
+        if not phone:
+            return phone
+        
+        # Remove common separators and country code
+        cleaned_phone = phone.replace('+91', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+        
+        # Check if it's all digits
+        if not cleaned_phone.isdigit():
+            raise forms.ValidationError('Phone number should contain only digits (and optional +91 prefix).')
+        
+        # Check length - should be 10 digits for India
+        if len(cleaned_phone) != 10:
+            raise forms.ValidationError('Phone number must be exactly 10 digits.')
+        
+        # Check if first digit is 6, 7, 8, or 9 (valid for Indian mobile numbers)
+        if cleaned_phone[0] not in ['6', '7', '8', '9']:
+            raise forms.ValidationError('Phone number should start with 6, 7, 8, or 9.')
+        
+        return phone
 
 
 class AddressForm(forms.ModelForm):
@@ -204,7 +289,12 @@ class AddressForm(forms.ModelForm):
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'form-input',
-                'placeholder': 'Phone Number',
+                'placeholder': 'Phone Number (10 digits)',
+                'inputmode': 'tel',
+                'pattern': r'[0-9+\s\-()]*',
+                'maxlength': '15',
+                'data-only-numbers': 'true',
+                'autocomplete': 'tel',
             }),
             'address_line': forms.Textarea(attrs={
                 'class': 'form-input',
@@ -221,10 +311,62 @@ class AddressForm(forms.ModelForm):
             }),
             'pincode': forms.TextInput(attrs={
                 'class': 'form-input',
-                'placeholder': 'PIN Code',
+                'placeholder': 'PIN Code (6 digits)',
+                'inputmode': 'numeric',
+                'pattern': r'[0-9\s\-]*',
+                'maxlength': '8',
+                'data-only-numbers': 'true',
             }),
             'is_default': forms.CheckboxInput(attrs={
                 'class': 'form-checkbox',
             }),
         }
+    
+    def clean_phone(self):
+        """Validate phone number"""
+        phone = self.cleaned_data.get('phone', '').strip()
+        
+        if not phone:
+            raise forms.ValidationError('Phone number is required.')
+        
+        # Remove common separators and country code
+        cleaned_phone = phone.replace('+91', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+        
+        # Check if it's all digits
+        if not cleaned_phone.isdigit():
+            raise forms.ValidationError('Phone number should contain only digits (and optional +91 prefix).')
+        
+        # Check length - should be 10 digits for India
+        if len(cleaned_phone) != 10:
+            raise forms.ValidationError('Phone number must be exactly 10 digits.')
+        
+        # Check if first digit is 6, 7, 8, or 9 (valid for Indian mobile numbers)
+        if cleaned_phone[0] not in ['6', '7', '8', '9']:
+            raise forms.ValidationError('Phone number should start with 6, 7, 8, or 9.')
+        
+        return phone
+    
+    def clean_pincode(self):
+        """Validate pincode"""
+        pincode = self.cleaned_data.get('pincode', '').strip()
+        
+        if not pincode:
+            raise forms.ValidationError('PIN code is required.')
+        
+        # Remove spaces and dashes
+        cleaned_pincode = pincode.replace('-', '').replace(' ', '')
+        
+        # Check if it's all digits
+        if not cleaned_pincode.isdigit():
+            raise forms.ValidationError('PIN code should contain only digits.')
+        
+        # Check length - should be 6 digits for India
+        if len(cleaned_pincode) != 6:
+            raise forms.ValidationError('PIN code must be exactly 6 digits.')
+        
+        # Check if pincode doesn't start with 0 (Indian pincodes don't start with 0)
+        if cleaned_pincode[0] == '0':
+            raise forms.ValidationError('PIN code cannot start with 0.')
+        
+        return pincode
 
