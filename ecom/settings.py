@@ -27,9 +27,19 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', cast=bool)
 
-# Parse ALLOWED_HOSTS from environment variable
+# Parse ALLOWED_HOSTS from environment variable (strip surrounding quotes per value)
 ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS')
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
+ALLOWED_HOSTS = [
+    host.strip().strip("'\"") for host in ALLOWED_HOSTS_STR.split(',') if host.strip()
+]
+if DEBUG:
+    # In development, allow any host (browser may send Host: localhost:8000)
+    ALLOWED_HOSTS = ['*']
+else:
+    # Ensure common dev hosts are allowed even when DEBUG is False (e.g. local runserver)
+    for h in ('localhost', '127.0.0.1', '*'):
+        if h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
 
 
 # Application definition
@@ -67,6 +77,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'app.context_processors.cart_context',
+                'app.context_processors.wishlist_context',
             ],
         },
     },
@@ -150,6 +161,8 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+# Optional: set to True to cache report summary cards (e.g. when using Redis)
+# CACHE_REPORT_SUMMARY = False
 
 
 

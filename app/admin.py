@@ -11,8 +11,8 @@ from .models import (
     OrderItem,
     Payment,
     Product,
-    ProductImage,
     ProductVariant,
+    Wishlist,
 )
 
 
@@ -21,11 +21,6 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "is_active")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
-
-
-class ProductImageInline(admin.TabularInline):
-    model = ProductImage
-    extra = 1
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -39,7 +34,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("category", "is_featured", "is_bestseller", "is_active")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
-    inlines = [ProductImageInline, ProductVariantInline]
+    inlines = [ProductVariantInline]
 
 
 @admin.register(Cart)
@@ -84,3 +79,15 @@ class ContactMessageAdmin(admin.ModelAdmin):
 @admin.register(NewsletterSubscription)
 class NewsletterSubscriptionAdmin(admin.ModelAdmin):
     list_display = ("email", "is_active", "created_at")
+
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ("user", "product", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("user__email", "user__username", "product__name")
+    readonly_fields = ("user", "product", "created_at", "updated_at")
+    ordering = ("-created_at",)
+
+    def has_add_permission(self, request):
+        return False

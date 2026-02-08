@@ -62,8 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert(`❌ Cannot Delete\n\n"${productName}" has ${data.active_orders ? 'active orders' : 'pending orders'}.\n\n${data.message}\n\nThe product can only be deleted once all orders are delivered or cancelled.`);
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(function() {
                     alert('An error occurred while checking deletion status.');
                 });
         });

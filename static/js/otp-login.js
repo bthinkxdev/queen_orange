@@ -159,11 +159,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle resend OTP
         resendOtpBtn.addEventListener('click', function() {
-            const email = document.querySelector('input[name="email"]').value;
-            const nextUrl = document.querySelector('input[name="next"]').value;
-            
-            // Reload page to request new OTP
-            window.location.href = `{% url 'auth:login' %}?next=${encodeURIComponent(nextUrl)}`;
+            var nextInput = document.querySelector('input[name="next"]');
+            var nextUrl = (nextInput && nextInput.value) ? nextInput.value : '/';
+            var baseUrl = (typeof window.AUTH_LOGIN_URL === 'string' && window.AUTH_LOGIN_URL) ? window.AUTH_LOGIN_URL : '/auth/login/';
+            var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+            window.location.href = baseUrl + sep + 'next=' + encodeURIComponent(nextUrl);
         });
     }
 

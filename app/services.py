@@ -8,7 +8,7 @@ from django.db.models import F
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 
-from .models import Address, Cart, CartItem, Order, OrderItem, Payment, ProductVariant
+from .models import Address, Cart, CartItem, Order, OrderItem, Payment, ProductVariant, SizeVariant
 
 
 def send_order_notification_email_async(order, request=None):
@@ -49,7 +49,7 @@ def send_order_notification_email(order, request=None):
             'order': order,
             'order_url': order_url,
             'payment_method': payment_method,
-            'site_name': 'Golden Elegance',
+            'site_name': ' Queen Orange',
         }
         
         try:
@@ -98,7 +98,8 @@ class CartService:
 
     @classmethod
     def get_or_create_cart(cls, request):
-        user = request.user if request.user.is_authenticated else None
+        user = getattr(request, "user", None)
+        user = user if (user and user.is_authenticated) else None
         if user:
             cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
             return cart
@@ -115,8 +116,10 @@ class CartService:
         except Cart.DoesNotExist:
             return
         user_cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
-        for item in session_cart.items.all():
-            cls.add_item(user_cart, item.variant, item.quantity)
+        for item in session_cart.items.select_related("variant", "size_variant").all():
+            sellable = item.get_sellable()
+            if sellable:
+                cls.add_item(user_cart, sellable, item.quantity)
         session_cart.status = Cart.Status.ABANDONED
         session_cart.save(update_fields=["status"])
 
@@ -133,29 +136,44 @@ class CartService:
             return CartTotals(subtotal=0, shipping=0, total=0)
 
     @staticmethod
-    def add_item(cart, variant, quantity):
+    def add_item(cart, variant_or_size_variant, quantity):
+        """Add to cart. Accepts either ProductVariant or SizeVariant."""
         try:
-            if not variant.is_active or variant.stock_quantity <= 0:
+            v = variant_or_size_variant
+            product = v.product
+            if not getattr(v, "is_active", True) or (v.stock_quantity or 0) <= 0:
                 raise StockError("This item is out of stock.")
             max_qty = getattr(settings, "MAX_CART_QTY", 10)
             quantity = max(1, min(quantity, max_qty))
-            if quantity > variant.stock_quantity:
+            if quantity > v.stock_quantity:
                 raise StockError("Requested quantity exceeds available stock.")
-            item = CartItem.objects.filter(cart=cart, variant=variant).first()
+            is_size_variant = isinstance(v, SizeVariant)
+            if is_size_variant:
+                item = CartItem.objects.filter(cart=cart, size_variant=v).first()
+            else:
+                item = CartItem.objects.filter(cart=cart, variant=v).first()
             if item:
                 new_quantity = min(item.quantity + quantity, max_qty)
-                if new_quantity > variant.stock_quantity:
+                if new_quantity > v.stock_quantity:
                     raise StockError("Requested quantity exceeds available stock.")
                 item.quantity = new_quantity
-                item.unit_price = variant.product.price
+                item.unit_price = product.price
                 item.save(update_fields=["quantity", "unit_price", "updated_at"])
                 return item
+            if is_size_variant:
+                return CartItem.objects.create(
+                    cart=cart,
+                    size_variant=v,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=product.price,
+                )
             return CartItem.objects.create(
                 cart=cart,
-                variant=variant,
-                product=variant.product,
+                variant=v,
+                product=product,
                 quantity=quantity,
-                unit_price=variant.product.price,
+                unit_price=product.price,
             )
         except StockError:
             raise
@@ -168,12 +186,15 @@ class CartService:
             if quantity <= 0:
                 item.delete()
                 return
+            sellable = item.get_sellable()
+            if not sellable:
+                raise CartError("Invalid cart item.")
             max_qty = getattr(settings, "MAX_CART_QTY", 10)
             quantity = min(quantity, max_qty)
-            if quantity > item.variant.stock_quantity:
+            if quantity > sellable.stock_quantity:
                 raise StockError("Requested quantity exceeds available stock.")
             item.quantity = quantity
-            item.unit_price = item.variant.product.price
+            item.unit_price = sellable.product.price
             item.save(update_fields=["quantity", "unit_price", "updated_at"])
         except StockError:
             raise
@@ -193,15 +214,18 @@ class OrderService:
     @transaction.atomic
     def create_order(cls, cart, form_data, user=None, clear_cart=True):
         items = (
-            cart.items.select_related("variant", "product")
-            .select_for_update(of=("self", "variant"))
+            cart.items.select_related("variant", "size_variant", "product")
+            .select_for_update(of=("self",))
             .all()
         )
         if not items:
             raise CartError("Cart is empty.")
 
         for item in items:
-            if item.quantity > item.variant.stock_quantity:
+            sellable = item.get_sellable()
+            if not sellable:
+                raise CartError("Invalid cart item.")
+            if item.quantity > sellable.stock_quantity:
                 raise StockError(f"{item.product.name} is out of stock.")
 
         # Handle address - either use existing or create snapshot
@@ -251,21 +275,32 @@ class OrderService:
         )
 
         for item in items:
+            sellable = item.get_sellable()
+            if hasattr(sellable, "color_variant"):
+                snapshot = f"{sellable.size} {sellable.color_variant.name}".strip()
+            else:
+                snapshot = f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip()
             OrderItem.objects.create(
                 order=order,
                 product=item.product,
                 variant=item.variant,
+                size_variant=item.size_variant,
                 product_name=item.product.name,
-                variant_snapshot=f"{item.variant.size} {item.variant.color}".strip(),
+                variant_snapshot=snapshot or item.product.name,
                 unit_price=item.unit_price,
                 quantity=item.quantity,
             )
             # Only reduce stock immediately for COD/WhatsApp payments
             # For Razorpay, stock will be reduced after successful payment verification
             if form_data.get("payment") != Payment.Method.RAZORPAY:
-                ProductVariant.objects.filter(pk=item.variant_id).update(
-                    stock_quantity=F("stock_quantity") - item.quantity
-                )
+                if item.size_variant_id:
+                    SizeVariant.objects.filter(pk=item.size_variant_id).update(
+                        stock_quantity=F("stock_quantity") - item.quantity
+                    )
+                elif item.variant_id:
+                    ProductVariant.objects.filter(pk=item.variant_id).update(
+                        stock_quantity=F("stock_quantity") - item.quantity
+                    )
 
         Payment.objects.create(
             order=order,

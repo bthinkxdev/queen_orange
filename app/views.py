@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch, Q, F
+from django.db.models import Prefetch, Q, F, Sum
 from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -18,7 +18,20 @@ logger = logging.getLogger(__name__)
 
 from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
-from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment, Cart
+from .models import (
+    Banner,
+    CartItem,
+    Category,
+    ColorVariant,
+    Order,
+    OrderItem,
+    Product,
+    ProductVariant,
+    SizeVariant,
+    Payment,
+    Cart,
+    Wishlist,
+)
 from .services import CartError, CartService, OrderService, StockError
 
 
@@ -44,7 +57,10 @@ class ProductListView(ListView):
             if max_price:
                 qs = qs.filter(price__lte=max_price)
             if size:
-                qs = qs.filter(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
+                qs = qs.filter(
+                    Q(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
+                    | Q(color_variants__size_variants__size=size, color_variants__size_variants__is_active=True, color_variants__size_variants__stock_quantity__gt=0)
+                )
             if query:
                 qs = qs.filter(
                     Q(name__icontains=query)
@@ -52,8 +68,7 @@ class ProductListView(ListView):
                     | Q(category__name__icontains=query)
                 )
             
-            # Apply distinct then prefetch_related for images
-            return qs.distinct().prefetch_related("images")
+            return qs.distinct().prefetch_related("color_variants__images")
         except Exception as e:
             logger.error(f"Error in ProductListView.get_queryset: {str(e)}", exc_info=True)
             return Product.objects.none()
@@ -87,14 +102,13 @@ class HomeView(TemplateView):
             context = super().get_context_data(**kwargs)
             context["categories"] = Category.objects.filter(is_active=True)
             variant_qs = ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0).order_by("id")
-            image_qs = ProductImage.objects.order_by("-is_primary", "id")
             context["featured_products"] = (
                 Product.objects.active()
                 .filter(is_featured=True)
                 .select_related("category")
                 .prefetch_related(
-                    Prefetch("images", queryset=image_qs),
-                    Prefetch("variants", queryset=variant_qs)
+                    Prefetch("variants", queryset=variant_qs),
+                    "color_variants__images",
                 )[:8]
             )
             context["bestseller_products"] = (
@@ -102,10 +116,14 @@ class HomeView(TemplateView):
                 .filter(is_bestseller=True)
                 .select_related("category")
                 .prefetch_related(
-                    Prefetch("images", queryset=image_qs),
-                    Prefetch("variants", queryset=variant_qs)
+                    Prefetch("variants", queryset=variant_qs),
+                    "color_variants__images",
                 )[:8]
             )
+            active_banners = list(
+                Banner.objects.filter(is_active=True).order_by("display_order", "created_at")
+            )
+            context["banners"] = [b for b in active_banners if b.image]
             context["active_page"] = "home"
             return context
         except Exception as e:
@@ -115,7 +133,28 @@ class HomeView(TemplateView):
             context["featured_products"] = []
             context["bestseller_products"] = []
             context["categories"] = []
+            context["banners"] = []
             return context
+
+
+RECENTLY_VIEWED_MAX = 20
+
+
+def _update_recently_viewed(session, product_id):
+    """Update session with product_id: FIFO queue, max RECENTLY_VIEWED_MAX, no duplicates."""
+    if not product_id:
+        return
+    ids = list(session.get("recently_viewed_ids", []))
+    try:
+        pid = int(product_id)
+    except (TypeError, ValueError):
+        return
+    if pid in ids:
+        ids.remove(pid)
+    ids.append(pid)
+    ids = ids[-RECENTLY_VIEWED_MAX:]
+    session["recently_viewed_ids"] = ids
+    session.modified = True
 
 
 class ProductDetailView(DetailView):
@@ -123,13 +162,24 @@ class ProductDetailView(DetailView):
     context_object_name = "product"
     slug_url_kwarg = "slug"
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        _update_recently_viewed(request.session, self.object.pk)
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
         return (
             Product.objects.active()
             .select_related("category")
             .prefetch_related(
-                Prefetch("images", queryset=ProductImage.objects.order_by("-is_primary", "id")),
                 Prefetch("variants", queryset=ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0)),
+                Prefetch(
+                    "color_variants",
+                    queryset=ColorVariant.objects.filter(is_active=True).prefetch_related(
+                        "images",
+                        "size_variants",
+                    ).order_by("display_order", "name"),
+                ),
             )
         )
 
@@ -137,39 +187,344 @@ class ProductDetailView(DetailView):
         try:
             context = super().get_context_data(**kwargs)
             product = context["product"]
-            variants = list(product.variants.all())
-            context["variants"] = variants
-            context["sizes"] = sorted({variant.size for variant in variants})
-            context["colors"] = sorted({variant.color for variant in variants if variant.color})
-            
-            # Create a mapping of size -> colors with stock status
-            # Format: size_color_stock = { "L": {"red": true, "blue": true, "no_color": true} }
-            size_color_stock = {}
-            for variant in variants:
-                if variant.size not in size_color_stock:
-                    size_color_stock[variant.size] = {}
-                
-                color_key = variant.color if variant.color else "no_color"
-                # Mark as in stock if stock_quantity > 0
-                size_color_stock[variant.size][color_key] = variant.stock_quantity > 0
-            
-            try:
-                context["size_color_stock_json"] = json.dumps(size_color_stock)
-            except (TypeError, ValueError) as je:
-                context["size_color_stock_json"] = json.dumps({})
-            
+            color_variants = list(product.color_variants.all()) if hasattr(product, "color_variants") else []
+
+            if color_variants:
+                # New flow: color-first, sizes per color
+                context["color_variants"] = color_variants
+                all_sizes = set()
+                size_color_stock = {}
+                color_sizes_stock = {}
+                for cv in color_variants:
+                    for sv in cv.size_variants.all():
+                        if not getattr(sv, "is_active", True):
+                            continue
+                        all_sizes.add(sv.size)
+                        if sv.size not in size_color_stock:
+                            size_color_stock[sv.size] = {}
+                        size_color_stock[sv.size][cv.name] = (sv.stock_quantity or 0) > 0
+                        if cv.name not in color_sizes_stock:
+                            color_sizes_stock[cv.name] = {}
+                        color_sizes_stock[cv.name][sv.size] = {
+                            "in_stock": (sv.stock_quantity or 0) > 0,
+                            "size_variant_id": sv.id,
+                        }
+                context["sizes"] = sorted(all_sizes)
+                context["colors"] = [cv.name for cv in color_variants]
+                context["color_sizes_stock_json"] = json.dumps(color_sizes_stock)
+                try:
+                    context["size_color_stock_json"] = json.dumps(size_color_stock)
+                except (TypeError, ValueError):
+                    context["size_color_stock_json"] = json.dumps({})
+                context["use_color_variants"] = True
+            else:
+                # Legacy flow: ProductVariant
+                variants = list(product.variants.all())
+                context["variants"] = variants
+                context["color_variants"] = []
+                context["sizes"] = sorted({v.size for v in variants})
+                context["colors"] = sorted({v.color for v in variants if v.color})
+                size_color_stock = {}
+                for v in variants:
+                    if v.size not in size_color_stock:
+                        size_color_stock[v.size] = {}
+                    color_key = v.color if v.color else "no_color"
+                    size_color_stock[v.size][color_key] = (v.stock_quantity or 0) > 0
+                try:
+                    context["size_color_stock_json"] = json.dumps(size_color_stock)
+                except (TypeError, ValueError):
+                    context["size_color_stock_json"] = json.dumps({})
+                context["color_sizes_stock_json"] = json.dumps({})
+                context["use_color_variants"] = False
+
             context["related_products"] = (
                 Product.objects.active()
                 .filter(category=product.category)
                 .exclude(pk=product.pk)
-                .select_related("category")[:4]
+                .select_related("category")
+                .prefetch_related("color_variants__images")[:4]
             )
             context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
             context["active_page"] = "collection"
+            context["in_wishlist"] = (
+                Wishlist.objects.filter(user=self.request.user, product=product).exists()
+                if self.request.user.is_authenticated
+                else False
+            )
             return context
         except Exception as e:
             logger.error(f"Error in ProductDetailView.get_context_data: {str(e)}", exc_info=True)
             raise
+
+
+def _normalize_image_url(url):
+    """Ensure image URL is loadable: add https:// for host-only or protocol-relative URLs. Returns path or absolute URL."""
+    if not url or not isinstance(url, str):
+        return url
+    url = url.strip()
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    if url.startswith("/"):
+        base = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
+        if base and url.startswith(base + "/") and "ytimg.com" in url:
+            return "https://" + url[len(base) + 1:]
+        return url
+    return "https://" + url.lstrip("/")
+
+
+class ProductColorImagesView(View):
+    """AJAX: return image URLs for a color variant. Used for dynamic gallery on product page."""
+
+    def get(self, request, *args, **kwargs):
+        color_variant_id = request.GET.get("color_variant_id")
+        product_id = request.GET.get("product_id")
+        if not color_variant_id:
+            return JsonResponse({"images": []})
+        try:
+            qs = ColorVariant.objects.filter(pk=color_variant_id).prefetch_related("images")
+            if product_id:
+                qs = qs.filter(product_id=product_id)
+            color_variant = qs.first()
+        except (ValueError, TypeError):
+            return JsonResponse({"images": []})
+        if not color_variant:
+            return JsonResponse({"images": []})
+        images = []
+        for img in color_variant.images.order_by("-is_primary", "id"):
+            if img.image:
+                try:
+                    raw_url = img.image.url
+                    url = _normalize_image_url(raw_url)
+                    if url.startswith("/"):
+                        url = request.build_absolute_uri(url)
+                    images.append({
+                        "url": url,
+                        "is_primary": getattr(img, "is_primary", False),
+                    })
+                except Exception:
+                    pass
+        return JsonResponse({"images": images})
+
+
+def _serialize_product_for_json(product, detail_url=None):
+    """Build a dict for JSON API. Product should have category and color_variants__images prefetched."""
+    if detail_url is None:
+        detail_url = reverse("store:product_detail", args=[product.slug])
+    card_images = getattr(product, "get_card_image_urls", lambda limit=20: [])(20)
+    image_url = card_images[0] if card_images else "/static/images/banner.png"
+    category_name = product.category.name if getattr(product, "category", None) else ""
+    has_stock = False
+    if hasattr(product, "variants"):
+        for v in product.variants.all():
+            if getattr(v, "is_active", True) and (getattr(v, "stock_quantity", 0) or 0) > 0:
+                has_stock = True
+                break
+    if not has_stock and hasattr(product, "color_variants"):
+        for cv in product.color_variants.all():
+            for sv in cv.size_variants.all():
+                if getattr(sv, "is_active", True) and (getattr(sv, "stock_quantity", 0) or 0) > 0:
+                    has_stock = True
+                    break
+            if has_stock:
+                break
+    discount = 0
+    if getattr(product, "original_price", None) and product.original_price and product.price:
+        if product.original_price > product.price:
+            discount = round(((float(product.original_price) - float(product.price)) / float(product.original_price)) * 100)
+    return {
+        "id": product.id,
+        "name": product.name or "",
+        "slug": product.slug or "",
+        "price": str(product.price),
+        "original_price": str(product.original_price) if product.original_price else None,
+        "discount_percent": discount,
+        "url": detail_url,
+        "image_url": image_url,
+        "card_images": card_images,
+        "category_name": category_name or "",
+        "has_stock": has_stock,
+    }
+
+
+class NewArrivalsView(View):
+    """JSON API: latest active products. ?limit=8 default."""
+
+    def get(self, request):
+        try:
+            limit = request.GET.get("limit", "8")
+            try:
+                limit = min(max(int(limit), 1), 24)
+            except (TypeError, ValueError):
+                limit = 8
+            qs = (
+                Product.objects.filter(is_active=True)
+                .select_related("category")
+                .prefetch_related("variants", "color_variants__images")
+                .order_by("-created_at")[:limit]
+            )
+            if hasattr(Product, "color_variants"):
+                qs = qs.prefetch_related("color_variants__size_variants")
+            products = list(qs)
+            payload = [_serialize_product_for_json(p) for p in products]
+            return JsonResponse({"products": payload})
+        except Exception as e:
+            logger.exception("NewArrivalsView: %s", e)
+            return JsonResponse({"products": []})
+
+
+class TopSellingView(View):
+    """JSON API: top selling products from paid orders, excluding inactive."""
+
+    def get(self, request):
+        try:
+            limit = request.GET.get("limit", "8")
+            try:
+                limit = min(max(int(limit), 1), 24)
+            except (TypeError, ValueError):
+                limit = 8
+            paid_order_filter = Q(
+                order__payment__status=Payment.Status.PAID,
+            ) & ~Q(order__status=Order.Status.CANCELLED)
+            product_ids_with_qty = (
+                OrderItem.objects.filter(paid_order_filter)
+                .values("product_id")
+                .annotate(total_sold=Sum("quantity"))
+                .filter(total_sold__gt=0, product__is_active=True)
+                .order_by("-total_sold")[:limit]
+            )
+            ids_ordered = [x["product_id"] for x in product_ids_with_qty]
+            if not ids_ordered:
+                return JsonResponse({"products": []})
+            preserved_order = dict((pk, i) for i, pk in enumerate(ids_ordered))
+            qs = (
+                Product.objects.filter(pk__in=ids_ordered, is_active=True)
+                .select_related("category")
+                .prefetch_related("variants", "color_variants__images", "color_variants__size_variants")
+            )
+            products = sorted(list(qs), key=lambda p: preserved_order.get(p.pk, 999))
+            payload = [_serialize_product_for_json(p) for p in products]
+            return JsonResponse({"products": payload})
+        except Exception as e:
+            logger.exception("TopSellingView: %s", e)
+            return JsonResponse({"products": []})
+
+
+class RecentlyViewedView(View):
+    """JSON API: products from session recently_viewed_ids (FIFO, max 20)."""
+
+    def get(self, request):
+        try:
+            ids = list(request.session.get("recently_viewed_ids", []))
+            if not ids:
+                return JsonResponse({"products": []})
+            seen = set()
+            unique_ids = []
+            for pk in ids:
+                try:
+                    pk = int(pk)
+                except (TypeError, ValueError):
+                    continue
+                if pk in seen:
+                    continue
+                seen.add(pk)
+                unique_ids.append(pk)
+            ids = unique_ids[-20:]
+            if not ids:
+                return JsonResponse({"products": []})
+            preserved_order = dict((pk, i) for i, pk in enumerate(ids))
+            qs = (
+                Product.objects.filter(pk__in=ids, is_active=True)
+                .select_related("category")
+                .prefetch_related("variants", "color_variants__images", "color_variants__size_variants")
+            )
+            products = sorted(list(qs), key=lambda p: preserved_order.get(p.pk, 999))
+            payload = [_serialize_product_for_json(p) for p in products]
+            return JsonResponse({"products": payload})
+        except Exception as e:
+            logger.exception("RecentlyViewedView: %s", e)
+            return JsonResponse({"products": []})
+
+
+class WishlistToggleView(View):
+    """POST: toggle product in wishlist. Login required; returns JSON. Guest → login_required + login_url."""
+
+    def post(self, request):
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        if not request.user.is_authenticated:
+            if is_ajax:
+                next_url = request.GET.get("next") or request.build_absolute_uri()
+                login_url = f"{reverse('auth:login')}?next={next_url}"
+                return JsonResponse(
+                    {"success": False, "login_required": True, "login_url": login_url},
+                    status=403,
+                )
+            return redirect(f"{reverse('auth:login')}?next={request.build_absolute_uri()}")
+
+        product_id = None
+        if request.content_type and "application/json" in request.content_type:
+            try:
+                data = json.loads(request.body)
+                product_id = data.get("product_id")
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if product_id is None:
+            product_id = request.POST.get("product_id")
+        try:
+            product_id = int(product_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"success": False, "error": "Invalid product"}, status=400)
+
+        product = Product.objects.filter(pk=product_id, is_active=True).first()
+        if not product:
+            return JsonResponse({"success": False, "error": "Product not found"}, status=404)
+
+        wishlist, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+        if not created:
+            wishlist.delete()
+            added = False
+        else:
+            added = True
+        count = Wishlist.objects.filter(user=request.user).count()
+        return JsonResponse({"success": True, "added": added, "count": count})
+
+
+class WishlistIdsView(View):
+    """GET: return list of wishlist product IDs for current user (for marking icons)."""
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({"product_ids": []})
+        try:
+            ids = list(
+                Wishlist.objects.filter(user=request.user)
+                .filter(product__is_active=True)
+                .values_list("product_id", flat=True)
+            )
+            return JsonResponse({"product_ids": ids})
+        except Exception as e:
+            logger.exception("WishlistIdsView: %s", e)
+            return JsonResponse({"product_ids": []})
+
+
+class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
+    """Wishlist page: list of saved products. Invalid/deleted entries excluded."""
+
+    template_name = "wishlist.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if not self.request.user.is_authenticated:
+            context["wishlist_items"] = []
+            return context
+        items = (
+            Wishlist.objects.filter(user=self.request.user, product__is_active=True)
+            .select_related("product__category")
+            .prefetch_related("product__color_variants__images")
+            .order_by("-created_at")
+        )
+        context["wishlist_items"] = list(items)
+        context["active_page"] = "wishlist"
+        return context
 
 
 class CartView(LoginRequiredForActionMixin, TemplateView):
@@ -179,7 +534,13 @@ class CartView(LoginRequiredForActionMixin, TemplateView):
         try:
             context = super().get_context_data(**kwargs)
             cart = CartService.get_or_create_cart(self.request)
-            items = cart.items.select_related("product", "variant").prefetch_related("product__images").all()
+            items = cart.items.select_related(
+                "product", "variant", "size_variant",
+                "size_variant__color_variant",
+            ).prefetch_related(
+                "product__color_variants__images",
+                "size_variant__color_variant__images",
+            ).all()
             totals = CartService.compute_totals(cart)
             context.update(
                 {
@@ -221,37 +582,58 @@ class AddToCartView(LoginRequiredForActionMixin, View):
             return redirect("store:cart")
         data = form.cleaned_data
         product = get_object_or_404(Product, pk=data["product_id"])
-        
-        # Check if the selected size has any IN-STOCK colors
-        size_has_instock_colors = ProductVariant.objects.filter(
-            product=product, 
-            size=data["size"],
-            color__isnull=False,
-            is_active=True,
-            stock_quantity__gt=0
-        ).exclude(color="").exists()
-        
-        # Only require color if this specific size has IN-STOCK colors
-        if size_has_instock_colors and not data.get("color"):
-            messages.error(request, "Please select a color.")
-            if is_ajax:
-                return JsonResponse({"success": False, "error": "Please select a color."}, status=400)
-            return redirect("store:product_detail", slug=product.slug)
-        variant = ProductVariant.objects.filter(
-            product=product,
-            size=data["size"],
-            color=data.get("color", ""),
-            is_active=True,
-            stock_quantity__gt=0
-        ).first()
-        if not variant:
-            messages.error(request, "Selected variant is unavailable.")
-            if is_ajax:
-                return JsonResponse({"success": False, "error": "Selected variant is unavailable."}, status=400)
-            return redirect("store:product_detail", slug=product.slug)
+        sellable = None
+
+        if data.get("size_variant_id"):
+            size_variant = SizeVariant.objects.filter(
+                color_variant__product=product,
+                pk=data["size_variant_id"],
+                is_active=True,
+                stock_quantity__gt=0,
+            ).select_related("color_variant").first()
+            if size_variant:
+                sellable = size_variant
+            if not sellable:
+                messages.error(request, "Selected variant is unavailable.")
+                if is_ajax:
+                    return JsonResponse({"success": False, "error": "Selected variant is unavailable."}, status=400)
+                return redirect("store:product_detail", slug=product.slug)
+        else:
+            size = data.get("size") or ""
+            if not size:
+                messages.error(request, "Please select a size.")
+                if is_ajax:
+                    return JsonResponse({"success": False, "error": "Please select a size."}, status=400)
+                return redirect("store:product_detail", slug=product.slug)
+            size_has_instock_colors = ProductVariant.objects.filter(
+                product=product,
+                size=size,
+                is_active=True,
+                stock_quantity__gt=0,
+            ).exclude(color__in=(None, "")).exists()
+            if size_has_instock_colors and not (data.get("color") or "").strip():
+                messages.error(request, "Please select a color.")
+                if is_ajax:
+                    return JsonResponse({"success": False, "error": "Please select a color."}, status=400)
+                return redirect("store:product_detail", slug=product.slug)
+            variant = ProductVariant.objects.filter(
+                product=product,
+                size=size,
+                color=data.get("color") or "",
+                is_active=True,
+                stock_quantity__gt=0,
+            ).first()
+            if variant:
+                sellable = variant
+            if not sellable:
+                messages.error(request, "Selected variant is unavailable.")
+                if is_ajax:
+                    return JsonResponse({"success": False, "error": "Selected variant is unavailable."}, status=400)
+                return redirect("store:product_detail", slug=product.slug)
+
         cart = CartService.get_or_create_cart(request)
         try:
-            CartService.add_item(cart, variant, data["quantity"])
+            CartService.add_item(cart, sellable, data["quantity"])
         except StockError as exc:
             messages.error(request, str(exc))
             if is_ajax:
@@ -348,7 +730,13 @@ class CheckoutView(LoginRequiredForActionMixin, TemplateView):
             context.update(
                 {
                     "cart": cart,
-                    "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
+                    "items": cart.items.select_related(
+                        "product", "variant", "size_variant",
+                        "size_variant__color_variant",
+                    ).prefetch_related(
+                        "product__color_variants__images",
+                        "size_variant__color_variant__images",
+                    ),
                     "totals": totals,
                     "form": CheckoutForm(initial=initial, user=self.request.user),
                     "addresses": addresses,
@@ -410,7 +798,13 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
         
         context.update({
             "cart": cart,
-            "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
+            "items": cart.items.select_related(
+                "product", "variant", "size_variant",
+                "size_variant__color_variant",
+            ).prefetch_related(
+                "product__color_variants__images",
+                "size_variant__color_variant__images",
+            ),
             "totals": totals,
             "addresses": addresses,
             "default_address": default_address,
@@ -430,14 +824,17 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
             # Validate cart and stock before payment
             try:
                 items = (
-                    cart.items.select_related("variant", "product")
-                    .select_for_update(of=("self", "variant"))
+                    cart.items.select_related("variant", "size_variant", "product")
+                    .select_for_update(of=("self",))
                     .all()
                 )
                 if not items:
                     raise CartError("Cart is empty.")
                 for item in items:
-                    if item.quantity > item.variant.stock_quantity:
+                    sellable = item.get_sellable()
+                    if not sellable:
+                        raise CartError("Invalid cart item.")
+                    if item.quantity > sellable.stock_quantity:
                         raise StockError(f"{item.product.name} is out of stock.")
             except (CartError, StockError) as exc:
                 messages.error(self.request, str(exc))
@@ -709,9 +1106,14 @@ class RazorpayPaymentVerifyView(LoginRequiredForActionMixin, View):
                 # Now reduce stock after successful payment
                 order = payment.order
                 for item in order.items.all():
-                    ProductVariant.objects.filter(pk=item.variant_id).update(
-                        stock_quantity=F("stock_quantity") - item.quantity
-                    )
+                    if item.size_variant_id:
+                        SizeVariant.objects.filter(pk=item.size_variant_id).update(
+                            stock_quantity=F("stock_quantity") - item.quantity
+                        )
+                    elif item.variant_id:
+                        ProductVariant.objects.filter(pk=item.variant_id).update(
+                            stock_quantity=F("stock_quantity") - item.quantity
+                        )
                 
                 # Clear cart after successful payment
                 cart = CartService.get_or_create_cart(request)

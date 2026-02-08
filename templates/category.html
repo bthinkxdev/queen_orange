@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static %}{% load color_tags %}
 {% block title %}{{ page_title }} - Queen Orange{% endblock %}
 {% block meta_description %}Browse all women's nightwear and babies dresses. Filter by category, price, and size.{% endblock %}
 {% block content %}
@@ -61,18 +61,23 @@
             </div>
 
             {% if products %}
-                <div class="product-grid">
+                <div class="product-grid collection-product-grid">
                     {% for product in products %}
-                        <div class="product-card">
+                        <div class="product-card collection-product-card">
+                            <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
+                                    data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                                <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </button>
                             <a href="{% url 'store:product_detail' product.slug %}" class="product-link">
-                                <div class="product-image">
-                                    {% with image=product.images.first %}
-                                        {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="eager">
-                                        {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="eager">
-                                        {% endif %}
-                                    {% endwith %}
+                                {% with card_images=product.get_card_image_urls %}
+                                <div class="product-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                                    {% if card_images %}
+                                        <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                    {% endif %}
                                     {% if product.discount_percent %}
                                         <span class="discount-badge">{{ product.discount_percent }}% OFF</span>
                                     {% endif %}
@@ -80,6 +85,7 @@
                                         <span class="bestseller-badge">Bestseller</span>
                                     {% endif %}
                                 </div>
+                                {% endwith %}
                                 <div class="product-info">
                                     <h3 class="product-name">{{ product.name }}</h3>
                                     <div class="product-price">

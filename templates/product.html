@@ -8,27 +8,57 @@
         <div class="container">
             <div class="product-detail-container">
                 <div class="product-gallery">
-                    <div class="main-image">
-                        {% with image=product.images.first %}
-                            {% if image %}
-                                <img src="{{ image.image.url }}" alt="{{ product.name }}" id="mainImage">
+                    <div class="main-image-wrap">
+                        <button type="button" class="gallery-nav gallery-prev" aria-label="Previous image" title="Previous image">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                        </button>
+                        <div class="main-image js-product-image-open-modal" tabindex="0" role="button" aria-label="View full size">
+                            {% if use_color_variants and color_variants %}
+                                {% with first_cv=color_variants.0 first_img=first_cv.images.first %}
+                                    {% if first_img %}
+                                        <img src="{{ first_img.image.url }}" alt="{{ product.name }}" id="mainImage">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" id="mainImage">
+                                    {% endif %}
+                                {% endwith %}
                             {% else %}
                                 <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" id="mainImage">
                             {% endif %}
-                        {% endwith %}
+                        </div>
+                        <button type="button" class="gallery-nav gallery-next" aria-label="Next image" title="Next image">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
                     </div>
-                    <div class="image-thumbnails">
-                        {% for image in product.images.all %}
-                            <div class="image-thumbnail {% if forloop.first %}active{% endif %}" data-src="{{ image.image.url }}">
-                                <img src="{{ image.image.url }}" alt="{{ product.name }} image">
+                    <div class="image-thumbnails" id="imageThumbnails">
+                        {% if use_color_variants and color_variants %}
+                            {% with first_cv=color_variants.0 %}
+                                {% for image in first_cv.images.all %}
+                                    <div class="image-thumbnail {% if forloop.first %}active{% endif %}" data-src="{{ image.image.url }}">
+                                        <img src="{{ image.image.url }}" alt="{{ product.name }} image">
+                                    </div>
+                                {% empty %}
+                                    <div class="image-thumbnail active" data-src="{% static 'images/banner.png' %}">
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}">
+                                    </div>
+                                {% endfor %}
+                            {% endwith %}
+                        {% else %}
+                            <div class="image-thumbnail active" data-src="{% static 'images/banner.png' %}">
+                                <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}">
                             </div>
-                        {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="product-details-content">
                     <div class="product-name-with-badge">
                         <h1>{{ product.name }}</h1>
+                        <button type="button" class="wishlist-toggle-btn js-wishlist-toggle {% if in_wishlist %}in-wishlist{% endif %}"
+                                data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="{% if in_wishlist %}Remove from wishlist{% else %}Add to wishlist{% endif %}">
+                            <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
                         {% if not sizes %}
                             <span class="out-of-stock-badge">
                                 Out of Stock
@@ -53,13 +83,32 @@
                         {% endif %}
                     </div>
 
-                    {% if sizes %}
-                    <form method="post" action="{% url 'store:cart_add' %}">
+                    {% if sizes or use_color_variants %}
+                    <form method="post" action="{% url 'store:cart_add' %}" id="productForm">
                         {% csrf_token %}
                         <input type="hidden" name="product_id" value="{{ product.id }}">
                         <input type="hidden" name="color" id="selectedColor" value="">
                         <input type="hidden" name="size" id="selectedSize" value="{% if sizes %}{{ sizes.0 }}{% endif %}">
+                        <input type="hidden" name="size_variant_id" id="selectedSizeVariantId" value="">
 
+                        {% if use_color_variants %}
+                        <div class="color-selector">
+                            <label>Color</label>
+                            <div class="color-options" id="colorOptions">
+                                {% for cv in color_variants %}
+                                    <div class="color-option {% if forloop.first %}selected{% endif %}" data-color="{{ cv.name }}" data-color-variant-id="{{ cv.id }}" data-available="true">
+                                        <div class="color-option-inner" style="background-color: {{ cv.name|color_to_hex }}"></div>
+                                        <span class="color-option-name">{{ cv.name }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="size-selector">
+                            <label>Select Size</label>
+                            <div id="sizeMessage" class="size-message" style="display: none; color: #FF9800; margin: 10px 0; font-weight: 500; padding: 10px; background: #FFF3E0; border-radius: 4px;">Select a color first</div>
+                            <div class="size-options" id="sizeOptionsContainer"></div>
+                        </div>
+                        {% else %}
                         <div class="size-selector">
                             <label>Select Size</label>
                             <div class="size-options">
@@ -68,7 +117,6 @@
                                 {% endfor %}
                             </div>
                         </div>
-
                         {% if colors %}
                             <div class="color-selector">
                                 <label>Color</label>
@@ -82,6 +130,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
+                        {% endif %}
                         {% endif %}
 
                         <div class="quantity-selector">
@@ -132,6 +181,26 @@
                 </div>
             </div>
         </div>
+
+        <!-- Product image viewer modal: zoom, pan, pinch -->
+        <div id="productImageModal" class="product-image-modal" role="dialog" aria-modal="true" aria-label="Product image zoom" hidden>
+            <div class="product-image-modal__backdrop" id="productImageModalBackdrop"></div>
+            <div class="product-image-modal__wrap">
+                <button type="button" class="product-image-modal__close" id="productImageModalClose" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+                <div class="product-image-modal__viewport" id="productImageModalViewport">
+                    <div class="product-image-modal__img-wrap" id="productImageModalImgWrap">
+                        <img class="product-image-modal__img" id="productImageModalImg" src="" alt="" decoding="async" draggable="false">
+                    </div>
+                </div>
+                <div class="product-image-modal__error" id="productImageModalError" hidden>Image unavailable</div>
+                <div class="product-image-modal__nav" id="productImageModalNav" hidden>
+                    <button type="button" class="product-image-modal__nav-btn product-image-modal__nav-prev" id="productImageModalPrev" aria-label="Previous image"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+                    <button type="button" class="product-image-modal__nav-btn product-image-modal__nav-next" id="productImageModalNext" aria-label="Next image"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="section section-featured">
@@ -145,9 +214,9 @@
                     <div class="product-card">
                         <a href="{% url 'store:product_detail' related.slug %}" class="product-link">
                             <div class="product-image">
-                                {% with image=related.images.first %}
-                                    {% if image %}
-                                        <img src="{{ image.image.url }}" alt="{{ related.name }}" loading="lazy">
+                                {% with card_images=related.get_card_image_urls %}
+                                    {% if card_images %}
+                                        <img src="{{ card_images.0 }}" alt="{{ related.name }}" loading="lazy">
                                     {% else %}
                                         <img src="{% static 'images/banner.png' %}" alt="{{ related.name }}" loading="lazy">
                                     {% endif %}
@@ -173,8 +242,31 @@
 
 {% block extra_js %}
 <script>
-    // Pass the size-color-stock mapping to the external script
     window.sizeColorStock = {{ size_color_stock_json|safe }};
+    window.useColorVariants = {{ use_color_variants|yesno:"true,false" }};
+    window.colorSizesStock = {{ color_sizes_stock_json|safe }};
+    window.productId = {{ product.id }};
+    window.colorImagesFallback = [
+        {% if use_color_variants and color_variants %}
+            {% with first_cv=color_variants.0 %}
+                {% for image in first_cv.images.all %}
+                    {"url": "{{ image.image.url }}", "is_primary": {{ image.is_primary|yesno:"true,false" }}}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            {% endwith %}
+        {% endif %}
+    ];
+    window.allColorImages = {
+        {% if use_color_variants and color_variants %}
+            {% for cv in color_variants %}
+                "{{ cv.id }}": [
+                    {% for image in cv.images.all %}
+                        {"url": "{{ image.image.url }}", "is_primary": {{ image.is_primary|yesno:"true,false" }}}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    };
+    window.productColorImagesUrl = "{% url 'store:product_color_images' %}";
 </script>
 <script src="{% static 'js/product-detail.js' %}"></script>
 {% endblock %}

@@ -1,8 +1,22 @@
+import json
 from django import template
 import webcolors
 import re
 
 register = template.Library()
+
+
+@register.filter
+def to_json(value):
+    """Serialize a list/dict to JSON for use in data attributes. Returns empty array string for invalid values.
+    Does NOT use mark_safe so Django will escape quotes when rendered in HTML attributes,
+    ensuring valid attribute values that decode correctly via getAttribute()."""
+    if value is None:
+        return "[]"
+    try:
+        return json.dumps(value)
+    except (TypeError, ValueError):
+        return "[]"
 
 # Extended custom color names not found in webcolors library
 EXTENDED_COLORS = {

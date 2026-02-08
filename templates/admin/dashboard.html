@@ -58,7 +58,7 @@
         <h3 class="card-title">Order Status Summary</h3>
     </div>
     <div class="card-body">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+        <div class="order-status-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
             {% for status in order_status %}
                 <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
                     <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">
@@ -78,8 +78,8 @@
     <div class="card-header">
         <h3 class="card-title">Revenue Trend (Last 14 Days)</h3>
     </div>
-    <div class="card-body">
-        <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+    <div class="card-body chart-container" style="position: relative; width: 100%; max-width: 100%; overflow: hidden;">
+        <canvas id="revenueChart" style="max-height: 300px; width: 100% !important;"></canvas>
     </div>
 </div>
 
@@ -93,6 +93,24 @@
         </div>
         <div class="card-body" style="padding: 0;">
             {% if recent_orders %}
+                <!-- Mobile cards -->
+                <div class="list-cards" style="padding: 0 1rem 1rem;">
+                    {% for order in recent_orders %}
+                        <div class="list-card">
+                            <div class="list-card-header">
+                                <a href="{% url 'admin_panel:order_detail' order.order_number %}" class="list-card-title" style="color: var(--primary); text-decoration: none;">{{ order.order_number }}</a>
+                                <span class="badge {% if order.status == 'placed' %}badge-info{% elif order.status == 'confirmed' %}badge-warning{% elif order.status == 'delivered' %}badge-success{% elif order.status == 'cancelled' %}badge-danger{% else %}badge-secondary{% endif %}">{{ order.get_status_display }}</span>
+                            </div>
+                            <div class="list-card-meta">
+                                <span>{{ order.address.full_name|truncatechars:20 }}</span>
+                                <span>₹{{ order.total }}</span>
+                            </div>
+                            <a href="{% url 'admin_panel:order_detail' order.order_number %}" class="btn btn-sm btn-primary">View</a>
+                        </div>
+                    {% endfor %}
+                </div>
+                <!-- Desktop table -->
+                <div class="list-table">
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -132,6 +150,7 @@
                         </tbody>
                     </table>
                 </div>
+                </div>
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-shopping-bag"></i>
@@ -148,6 +167,20 @@
         </div>
         <div class="card-body" style="padding: 0;">
             {% if top_products %}
+                <!-- Mobile cards -->
+                <div class="list-cards" style="padding: 0 1rem 1rem;">
+                    {% for product in top_products %}
+                        <div class="list-card">
+                            <div class="list-card-title">{{ product.name|truncatechars:30 }}</div>
+                            <div class="list-card-meta">
+                                <span>{{ product.total_sold }} units sold</span>
+                                <span>₹{{ product.revenue|floatformat:0 }} revenue</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <!-- Desktop table -->
+                <div class="list-table">
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -168,6 +201,7 @@
                         </tbody>
                     </table>
                 </div>
+                </div>
             {% else %}
                 <div class="empty-state">
                     <i class="fas fa-box"></i>
@@ -184,7 +218,7 @@
         <h3 class="card-title">Quick Stats</h3>
     </div>
     <div class="card-body">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+        <div class="quick-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
             <div>
                 <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Orders This Week</div>
                 <div style="font-size: 1.5rem; font-weight: 600;">{{ orders_this_week }}</div>
@@ -209,11 +243,19 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Revenue Chart
-    const chartData = JSON.parse('{{ chart_data|escapejs }}');
-    const ctx = document.getElementById('revenueChart').getContext('2d');
-    
-    new Chart(ctx, {
+    (function() {
+        var canvas = document.getElementById('revenueChart');
+        if (!canvas) return;
+        var chartData;
+        try {
+            chartData = JSON.parse('{{ chart_data|escapejs }}');
+        } catch (e) {
+            return;
+        }
+        if (!chartData || !Array.isArray(chartData)) return;
+        var ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        new Chart(ctx, {
         type: 'line',
         data: {
             labels: chartData.map(d => d.date),
@@ -246,6 +288,7 @@
             }
         }
     });
+    })();
 </script>
 {% endblock %}
 

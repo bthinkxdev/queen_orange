@@ -1,20 +1,27 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static %}{% load color_tags %}
 {% block title %}Queen Orange - Premium Women & Babies Clothing{% endblock %}
 {% block meta_description %}Shop the latest collection of women's nightwear, loungewear, and babies dresses at Queen Orange.{% endblock %}
 {% block content %}
+    {% if banners %}
     <section class="banner-section">
         <div class="container">
             <div class="banner-slider" id="bannerSlider">
-                <div class="banner-slide active">
-                    <img src="{% static 'images/banner1.png' %}" alt="Fashion Banner 1" class="banner-image">
+                {% for banner in banners %}
+                <div class="banner-slide {% if forloop.first %}active{% endif %}">
+                    {% if banner.redirect_url %}
+                    <a href="{{ banner.redirect_url }}" class="banner-link" {% if banner.title %}aria-label="{{ banner.title }}"{% endif %}>
+                        <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'Banner' }}" class="banner-image" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                    </a>
+                    {% else %}
+                    <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'Banner' }}" class="banner-image" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                    {% endif %}
                 </div>
-                <div class="banner-slide">
-                    <img src="{% static 'images/banner2.png' %}" alt="Fashion Banner 2" class="banner-image">
-                </div>
+                {% endfor %}
             </div>
         </div>
     </section>
+    {% endif %}
 
     <section class="hero-text-section">
         <div class="container">
@@ -49,14 +56,14 @@
                 <h2 class="section-title">Our Product</h2>
                 <p class="section-subtitle">Explore our exclusive collection</p>
             </div>
-            <div class="category-grid">
+            <div class="categories-grid" role="region" aria-label="Categories">
                 {% for category in categories %}
                     <a href="{% url 'store:product_list' %}?category={{ category.slug }}" class="category-card">
                         <div class="category-image">
                             {% if category.image %}
-                                <img src="{{ category.image.url }}" alt="{{ category.name }}" loading="lazy">
+                                <img src="{{ category.image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% else %}
-                                <img src="{% static 'images/banner.png' %}" alt="{{ category.name }}" loading="lazy">
+                                <img src="{% static 'images/banner.png' %}" alt="{{ category.name }}" loading="lazy" decoding="async">
                             {% endif %}
                         </div>
                         <h3>{{ category.name }}</h3>
@@ -110,29 +117,89 @@
         </div>
     </section>
 
-    <!-- Featured Products -->
+    <!-- New Arrivals (AJAX) - Tall portrait cards -->
+    <section class="section section-new-arrivals js-home-ajax-section" data-api-url="{% url 'store:api_new_arrivals' %}" data-section-type="new-arrivals">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">New Arrivals</h2>
+                <p class="section-subtitle">Fresh picks for you</p>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow">
+                <div class="scroll-section">
+                    <div class="scroll-section-inner js-home-ajax-products" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Selling (AJAX) - Compact cards with Popular badge -->
+    <section class="section section-top-selling js-home-ajax-section" data-api-url="{% url 'store:api_top_selling' %}" data-section-type="top-selling">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Top Selling</h2>
+                <p class="section-subtitle">Customer favorites</p>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow">
+                <div class="scroll-section">
+                    <div class="scroll-section-inner js-home-ajax-products" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recently Viewed (AJAX) - Minimal cards, auto-hide if empty -->
+    <section class="section section-recently-viewed js-home-ajax-section is-empty" data-api-url="{% url 'store:api_recently_viewed' %}" data-section-type="recently-viewed">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Recently Viewed</h2>
+                <p class="section-subtitle">Pick up where you left off</p>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow">
+                <div class="scroll-section">
+                    <div class="scroll-section-inner js-home-ajax-products" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Deal Of The Day - Full-width highlight, countdown timer -->
     <section class="section section-featured">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Deal Of The Day</h2>
                 <p class="section-subtitle">Limited time offers on premium items</p>
             </div>
-            <div class="featured-products-grid">
+            <div class="deal-countdown js-deal-countdown" aria-live="polite">
+                <div class="deal-countdown-item"><span class="deal-countdown-value js-countdown-hours">00</span><span class="deal-countdown-label">HRS</span></div>
+                <span class="deal-countdown-sep">:</span>
+                <div class="deal-countdown-item"><span class="deal-countdown-value js-countdown-mins">00</span><span class="deal-countdown-label">MIN</span></div>
+                <span class="deal-countdown-sep">:</span>
+                <div class="deal-countdown-item"><span class="deal-countdown-value js-countdown-secs">00</span><span class="deal-countdown-label">SEC</span></div>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow deal-scroll-wrapper">
+                <div class="scroll-section deal-products-scroll">
+                    <div class="featured-products-grid deal-products-inner">
                 {% for product in featured_products %}
                     <div class="featured-product-card">
                         {% if product.discount_percent %}
                             <span class="featured-product-badge">{{ product.discount_percent }}% OFF</span>
                         {% endif %}
+                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
+                                data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                            <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
                         <a href="{% url 'store:product_detail' product.slug %}" class="featured-product-link">
-                            <div class="featured-product-image">
-                                {% with image=product.images.first %}
-                                    {% if image %}
-                                        <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="lazy">
-                                    {% else %}
-                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
-                                    {% endif %}
-                                {% endwith %}
+                            {% with card_images=product.get_card_image_urls %}
+                            <div class="featured-product-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                                {% if card_images %}
+                                    <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                {% else %}
+                                    <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                {% endif %}
                             </div>
+                            {% endwith %}
                             <div class="featured-product-info">
                                 <div class="featured-product-category">{{ product.category.name }}</div>
                                 <h3 class="">{{ product.name }}</h3>
@@ -168,8 +235,18 @@
                         {% endwith %}
                     </div>
                 {% empty %}
-                    <p>No featured products available.</p>
+                    <p class="section-empty">No featured products available.</p>
                 {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="deal-cta-row">
+                <a href="{% url 'store:product_list' %}" class="deal-cta-btn">
+                    Shop All Deals
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
             </div>
         </div>
     </section>
@@ -183,12 +260,12 @@
                     <p class="section-subtitle">Most loved by our customers</p>
                 </div>
                 <div class="scroll-buttons">
-                    <button class="scroll-btn scroll-left" onclick="scrollBestsellers('left')" aria-label="Scroll left">
+                    <button type="button" class="scroll-btn scroll-left" data-scroll-bestsellers="left" aria-label="Scroll left">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M15 18l-6-6 6-6"/>
                         </svg>
                     </button>
-                    <button class="scroll-btn scroll-right" onclick="scrollBestsellers('right')" aria-label="Scroll right">
+                    <button type="button" class="scroll-btn scroll-right" data-scroll-bestsellers="right" aria-label="Scroll right">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 18l6-6-6-6"/>
                         </svg>
@@ -200,16 +277,22 @@
                     {% for product in bestseller_products %}
                         <div class="bestseller-card">
                             <span class="bestseller-rank">#{{ forloop.counter }}</span>
+                            <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
+                                    data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                                <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </button>
                             <a href="{% url 'store:product_detail' product.slug %}" class="bestseller-link">
-                                <div class="bestseller-image">
-                                    {% with image=product.images.first %}
-                                        {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="lazy">
-                                        {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
-                                        {% endif %}
-                                    {% endwith %}
+                                {% with card_images=product.get_card_image_urls %}
+                                <div class="bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                                    {% if card_images %}
+                                        <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                    {% endif %}
                                 </div>
+                                {% endwith %}
                                 <div class="bestseller-info">
                                     <h3 class="bestseller-name">{{ product.name }}</h3>
                                     {% with variant=product.variants.first %}
@@ -427,4 +510,8 @@
         </div>
     </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/home-ajax-sections.js' %}"></script>
 {% endblock %}

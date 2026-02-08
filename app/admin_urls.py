@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import admin_views
+from . import admin_report_views
 
 app_name = "admin_panel"
 
@@ -11,7 +12,23 @@ urlpatterns = [
     
     # Dashboard
     path("", admin_views.AdminDashboardView.as_view(), name="dashboard"),
+
+    # Reports
+    path("reports/", admin_report_views.ReportsDashboardView.as_view(), name="report_list"),
+    path("reports/orders/", admin_report_views.OrdersReportView.as_view(), name="report_orders"),
+    path("reports/sales/", admin_report_views.SalesReportView.as_view(), name="report_sales"),
+    path("reports/products/", admin_report_views.ProductPerformanceReportView.as_view(), name="report_products"),
+    path("reports/customers/", admin_report_views.CustomerReportView.as_view(), name="report_customers"),
+    path("reports/inventory/", admin_report_views.InventoryReportView.as_view(), name="report_inventory"),
+    path("reports/api/<str:report_type>/", admin_report_views.ReportApiView.as_view(), name="report_api"),
+    path("reports/export/<str:report_type>/<str:format_type>/", admin_report_views.ReportExportView.as_view(), name="report_export"),
     
+    # Banners
+    path("banners/", admin_views.BannerListView.as_view(), name="banner_list"),
+    path("banners/create/", admin_views.BannerCreateView.as_view(), name="banner_create"),
+    path("banners/<int:pk>/edit/", admin_views.BannerUpdateView.as_view(), name="banner_edit"),
+    path("banners/<int:pk>/delete/", admin_views.BannerDeleteView.as_view(), name="banner_delete"),
+
     # Categories
     path("categories/", admin_views.CategoryListView.as_view(), name="category_list"),
     path("categories/create/", admin_views.CategoryCreateView.as_view(), name="category_create"),

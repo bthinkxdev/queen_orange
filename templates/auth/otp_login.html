@@ -251,6 +251,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    window.AUTH_LOGIN_URL = "{% url 'auth:login' %}";
+</script>
 <script src="{% static 'js/otp-login.js' %}"></script>
 {% endblock %}
 

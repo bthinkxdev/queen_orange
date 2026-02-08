@@ -14,51 +14,35 @@
     
     .form-section {
         background: var(--white);
-        border-radius: 16px;
-        padding: 2.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-radius: 10px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         border: 1px solid var(--gray-200);
-        transition: all 0.3s ease;
-    }
-    
-    .form-section:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        border-color: var(--primary);
     }
     
     .section-header {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        padding-bottom: 1.25rem;
-        border-bottom: 3px solid var(--gray-100);
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--gray-200);
         position: relative;
+        flex-wrap: wrap;
     }
     
-    .section-header::after {
-        content: '';
-        position: absolute;
-        bottom: -3px;
-        left: 0;
-        width: 80px;
-        height: 3px;
-        background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-        border-radius: 3px;
-    }
     
     .section-icon {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        border-radius: 12px;
+        width: 36px;
+        height: 36px;
+        background: var(--gray-100);
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--white);
-        font-size: 1.5rem;
-        box-shadow: 0 4px 12px rgba(109, 76, 65, 0.3);
+        color: var(--primary);
+        font-size: 0.9rem;
     }
     
     .section-title {
@@ -67,17 +51,15 @@
     
     .section-title h4 {
         margin: 0;
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 1.25rem;
+        font-weight: 600;
         color: var(--gray-900);
-        letter-spacing: -0.5px;
     }
     
     .section-subtitle {
-        margin: 0.25rem 0 0;
-        font-size: 0.875rem;
+        margin: 0.15rem 0 0;
+        font-size: 0.8125rem;
         color: var(--gray-500);
-        font-weight: 400;
     }
     
     .section-badge {
@@ -217,96 +199,84 @@
         margin: 0;
     }
     
-    /* Formset Container Styling */
+    /* Formset - flat, minimal boxes (no heavy nesting) */
     .formset-container {
-        background: linear-gradient(135deg, #FAFAFA 0%, #F5F5F5 100%);
-        border: 2px dashed var(--gray-300);
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
+        margin-top: 1rem;
+        padding: 0;
     }
     
     .formset-form {
-        padding: 1.75rem;
-        background: var(--white);
-        border-radius: 12px;
-        margin-bottom: 1.25rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.75rem;
         position: relative;
-        border: 2px solid var(--gray-200);
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        transition: border-color 0.2s;
     }
     
     .formset-form:hover {
-        border-color: var(--primary);
-        box-shadow: 0 4px 12px rgba(109, 76, 65, 0.15);
-        transform: translateY(-2px);
+        border-color: var(--gray-300);
     }
     
     .formset-form.deleted {
-        opacity: 0.4;
+        opacity: 0.35;
         border-color: var(--danger);
-        background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
-        transform: scale(0.98);
     }
     
     .formset-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid var(--gray-100);
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--gray-100);
     }
     
     .formset-number {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        font-weight: 700;
-        color: var(--primary);
-        font-size: 1.125rem;
+        gap: 0.5rem;
+        font-weight: 600;
+        color: var(--gray-800);
+        font-size: 0.875rem;
     }
     
     .formset-number i {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        border-radius: 8px;
+        width: 28px;
+        height: 28px;
+        background: var(--gray-100);
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--white);
-        font-size: 0.875rem;
+        color: var(--primary);
+        font-size: 0.75rem;
     }
     
     .formset-delete {
         position: absolute;
-        top: 1rem;
-        right: 1rem;
-        z-index: 10;
+        top: 0.75rem;
+        right: 0.75rem;
     }
     
     .add-formset-btn {
-        margin-top: 1.25rem;
+        margin-top: 0.75rem;
         width: 100%;
-        padding: 1rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        border: 2px dashed var(--primary);
-        background: var(--white);
-        color: var(--primary);
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px dashed var(--gray-300);
+        background: var(--gray-50);
+        color: var(--gray-700);
+        border-radius: 6px;
+        transition: all 0.2s;
     }
     
     .add-formset-btn:hover {
-        background: var(--primary);
-        color: var(--white);
-        border-style: solid;
-        box-shadow: 0 6px 16px rgba(109, 76, 65, 0.3);
-        transform: translateY(-2px);
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(233, 30, 99, 0.04);
     }
     
     /* Image Preview Styling */
@@ -332,12 +302,33 @@
         transform: scale(1.05);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
-    
-    /* Grid Layout Enhancement */
+
+    /* Nested sections - subtle, no heavy box */
+    .nested-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-100);
+    }
+    .nested-title {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin: 0 0 0.75rem 0;
+        letter-spacing: 0.02em;
+    }
+    .nested-formset .nested-form-row {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .nested-formset .nested-form-row:last-child { border-bottom: none; }
+
     .grid-2 {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .color-fields-row.grid-2 {
+        grid-template-columns: 1fr 1fr minmax(70px, 1fr) auto;
     }
     
     /* Button Enhancements */
@@ -396,32 +387,119 @@
         opacity: 0.3;
     }
     
-    /* Responsive Adjustments */
+    /* Compact styles for color/size forms */
+    .formset-form .form-group {
+        margin-bottom: 1rem;
+    }
+    .formset-form .form-label {
+        font-size: 0.8125rem;
+        margin-bottom: 0.375rem;
+    }
+    .formset-form .form-control {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    .formset-form .form-check {
+        padding: 0.5rem 0;
+    }
+    .formset-form .form-check-label {
+        font-size: 0.8125rem;
+    }
+    .formset-form .image-preview {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+    }
+    .formset-form .image-preview img {
+        max-width: 64px;
+        max-height: 64px;
+    }
+    
+    /* Responsive - Mobile optimized */
     @media (max-width: 768px) {
         .form-section {
-            padding: 1.5rem;
+            padding: 1rem 1.25rem;
         }
         
         .section-header {
             flex-direction: column;
             align-items: flex-start;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
         }
         
-        .section-badge {
+        .section-title h4 {
+            font-size: 1.125rem;
+        }
+        
+        .section-subtitle {
+            font-size: 0.8125rem;
+        }
+        
+        .section-badge, .info-badge {
             width: 100%;
             justify-content: center;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
         }
         
         .grid-2 {
             grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        .color-fields-row.grid-2 {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            font-size: 0.8125rem;
+        }
+        
+        .form-control {
+            padding: 0.625rem 0.75rem;
+            font-size: 16px; /* prevents zoom on iOS */
         }
         
         .formset-form {
-            padding: 1.25rem;
+            padding: 0.875rem 1rem;
+        }
+        
+        .formset-header {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .formset-number {
+            font-size: 0.8125rem;
+        }
+        
+        .formset-number i {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .formset-delete .btn {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.75rem;
+        }
+        
+        .nested-title {
+            font-size: 0.75rem;
         }
         
         .form-actions {
             flex-direction: column-reverse;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
         }
         
         .form-actions .btn {
@@ -451,18 +529,16 @@
         background: var(--primary-dark);
     }
     
-    /* Success/Info Badges */
     .info-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
         background: #E3F2FD;
         color: #1565C0;
-        border-radius: 8px;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        border: 1px solid #90CAF9;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
     }
 </style>
 {% endblock %}
@@ -587,201 +663,135 @@
             </div>
         </div>
         
-        <!-- Product Images Section -->
+        <!-- Color Variants Section -->
         <div class="form-section">
             <div class="section-header">
                 <div class="section-icon">
-                    <i class="fas fa-images"></i>
+                    <i class="fas fa-palette"></i>
                 </div>
                 <div class="section-title">
-                    <h4>Product Images</h4>
-                    <p class="section-subtitle">Upload high-quality images to showcase your product</p>
-                </div>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <span class="section-badge">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Max 5 images
-                    </span>
-                    <span class="info-badge">
-                        <i class="fas fa-file-image"></i>
-                        Max 5MB per image
-                    </span>
-                </div>
-            </div>
-            
-            {{ image_formset.management_form }}
-            <div id="image-formset" class="formset-container">
-                {% for form in image_formset %}
-                    <div class="formset-form image-form" data-form-index="{{ forloop.counter0 }}">
-                        <div class="formset-header">
-                            <span class="formset-number">
-                                <i class="fas fa-image"></i>
-                                <span>Image #<span class="form-number">{{ forloop.counter }}</span></span>
-                            </span>
-                            <div class="formset-delete">
-                                {% if form.instance.pk %}
-                                    {{ form.DELETE }}
-                                    <label for="{{ form.DELETE.id_for_label }}" class="btn btn-sm btn-danger" style="cursor: pointer; margin: 0;">
-                                        <i class="fas fa-trash"></i> Remove
-                                    </label>
-                                {% else %}
-                                    <button type="button" class="btn btn-sm btn-danger remove-form-btn">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">
-                                Select Image 
-                                <small style="color: var(--gray-500);">(Max 5MB, JPG/PNG/GIF/WebP)</small>
-                            </label>
-                            {{ form.image }}
-                            {% if form.image.errors %}
-                                <div class="form-error-message">
-                                    {% for error in form.image.errors %}
-                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        {% if form.instance.image %}
-                            <div class="image-preview">
-                                <img src="{{ form.instance.image.url }}" alt="Current image">
-                            </div>
-                        {% endif %}
-                        
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label class="form-label">Alt Text <small>(optional for SEO)</small></label>
-                                {{ form.alt_text }}
-                                {% if form.alt_text.errors %}
-                                    <div class="form-error-message">
-                                        {% for error in form.alt_text.errors %}
-                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="form-check">
-                                {{ form.is_primary }}
-                                <label class="form-check-label" for="{{ form.is_primary.id_for_label }}">
-                                    <strong>⭐ Primary Image</strong>
-                                    <small style="display: block; color: var(--gray-600); font-weight: 400;">Show first in product listing</small>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        {{ form.id }}
-                    </div>
-                {% endfor %}
-            </div>
-            
-            <button type="button" id="add-image-btn" class="btn btn-secondary add-formset-btn">
-                <i class="fas fa-plus-circle"></i> Add Another Image
-            </button>
-        </div>
-        
-        <!-- Product Variants Section -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <i class="fas fa-th-large"></i>
-                </div>
-                <div class="section-title">
-                    <h4>Product Variants</h4>
-                    <p class="section-subtitle">Define sizes, colors, and inventory for each variant</p>
+                    <h4>Color Variants</h4>
+                    <p class="section-subtitle">Add colors with images and sizes per color</p>
                 </div>
                 <span class="info-badge">
                     <i class="fas fa-info-circle"></i>
-                    Required: At least 1 variant
+                    At least one color with images
                 </span>
             </div>
-            
-            {{ variant_formset.management_form }}
-            <div id="variant-formset" class="formset-container">
-                {% for form in variant_formset %}
-                    <div class="formset-form variant-form" data-form-index="{{ forloop.counter0 }}">
-                        <div class="formset-header">
+
+            {{ color_formset.management_form }}
+            <div id="color-formset" class="formset-container">
+                {% for item in color_formsets_data %}
+                    <div class="formset-form color-variant-block" data-form-index="{{ forloop.counter0 }}">
+                        <div class="color-variant-header formset-header">
                             <span class="formset-number">
-                                <i class="fas fa-tags"></i>
-                                <span>Variant #<span class="form-number">{{ forloop.counter }}</span></span>
+                                <i class="fas fa-palette"></i>
+                                <span>Color #<span class="form-number">{{ forloop.counter }}</span></span>
                             </span>
                             <div class="formset-delete">
-                                {% if form.instance.pk %}
-                                    {{ form.DELETE }}
-                                    <label for="{{ form.DELETE.id_for_label }}" class="btn btn-sm btn-danger" style="cursor: pointer; margin: 0;">
-                                        <i class="fas fa-trash"></i> Remove
+                                {% if item.color_form.instance.pk %}
+                                    {{ item.color_form.DELETE }}
+                                    <label for="{{ item.color_form.DELETE.id_for_label }}" class="btn btn-sm btn-danger remove-link" style="cursor: pointer; margin: 0;">
+                                        <i class="fas fa-times"></i> Remove
                                     </label>
                                 {% else %}
-                                    <button type="button" class="btn btn-sm btn-danger remove-form-btn">
+                                    <button type="button" class="btn btn-sm btn-danger remove-color-btn">
                                         <i class="fas fa-times"></i> Remove
                                     </button>
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <div class="grid-2">
+
+                        <div class="color-fields-row grid-2">
                             <div class="form-group">
-                                <label class="form-label">SKU * <small style="color: var(--gray-500);">(Unique)</small></label>
-                                {{ form.sku }}
-                                {% if form.sku.errors %}
-                                    <div class="form-error-message">
-                                        {% for error in form.sku.errors %}
-                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                                        {% endfor %}
-                                    </div>
+                                <label class="form-label">Color name *</label>
+                                {{ item.color_form.name }}
+                                {% if item.color_form.name.errors %}
+                                    <div class="form-error-message">{% for e in item.color_form.name.errors %}{{ e }}{% endfor %}</div>
                                 {% endif %}
                             </div>
-                            
                             <div class="form-group">
-                                <label class="form-label">Size * <small style="color: var(--gray-500);">(e.g., S, M, L, XL)</small></label>
-                                {{ form.size }}
-                                {% if form.size.errors %}
-                                    <div class="form-error-message">
-                                        {% for error in form.size.errors %}
-                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                <label class="form-label">Color code <small>(#hex)</small></label>
+                                {{ item.color_form.color_code }}
                             </div>
-                            
                             <div class="form-group">
-                                <label class="form-label">Color <small style="color: var(--gray-500);">(Optional)</small></label>
-                                {{ form.color }}
+                                <label class="form-label">Order</label>
+                                {{ item.color_form.display_order }}
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Stock Quantity *</label>
-                                {{ form.stock_quantity }}
-                                {% if form.stock_quantity.errors %}
-                                    <div class="form-error-message">
-                                        {% for error in form.stock_quantity.errors %}
-                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                            <div class="form-check" style="align-items: center;">
+                                {{ item.color_form.is_active }}
+                                <label class="form-check-label" for="{{ item.color_form.is_active.id_for_label }}">Active</label>
                             </div>
                         </div>
-                        
-                        <div class="form-check">
-                            {{ form.is_active }}
-                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                <strong>✅ Active Variant</strong>
-                                <small style="display: block; color: var(--gray-600); font-weight: 400;">Available for customers to purchase</small>
-                            </label>
+                        {{ item.color_form.id }}
+
+                        <div class="nested-section">
+                            <h5 class="nested-title"><i class="fas fa-images"></i> Images (3 recommended, max 10, 5MB)</h5>
+                            {{ item.image_formset.management_form }}
+                            <div class="nested-formset">
+                                {% for img_form in item.image_formset %}
+                                    <div class="nested-form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Image</label>
+                                            {{ img_form.image }}
+                                            {% if img_form.instance.image %}
+                                                <div class="image-preview"><img src="{{ img_form.instance.image.url }}" alt="" style="max-height: 60px;"></div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Alt text</label>
+                                            {{ img_form.alt_text }}
+                                        </div>
+                                        <div class="form-check">
+                                            {{ img_form.is_primary }}
+                                            <label class="form-check-label">Primary</label>
+                                        </div>
+                                        {% if img_form.instance.pk %}{{ img_form.DELETE }} <label>Delete</label>{% endif %}
+                                        {{ img_form.id }}
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                        
-                        {{ form.id }}
+
+                        <div class="nested-section sizes-section" data-color-index="{{ forloop.counter0 }}">
+                            <h5 class="nested-title"><i class="fas fa-ruler"></i> Sizes &amp; stock (XS–10XL)</h5>
+                            {{ item.size_formset.management_form }}
+                            <div class="nested-formset sizes-formset">
+                                {% for sz_form in item.size_formset %}
+                                    <div class="nested-form-row size-row grid-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Size *</label>
+                                            {{ sz_form.size }}
+                                            {% if sz_form.size.errors %}<div class="form-error-message">{{ sz_form.size.errors }}</div>{% endif %}
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Stock (≥ 0)</label>
+                                            {{ sz_form.stock_quantity }}
+                                            {% if sz_form.stock_quantity.errors %}<div class="form-error-message">{{ sz_form.stock_quantity.errors }}</div>{% endif %}
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">SKU <small>(optional)</small></label>
+                                            {{ sz_form.sku }}
+                                        </div>
+                                        <div class="form-check">
+                                            {{ sz_form.is_active }}
+                                            <label class="form-check-label">Active</label>
+                                        </div>
+                                        {% if sz_form.instance.pk %}{{ sz_form.DELETE }} <label>Delete</label>{% endif %}
+                                        {{ sz_form.id }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary add-size-btn">
+                                <i class="fas fa-plus"></i> Add size
+                            </button>
+                        </div>
                     </div>
                 {% endfor %}
             </div>
-            
-            <button type="button" id="add-variant-btn" class="btn btn-secondary add-formset-btn">
-                <i class="fas fa-plus-circle"></i> Add Another Variant
+
+            <button type="button" id="add-color-btn" class="btn btn-secondary add-formset-btn">
+                <i class="fas fa-plus-circle"></i> Add another color
             </button>
         </div>
 
@@ -851,191 +861,134 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Image Formset Management
-    const imageFormset = document.getElementById('image-formset');
-    const addImageBtn = document.getElementById('add-image-btn');
-    const imageTotalForms = document.querySelector('#id_images-TOTAL_FORMS');
-    const MAX_IMAGES = 5;  // Maximum allowed images
+    // Color variant block: remove button and Add another color
+    const colorFormset = document.getElementById('color-formset');
+    const addColorBtn = document.getElementById('add-color-btn');
+    const productForm = colorFormset ? colorFormset.closest('form') : document.querySelector('.product-form-wrapper form');
+    const totalFormsInput = productForm ? productForm.querySelector('input[name="colors-TOTAL_FORMS"]') : null;
 
-    // Function to check and update button state
-    function checkImageLimit() {
-        const visibleForms = imageFormset.querySelectorAll('.image-form:not(.deleted)');
-        const formCount = visibleForms.length;
-        
-        if (formCount >= MAX_IMAGES) {
-            addImageBtn.style.display = 'none';
-        } else {
-            addImageBtn.style.display = 'block';
-        }
-        
-        // Update button text to show count
-        const remaining = MAX_IMAGES - formCount;
-        if (remaining > 0) {
-            addImageBtn.innerHTML = `<i class="fas fa-plus"></i> Add Another Image (${remaining} remaining)`;
-        }
+    if (colorFormset) {
+        colorFormset.querySelectorAll('.remove-color-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const block = this.closest('.color-variant-block');
+                if (block) {
+                    block.style.display = 'none';
+                    block.classList.add('deleted');
+                    if (totalFormsInput) totalFormsInput.value = Math.max(0, parseInt(totalFormsInput.value, 10) - 1);
+                }
+            });
+        });
     }
 
-    if (addImageBtn && imageFormset && imageTotalForms) {
-        // Get the empty form template
-        const imageEmptyForm = document.querySelector('.image-form:last-child');
-        
-        // Initial check
-        checkImageLimit();
-        
-        addImageBtn.addEventListener('click', function() {
-            const visibleForms = imageFormset.querySelectorAll('.image-form:not(.deleted)');
-            
-            // Check limit before adding
-            if (visibleForms.length >= MAX_IMAGES) {
-                alert(`Maximum ${MAX_IMAGES} images allowed per product.`);
-                return;
+    if (addColorBtn && colorFormset && totalFormsInput) {
+        addColorBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const visibleBlocks = colorFormset.querySelectorAll('.color-variant-block:not(.deleted)');
+            if (visibleBlocks.length === 0) return;
+            const lastBlock = visibleBlocks[visibleBlocks.length - 1];
+            const oldIndex = parseInt(lastBlock.getAttribute('data-form-index'), 10);
+            const newIndex = parseInt(totalFormsInput.value, 10);
+
+            const clone = lastBlock.cloneNode(true);
+            clone.setAttribute('data-form-index', newIndex);
+            clone.classList.remove('deleted');
+            clone.style.display = '';
+
+            function repl(s) {
+                return s.replace(new RegExp('colors-' + oldIndex + '-', 'g'), 'colors-' + newIndex + '-')
+                    .replace(new RegExp('color-' + oldIndex + '-images-', 'g'), 'color-' + newIndex + '-images-')
+                    .replace(new RegExp('color-' + oldIndex + '-sizes-', 'g'), 'color-' + newIndex + '-sizes-');
             }
-            
-            const formCount = parseInt(imageTotalForms.value);
-            const newForm = imageEmptyForm.cloneNode(true);
-            
-            // Update form index
-            const formHtml = newForm.innerHTML;
-            const updatedHtml = formHtml.replace(/__prefix__/g, formCount).replace(/images-\d+-/g, 'images-' + formCount + '-');
-            newForm.innerHTML = updatedHtml;
-            newForm.setAttribute('data-form-index', formCount);
-            
-            // Clear values
-            newForm.querySelectorAll('input[type="text"], input[type="file"]').forEach(input => {
-                input.value = '';
+            clone.querySelectorAll('[name]').forEach(function(el) {
+                var n = el.getAttribute('name');
+                if (n) el.setAttribute('name', repl(n));
             });
-            newForm.querySelectorAll('input[type="checkbox"]').forEach(input => {
-                input.checked = false;
+            clone.querySelectorAll('[id]').forEach(function(el) {
+                var id = el.getAttribute('id');
+                if (id) el.setAttribute('id', repl(id));
             });
-            
-            // Remove existing image preview
-            const preview = newForm.querySelector('.image-preview');
-            if (preview) preview.remove();
-            
-            // Add remove button functionality for new forms
-            const removeBtn = newForm.querySelector('.remove-form-btn');
+            clone.querySelectorAll('[for]').forEach(function(el) {
+                var f = el.getAttribute('for');
+                if (f) el.setAttribute('for', repl(f));
+            });
+
+            clone.querySelectorAll('input').forEach(function(inp) {
+                if (inp.name && inp.name.indexOf('DELETE') === -1) {
+                    if (inp.type === 'checkbox' || inp.type === 'radio') inp.checked = false;
+                    else if (inp.type !== 'hidden') inp.value = '';
+                }
+                if (inp.name && inp.name.indexOf('DELETE') !== -1) inp.checked = false;
+            });
+            clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
+            clone.querySelectorAll('.image-preview').forEach(function(el) { el.remove(); });
+
+            var formNumSpan = clone.querySelector('.form-number');
+            if (formNumSpan) formNumSpan.textContent = newIndex + 1;
+
+            var removeBtn = clone.querySelector('.remove-color-btn');
             if (removeBtn) {
-                removeBtn.addEventListener('click', function() {
-                    newForm.classList.add('deleted');
-                    newForm.style.display = 'none';
-                    updateFormNumbers(imageFormset, 'image-form');
-                    checkImageLimit();  // Recheck limit after removal
+                removeBtn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    clone.style.display = 'none';
+                    clone.classList.add('deleted');
+                    totalFormsInput.value = Math.max(0, parseInt(totalFormsInput.value, 10) - 1);
                 });
             }
-            
-            // Add file size validation to the new file input
-            const fileInput = newForm.querySelector('input[type="file"]');
-            if (fileInput) {
-                fileInput.addEventListener('change', function() {
-                    validateFileSize(this);
-                });
-            }
-            
-            imageFormset.appendChild(newForm);
-            imageTotalForms.value = formCount + 1;
-            updateFormNumbers(imageFormset, 'image-form');
-            checkImageLimit();  // Recheck limit after addition
-            
-            // Scroll to the new form
-            newForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
 
-        // Handle existing remove buttons
-        imageFormset.querySelectorAll('.remove-form-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const form = btn.closest('.formset-form');
-                form.classList.add('deleted');
-                form.style.display = 'none';
-                updateFormNumbers(imageFormset, 'image-form');
-                checkImageLimit();  // Recheck limit after removal
-            });
-        });
+            colorFormset.appendChild(clone);
+            totalFormsInput.value = newIndex + 1;
 
-        // Handle DELETE checkbox changes
-        imageFormset.querySelectorAll('input[id$="-DELETE"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const form = this.closest('.formset-form');
-                if (this.checked) {
-                    form.classList.add('deleted');
-                } else {
-                    form.classList.remove('deleted');
-                }
-                checkImageLimit();  // Recheck limit when deletion checkbox changes
-            });
+            clone.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     }
 
-    // Variant Formset Management
-    const variantFormset = document.getElementById('variant-formset');
-    const addVariantBtn = document.getElementById('add-variant-btn');
-    const variantTotalForms = document.querySelector('#id_variants-TOTAL_FORMS');
+    // Add size button: add one more size row per color (delegated so it works in dynamically added color blocks)
+    var colorFormsetEl = document.getElementById('color-formset');
+    if (colorFormsetEl) colorFormsetEl.addEventListener('click', function(e) {
+        if (!e.target.closest('.add-size-btn')) return;
+        e.preventDefault();
+        var btn = e.target.closest('.add-size-btn');
+        var section = btn.closest('.sizes-section');
+        if (!section) return;
+        var formset = section.querySelector('.sizes-formset');
+        var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
+        if (!formset || !totalInput) return;
+        var rows = formset.querySelectorAll('.size-row');
+        if (rows.length === 0) return;
+        var lastRow = rows[rows.length - 1];
+        var oldIndex = parseInt(totalInput.value, 10) - 1;
+        var newIndex = parseInt(totalInput.value, 10);
 
-    if (addVariantBtn && variantFormset && variantTotalForms) {
-        // Get the empty form template
-        const variantEmptyForm = document.querySelector('.variant-form:last-child');
-        
-        addVariantBtn.addEventListener('click', function() {
-            const formCount = parseInt(variantTotalForms.value);
-            const newForm = variantEmptyForm.cloneNode(true);
-            
-            // Update form index
-            const formHtml = newForm.innerHTML;
-            const updatedHtml = formHtml.replace(/__prefix__/g, formCount).replace(/variants-\d+-/g, 'variants-' + formCount + '-');
-            newForm.innerHTML = updatedHtml;
-            newForm.setAttribute('data-form-index', formCount);
-            
-            // Clear values
-            newForm.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
-                input.value = '';
-            });
-            newForm.querySelectorAll('input[type="checkbox"]').forEach(input => {
-                if (input.id.includes('is_active')) {
-                    input.checked = true; // Default to active
-                } else {
-                    input.checked = false;
-                }
-            });
-            
-            // Add remove button functionality for new forms
-            const removeBtn = newForm.querySelector('.remove-form-btn');
-            if (removeBtn) {
-                removeBtn.addEventListener('click', function() {
-                    newForm.classList.add('deleted');
-                    newForm.style.display = 'none';
-                    updateFormNumbers(variantFormset, 'variant-form');
-                });
+        var clone = lastRow.cloneNode(true);
+        function repl(str) {
+            return str.replace(new RegExp('-sizes-' + oldIndex + '-', 'g'), '-sizes-' + newIndex + '-');
+        }
+        clone.querySelectorAll('[name]').forEach(function(el) {
+            var n = el.getAttribute('name');
+            if (n) el.setAttribute('name', repl(n));
+        });
+        clone.querySelectorAll('[id]').forEach(function(el) {
+            var id = el.getAttribute('id');
+            if (id) el.setAttribute('id', repl(id));
+        });
+        clone.querySelectorAll('[for]').forEach(function(el) {
+            var f = el.getAttribute('for');
+            if (f) el.setAttribute('for', repl(f));
+        });
+
+        clone.querySelectorAll('input').forEach(function(inp) {
+            if (inp.name && inp.name.indexOf('DELETE') === -1) {
+                if (inp.type === 'checkbox' || inp.type === 'radio') inp.checked = inp.name.indexOf('is_active') !== -1;
+                else if (inp.type !== 'hidden') inp.value = '';
             }
-            
-            variantFormset.appendChild(newForm);
-            variantTotalForms.value = formCount + 1;
-            updateFormNumbers(variantFormset, 'variant-form');
-            
-            // Scroll to the new form
-            newForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (inp.name && inp.name.indexOf('DELETE') !== -1) inp.checked = false;
         });
+        clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
 
-        // Handle existing remove buttons
-        variantFormset.querySelectorAll('.remove-form-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const form = btn.closest('.formset-form');
-                form.classList.add('deleted');
-                form.style.display = 'none';
-                updateFormNumbers(variantFormset, 'variant-form');
-            });
-        });
-
-        // Handle DELETE checkbox changes
-        variantFormset.querySelectorAll('input[id$="-DELETE"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const form = this.closest('.formset-form');
-                if (this.checked) {
-                    form.classList.add('deleted');
-                } else {
-                    form.classList.remove('deleted');
-                }
-            });
-        });
-    }
+        formset.appendChild(clone);
+        totalInput.value = newIndex + 1;
+    });
 
     // Field Validation
     document.querySelectorAll('.form-section .form-group').forEach(formGroup => {
@@ -1074,73 +1027,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Field Validation - Mark variant fields with errors and hide on input
-    if (variantFormset) {
-        variantFormset.querySelectorAll('.form-group').forEach(formGroup => {
-            // Check if this form group contains an error message
+    // Mark invalid fields in color/size forms
+    if (colorFormset) {
+        colorFormset.querySelectorAll('.form-group').forEach(formGroup => {
             const errorMessage = formGroup.querySelector('.form-error-message');
             if (errorMessage) {
-                // Find the field (SKU, Size, or Stock Quantity)
-                const field = formGroup.querySelector('[id$="-sku"], [id$="-size"], [id$="-stock_quantity"]');
+                const field = formGroup.querySelector('input, select, textarea');
                 if (field) {
                     field.classList.add('is-invalid');
-                    
-                    // Scroll to the first invalid field
-                    if (!document.querySelector('[id$="-sku"].is-invalid.scrolled, [id$="-size"].is-invalid.scrolled, [id$="-stock_quantity"].is-invalid.scrolled')) {
-                        setTimeout(() => {
-                            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            field.focus();
-                            field.classList.add('scrolled');
-                        }, 100);
-                    }
-                    
-                    // Hide error when user starts typing
                     field.addEventListener('input', function() {
                         this.classList.remove('is-invalid');
-                        const errorMsg = formGroup.querySelector('.form-error-message');
-                        if (errorMsg) {
-                            errorMsg.style.display = 'none';
-                        }
+                        const err = formGroup.querySelector('.form-error-message');
+                        if (err) err.style.display = 'none';
                     });
                 }
-            }
-        });
-        
-        // Add input listeners to all required fields (even those without errors initially)
-        const fieldSelectors = ['[id$="-sku"]', '[id$="-size"]', '[id$="-stock_quantity"]'];
-        fieldSelectors.forEach(selector => {
-            variantFormset.querySelectorAll(selector).forEach(field => {
-                field.addEventListener('input', function() {
-                    const formGroup = this.closest('.form-group');
-                    if (formGroup) {
-                        const errorMsg = formGroup.querySelector('.form-error-message');
-                        if (errorMsg && errorMsg.style.display !== 'none') {
-                            this.classList.remove('is-invalid');
-                            errorMsg.style.display = 'none';
-                        }
-                    }
-                });
-            });
-        });
-    }
-
-    // Form validation notification
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const imageCount = imageFormset.querySelectorAll('.image-form:not(.deleted)').length;
-            const variantCount = variantFormset.querySelectorAll('.variant-form:not(.deleted)').length;
-            
-            if (imageCount === 0) {
-                alert('Please add at least one product image.');
-                e.preventDefault();
-                return false;
-            }
-            
-            if (variantCount === 0) {
-                alert('Please add at least one product variant (size/stock).');
-                e.preventDefault();
-                return false;
             }
         });
     }

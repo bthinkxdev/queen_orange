@@ -51,7 +51,15 @@ class ProductQuerySet(models.QuerySet):
         return self.filter(is_active=True)
 
     def available(self):
-        return self.active().filter(variants__is_active=True, variants__stock_quantity__gt=0).distinct()
+        from django.db.models import Q
+        return self.active().filter(
+            Q(variants__is_active=True, variants__stock_quantity__gt=0)
+            | Q(
+                color_variants__is_active=True,
+                color_variants__size_variants__is_active=True,
+                color_variants__size_variants__stock_quantity__gt=0,
+            )
+        ).distinct()
 
 
 class Product(TimeStampedModel):
@@ -93,33 +101,138 @@ class Product(TimeStampedModel):
             return round(((self.original_price - self.price) / self.original_price) * 100)
         return 0
 
+    def _normalize_card_image_url(self, url):
+        """Ensure image URL is loadable: add https:// for host-only or protocol-relative URLs."""
+        if not url or not isinstance(url, str):
+            return url
+        url = url.strip()
+        if url.startswith("http://") or url.startswith("https://"):
+            return url
+        # Paths like /media/... are same-origin; leave as-is
+        if url.startswith("/"):
+            # If stored as /media/i1.ytimg.com/... (external URL in DB), convert to https
+            if "/media/" in url and "ytimg.com" in url:
+                base = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
+                if url.startswith(base + "/"):
+                    return "https://" + url[len(base) + 1:]
+            return url
+        # Host-only or protocol-relative (e.g. i1.ytimg.com/vi/.../hqdefault.jpg)
+        return "https://" + url.lstrip("/")
+    def get_card_image_urls(self, limit=20):
+        """
+        Ordered list of image URLs for product cards (hover/touch slider on home and collections).
+        One image per color variant (first image of each), up to `limit` (default 20 for N colors).
+        Safe if no images (returns empty list). Normalizes external URLs so they load (e.g. https).
+        """
+        urls = []
+        seen = set()
+        try:
+            for cv in self.color_variants.filter(is_active=True).order_by("display_order", "name"):
+                if len(urls) >= limit:
+                    break
+                first_img = cv.images.filter(image__isnull=False).exclude(image="").first()
+                if first_img and first_img.image:
+                    url = first_img.image.url
+                    if url:
+                        url = self._normalize_card_image_url(url)
+                    if url and url not in seen:
+                        seen.add(url)
+                        urls.append(url)
+        except Exception:
+            pass
+        return urls[:limit] if urls else []
+
     def __str__(self):
         return self.name
 
 
-class ProductImage(TimeStampedModel):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="products/")
+class ColorVariant(TimeStampedModel):
+    """Color option for a product (e.g. Red, Blue). Has multiple images and size variants."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="color_variants")
+    name = models.CharField(max_length=60)
+    color_code = models.CharField(max_length=20, blank=True, help_text="Optional hex or name for swatch (e.g. #FF0000)")
+    display_order = models.PositiveIntegerField(default=0, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["display_order", "name", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "name"], name="unique_product_color"),
+        ]
+        indexes = [
+            models.Index(fields=["product", "display_order"]),
+        ]
+
+    def __str__(self):
+        return f"{self.product.name} - {self.name}"
+
+
+class ColorVariantImage(TimeStampedModel):
+    """Image for a specific color variant."""
+    color_variant = models.ForeignKey(
+        ColorVariant, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to="products/color_images/")
     is_primary = models.BooleanField(default=False, db_index=True)
     alt_text = models.CharField(max_length=200, blank=True)
 
     class Meta:
         ordering = ["-is_primary", "id"]
         indexes = [
-            models.Index(fields=["product", "is_primary"]),
+            models.Index(fields=["color_variant", "is_primary"]),
         ]
 
     def __str__(self):
-        return f"{self.product.name} image"
+        return f"{self.color_variant} image"
+
+
+class SizeVariant(TimeStampedModel):
+    """Size option under a color with its own stock."""
+    color_variant = models.ForeignKey(
+        ColorVariant, on_delete=models.CASCADE, related_name="size_variants"
+    )
+    size = models.CharField(max_length=20)
+    stock_quantity = models.PositiveIntegerField(default=0)
+    sku = models.CharField(max_length=64, unique=True, blank=True, null=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["size"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["color_variant", "size"], name="unique_color_size"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(stock_quantity__gte=0), name="sizevariant_stock_non_negative"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["color_variant", "is_active", "stock_quantity"]),
+        ]
+
+    @property
+    def product(self):
+        return self.color_variant.product
+
+    def __str__(self):
+        return f"{self.color_variant} - {self.size}"
 
 
 class ProductVariant(TimeStampedModel):
+    """Legacy variant (product+size+color). Kept for backward compatibility and cart/order history."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
-    sku = models.CharField(max_length=64, unique=True)
+    sku = models.CharField(max_length=64, unique=True, blank=True, null=True)
     size = models.CharField(max_length=20)
     color = models.CharField(max_length=30, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True, db_index=True)
+    legacy_size_variant = models.OneToOneField(
+        SizeVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="legacy_product_variant",
+    )
 
     class Meta:
         constraints = [
@@ -162,18 +275,54 @@ class Cart(TimeStampedModel):
 class CartItem(TimeStampedModel):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="cart_items")
-    variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT, related_name="cart_items")
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.PROTECT, related_name="cart_items",
+        null=True, blank=True,
+    )
+    size_variant = models.ForeignKey(
+        SizeVariant, on_delete=models.PROTECT, related_name="cart_items",
+        null=True, blank=True,
+    )
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["cart", "variant"], name="unique_cart_variant"),
+            models.UniqueConstraint(
+                fields=["cart", "variant"],
+                name="unique_cart_variant",
+                condition=models.Q(variant__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["cart", "size_variant"],
+                name="unique_cart_size_variant",
+                condition=models.Q(size_variant__isnull=False),
+            ),
             models.CheckConstraint(condition=models.Q(quantity__gte=1), name="cartitem_qty_positive"),
+            models.CheckConstraint(
+                condition=models.Q(variant__isnull=False) | models.Q(size_variant__isnull=False),
+                name="cartitem_variant_or_size_variant",
+            ),
         ]
         indexes = [
             models.Index(fields=["cart", "product"]),
         ]
+
+    def get_sellable(self):
+        """Return the sellable unit (SizeVariant or ProductVariant) for stock/display."""
+        if self.size_variant_id:
+            return self.size_variant
+        return self.variant
+
+    @property
+    def variant_display(self):
+        """Human-readable variant (size / color) for display."""
+        sellable = self.get_sellable()
+        if not sellable:
+            return ""
+        if hasattr(sellable, "color_variant"):
+            return f"{sellable.size} / {sellable.color_variant.name}"
+        return f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip() or sellable.size
 
     @property
     def line_total(self):
@@ -230,11 +379,24 @@ class Order(TimeStampedModel):
 class OrderItem(TimeStampedModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items")
-    variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT, related_name="order_items")
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.PROTECT, related_name="order_items",
+        null=True, blank=True,
+    )
+    size_variant = models.ForeignKey(
+        SizeVariant, on_delete=models.PROTECT, related_name="order_items",
+        null=True, blank=True,
+    )
     product_name = models.CharField(max_length=200)
     variant_snapshot = models.CharField(max_length=60)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+
+    def get_sellable(self):
+        """Return the sellable unit (SizeVariant or ProductVariant) for stock deduction."""
+        if self.size_variant_id:
+            return self.size_variant
+        return self.variant
 
     @property
     def line_total(self):
@@ -289,6 +451,32 @@ class NewsletterSubscription(TimeStampedModel):
         return self.email
 
 
+class Wishlist(TimeStampedModel):
+    """User wishlist: one product per user, stored in database."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="wishlisted_by",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "product"], name="unique_user_product_wishlist"),
+        ]
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.product.name}"
+
+
 class UserProfile(TimeStampedModel):
     """Extended user profile for additional user information"""
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
@@ -301,6 +489,39 @@ class UserProfile(TimeStampedModel):
     
     def __str__(self):
         return f"Profile: {self.user.email}"
+
+
+class Banner(TimeStampedModel):
+    """Home page banner for carousel. Maximum number of active banners enforced at save."""
+    MAX_ACTIVE = 5
+
+    title = models.CharField(max_length=200, blank=True)
+    subtitle = models.CharField(max_length=300, blank=True)
+    image = models.ImageField(upload_to="banners/")
+    redirect_url = models.URLField(max_length=500, blank=True, null=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    display_order = models.PositiveIntegerField(default=0, db_index=True)
+
+    class Meta:
+        ordering = ["display_order", "created_at"]
+        indexes = [
+            models.Index(fields=["is_active", "display_order"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        active = (
+            Banner.objects.filter(is_active=True)
+            .order_by("display_order", "created_at")
+        )
+        if active.count() > self.MAX_ACTIVE:
+            to_deactivate = active[self.MAX_ACTIVE:]
+            Banner.objects.filter(pk__in=to_deactivate.values_list("pk", flat=True)).update(
+                is_active=False
+            )
+
+    def __str__(self):
+        return self.title or f"Banner #{self.pk}"
 
 
 class OTPRequest(TimeStampedModel):

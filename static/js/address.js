@@ -93,10 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hasDisallowedChars = this.dataset.lastLength && 
                     this.dataset.lastLength > this.value.length;
                 
-                if (hasDisallowedChars) {
-                    console.log(`${fieldName}: Some characters were removed (only alphanumeric and separators allowed)`);
-                }
-                
                 this.dataset.lastLength = this.value.length;
             });
         }

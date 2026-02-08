@@ -3,14 +3,16 @@
 
 {% block title %}Order {{ order.order_number }}{% endblock %}
 {% block page_title %}
-    Order Details
-    <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary" style="float: right; margin-left: 10px;">
-        🖨️ Print Invoice
-    </a>
+    <span class="page-title-actions" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;">
+        <span>Order Details</span>
+        <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary">
+            <i class="fas fa-print"></i> Print Invoice
+        </a>
+    </span>
 {% endblock %}
 
 {% block content %}
-<div class="grid-2">
+<div class="grid-2 order-detail-grid">
     <!-- Order Information -->
     <div class="card">
         <div class="card-header">
@@ -136,7 +138,7 @@
         <h3 class="card-title">Order Items</h3>
     </div>
     <div class="card-body" style="padding: 0;">
-        <div class="table-responsive">
+        <div class="order-items-table-wrap table-responsive">
             <table class="table">
                 <thead>
                     <tr>

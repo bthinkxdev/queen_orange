@@ -7,9 +7,18 @@ from .models import Address, ContactMessage, NewsletterSubscription
 
 class CartAddForm(forms.Form):
     product_id = forms.IntegerField(min_value=1)
-    size = forms.CharField(max_length=20)
+    size = forms.CharField(max_length=20, required=False)
     color = forms.CharField(max_length=30, required=False)
+    size_variant_id = forms.IntegerField(min_value=1, required=False)
     quantity = forms.IntegerField(min_value=1)
+
+    def clean(self):
+        cleaned = super().clean()
+        size_variant_id = cleaned.get("size_variant_id")
+        size = (cleaned.get("size") or "").strip()
+        if not size_variant_id and not size:
+            raise forms.ValidationError("Please select a size or variant.")
+        return cleaned
 
 
 class CartUpdateForm(forms.Form):

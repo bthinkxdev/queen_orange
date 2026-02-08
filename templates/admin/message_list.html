@@ -11,8 +11,8 @@
     </div>
 
     <div class="card-body">
-        <!-- Filters -->
-        <form method="get" class="filters">
+        <!-- Filters - Desktop -->
+        <form method="get" class="filters filters-inline">
             <div class="filter-group">
                 <select name="status" class="form-control" onchange="this.form.submit()">
                     <option value="">All Messages</option>
@@ -22,11 +22,37 @@
             </div>
         </form>
 
+        <button type="button" class="btn btn-secondary filter-trigger mb-2" id="filterTrigger" aria-label="Open filters">
+            <i class="fas fa-filter"></i> Filters
+        </button>
+
+        <div class="filter-overlay" id="filterOverlay" aria-hidden="true"></div>
+        <div class="filters-sheet" id="filtersSheet">
+            <div class="filters-sheet-header">
+                <strong>Filter Messages</strong>
+                <button type="button" class="btn btn-sm btn-secondary" id="filterSheetClose" aria-label="Close">✕</button>
+            </div>
+            <form method="get" class="filters-sheet-body">
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">All Messages</option>
+                        <option value="unresolved" {% if filter_status == "unresolved" %}selected{% endif %}>Unresolved</option>
+                        <option value="resolved" {% if filter_status == "resolved" %}selected{% endif %}>Resolved</option>
+                    </select>
+                </div>
+                <div class="filters-sheet-footer">
+                    <button type="button" class="btn btn-secondary" id="filterClear">Clear</button>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+        </div>
+
         <!-- Messages List -->
         {% if messages %}
             <div style="display: grid; gap: 1rem;">
                 {% for message in messages %}
-                    <div class="card" style="box-shadow: none; border: 1px solid var(--gray-200);">
+                    <div class="card message-card" style="box-shadow: none; border: 1px solid var(--gray-200);">
                         <div class="card-body">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem;">
                                 <div style="flex: 1;">

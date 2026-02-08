@@ -205,17 +205,27 @@
                         {% for item in items %}
                             <div class="order-item">
                                 <div class="order-item-image">
-                                    {% with image=item.product.images.first %}
-                                        {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
-                                        {% endif %}
-                                    {% endwith %}
+                                    {% if item.size_variant %}
+                                        {% with image=item.size_variant.color_variant.images.first %}
+                                            {% if image %}
+                                                <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
+                                            {% else %}
+                                                <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        {% with card_images=item.product.get_card_image_urls %}
+                                            {% if card_images %}
+                                                <img src="{{ card_images.0 }}" alt="{{ item.product.name }}">
+                                            {% else %}
+                                                <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
                                 </div>
                                 <div class="order-item-info">
                                     <div class="order-item-name">{{ item.product.name }}</div>
-                                    <div class="order-item-meta">Size: {{ item.variant.size }} | Qty: {{ item.quantity }}</div>
+                                    <div class="order-item-meta">{{ item.variant_display }} | Qty: {{ item.quantity }}</div>
                                     <div class="order-item-price">₹{{ item.line_total }}</div>
                                 </div>
                             </div>

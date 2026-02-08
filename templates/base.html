@@ -8,22 +8,25 @@
     <meta name="description" content="{% block meta_description %}Premium women and babies clothing.{% endblock %}">
     <meta name="theme-color" content="#FF9800">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home-sections.css' %}">
     <link rel="stylesheet" href="{% static 'css/mobile-optimizations.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-wishlist-toggle-url="{% url 'store:wishlist_toggle' %}"
+      data-login-url="{% url 'auth:login' %}"
+      data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
     <header class="header">
-        <div class="header-announcement coming-soon-banner">
+        {% comment %} <div class="header-announcement coming-soon-banner">
             <div class="container">
                 <div class="coming-soon-content">
                     <span class="coming-soon-badge">🎉 COMING SOON</span>
                     <p class="coming-soon-text">Exciting new collections launching soon! Stay tuned ✨</p>
                 </div>
             </div>
-        </div>
+        </div> {% endcomment %}
         <nav class="header-main">
             <div class="container">
                 <div class="nav-wrapper">
@@ -76,6 +79,12 @@
                             </svg>
                         </a>
                         {% endif %}
+                        <a href="{% url 'store:wishlist' %}" class="wishlist-btn {% if not user.is_authenticated %}js-wishlist-guest{% endif %}" aria-label="Wishlist" title="Wishlist">
+                            <svg class="wishlist-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                            <span class="wishlist-badge js-wishlist-count" {% if not wishlist_count %}style="display: none;"{% endif %}>{{ wishlist_count|default:0 }}</span>
+                        </a>
                         <a href="{% url 'store:cart' %}" class="cart-btn" aria-label="Shopping cart">
                             <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="9" cy="21" r="1"/>
@@ -129,14 +138,16 @@
         </div>
     {% endif %}
 
- <script>
-        // Auto-hide notifications after 1 second
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                document.querySelectorAll('.notification').forEach(function(el) {
-                    el.classList.add('hide');
-                });
-            }, 1000);
+            var notifications = document.querySelectorAll('.notification');
+            if (notifications.length) {
+                setTimeout(function() {
+                    notifications.forEach(function(el) {
+                        if (el && el.classList) el.classList.add('hide');
+                    });
+                }, 1000);
+            }
         });
     </script>
 
@@ -228,6 +239,8 @@
     </a>
 
     <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/wishlist.js' %}"></script>
+    <script src="{% static 'js/product-card-slider.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

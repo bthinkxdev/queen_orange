@@ -41,9 +41,17 @@
                     <i class="fas fa-tags"></i>
                     <span>Categories</span>
                 </a>
+                <a href="{% url 'admin_panel:banner_list' %}" class="nav-item {% if active_menu == 'banners' %}active{% endif %}">
+                    <i class="fas fa-image"></i>
+                    <span>Banners</span>
+                </a>
                 <a href="{% url 'admin_panel:message_list' %}" class="nav-item {% if active_menu == 'messages' %}active{% endif %}">
                     <i class="fas fa-envelope"></i>
                     <span>Messages</span>
+                </a>
+                <a href="{% url 'admin_panel:report_list' %}" class="nav-item {% if active_menu == 'reports' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
                 </a>
                 <div class="nav-divider"></div>
                 <a href="{% url 'store:home' %}" class="nav-item" target="_blank">
@@ -69,7 +77,7 @@
                 </button>
                 
                 <div class="topbar-title">
-                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                    <h1 class="topbar-title-inner">{% block page_title %}Dashboard{% endblock %}</h1>
                 </div>
                 
                 <div class="topbar-actions">
@@ -117,19 +125,19 @@
         });
 
         // Close sidebar when clicking outside
-        document.addEventListener('click', (e) => {
-            if (sidebar.classList.contains('active') && 
-                !sidebar.contains(e.target) && 
-                !menuToggle.contains(e.target)) {
+        document.addEventListener('click', function(e) {
+            if (sidebar && sidebar.classList.contains('active') &&
+                !sidebar.contains(e.target) &&
+                menuToggle && !menuToggle.contains(e.target)) {
                 sidebar.classList.remove('active');
                 body.classList.remove('sidebar-open');
             }
         });
 
         // Alert close buttons
-        document.querySelectorAll('.alert-close').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.parentElement.remove();
+        document.querySelectorAll('.alert-close').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (btn.parentElement) btn.parentElement.remove();
             });
         });
 
@@ -142,6 +150,7 @@
         }, 5000);
     </script>
 
+    <script src="{% static 'js/admin-mobile.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

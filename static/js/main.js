@@ -1,59 +1,74 @@
 (function() {
+    "use strict";
+
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1") + "=([^;]*)"));
+        return match ? decodeURIComponent(match[1]) : "";
+    }
+
+    function getCsrfToken(form) {
+        var input = form && form.querySelector("[name=csrfmiddlewaretoken]");
+        return (input && input.value) ? input.value : getCookie("csrftoken");
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll('.js-cart-qty-form').forEach(function(form) {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-            });
-            form.querySelectorAll('.js-cart-qty-btn').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
+        document.querySelectorAll(".js-cart-qty-form").forEach(function(form) {
+            form.addEventListener("submit", function(e) { e.preventDefault(); });
+            var input = form.querySelector(".quantity-input");
+            if (!input) return;
+            form.querySelectorAll(".js-cart-qty-btn").forEach(function(btn) {
+                btn.addEventListener("click", function(e) {
                     e.preventDefault();
-                    const input = form.querySelector('.quantity-input');
-                    let quantity = parseInt(input.value, 10);
-                    if (btn.dataset.direction === 'increase') {
-                        quantity += 1;
-                    } else if (btn.dataset.direction === 'decrease') {
-                        quantity -= 1;
+                    var quantity = parseInt(input.value, 10) || 0;
+                    if (btn.dataset.direction === "increase") quantity += 1;
+                    else if (btn.dataset.direction === "decrease") quantity -= 1;
+                    if (quantity < 1) return;
+                    var formData = new FormData(form);
+                    formData.set("quantity", String(quantity));
+                    var csrf = getCsrfToken(form);
+                    if (!csrf) {
+                        alert("Could not update cart. Please refresh and try again.");
+                        return;
                     }
-                    if (quantity < 1) return; // Optionally, handle remove if 0
-
-                    const formData = new FormData(form);
-                    formData.set('quantity', quantity);
-
                     fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
+                        method: "POST",
+                        headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf },
                         body: formData
                     })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network error');
-                        return response.text();
-                    })
-                    .then(() => {
-                        input.value = quantity;
-                        // Optionally, update price, totals, etc. via AJAX or reload part of the cart
-                        location.reload(); // For now, reload to update totals. For full SPA, update DOM here.
-                    })
-                    .catch(() => {
-                        alert('Could not update cart. Please try again.');
-                    });
+                        .then(function(r) {
+                            if (!r.ok) throw new Error("Network error");
+                            return r.text();
+                        })
+                        .then(function() {
+                            input.value = quantity;
+                            location.reload();
+                        })
+                        .catch(function() {
+                            alert("Could not update cart. Please try again.");
+                        });
                 });
             });
         });
     });
 })();
-// Queen Orange - UI JavaScript
 
-document.addEventListener("DOMContentLoaded", () => {
-    initMobileMenu();
-    initMobileSearch();
-    initScrollEffects();
-    initAnimations();
-});
+(function() {
+    "use strict";
 
-function initMobileMenu() {
+    function getCookie(name) {
+        var cookieValue = "";
+        var cookies = document.cookie ? document.cookie.split(";") : [];
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf(name + "=") === 0) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                break;
+            }
+        }
+        return cookieValue;
+    }
+
+    function initMobileMenu() {
     const menuToggle = document.querySelector(".mobile-menu-toggle");
     const navMenu = document.querySelector(".nav-menu");
 
@@ -146,20 +161,28 @@ function initAnimations() {
 }
 
 function initScrollEffects() {
-    const header = document.querySelector(".header");
+    var header = document.querySelector(".header");
     if (!header) return;
-
-    window.addEventListener("scroll", () => {
+    window.addEventListener("scroll", function() {
         header.classList.toggle("scrolled", window.scrollY > 100);
     });
 }
 
 function scrollBestsellers(direction) {
-    const container = document.querySelector(".bestsellers-scroll-container");
+    var container = document.querySelector(".bestsellers-scroll-container");
     if (!container) return;
-    const scrollAmount = 320;
-    const next = direction === "left" ? container.scrollLeft - scrollAmount : container.scrollLeft + scrollAmount;
+    var scrollAmount = 320;
+    var next = direction === "left" ? container.scrollLeft - scrollAmount : container.scrollLeft + scrollAmount;
     container.scrollTo({ left: next, behavior: "smooth" });
+}
+
+function initBestsellersScrollButtons() {
+    document.querySelectorAll("[data-scroll-bestsellers]").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+            var dir = this.getAttribute("data-scroll-bestsellers");
+            if (dir) scrollBestsellers(dir);
+        });
+    });
 }
 
 function showNotification(message, type = "success") {
@@ -249,22 +272,33 @@ function initQuickAddToCart() {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    initQuickAddToCart();
-});
+document.addEventListener("DOMContentLoaded", function() {
+        initMobileMenu();
+        initMobileSearch();
+        initScrollEffects();
+        initAnimations();
+        initBestsellersScrollButtons();
+        initQuickAddToCart();
+    });
+})();
 
 (function() {
-    var slider = document.getElementById('bannerSlider');
+    var slider = document.getElementById("bannerSlider");
     if (!slider) return;
-    var slides = slider.querySelectorAll('.banner-slide');
+    var slides = slider.querySelectorAll(".banner-slide");
+    if (slides.length <= 1) return;
     var current = 0;
+    var bannerIntervalId = null;
     function showSlide(idx) {
         slides.forEach(function(slide, i) {
-            slide.classList.toggle('active', i === idx);
+            slide.classList.toggle("active", i === idx);
         });
     }
-    setInterval(function() {
+    bannerIntervalId = setInterval(function() {
         current = (current + 1) % slides.length;
         showSlide(current);
     }, 3400);
+    window.addEventListener("pagehide", function() {
+        if (bannerIntervalId) clearInterval(bannerIntervalId);
+    });
 })();

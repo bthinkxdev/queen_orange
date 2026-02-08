@@ -20,20 +20,24 @@ from django.views.generic import (
 from datetime import timedelta
 
 from .models import (
+    Banner,
     Category,
     ContactMessage,
     Order,
     OrderItem,
     Product,
-    ProductImage,
     ProductVariant,
+    SizeVariant,
 )
 from .admin_forms import (
     AdminLoginForm,
+    BannerForm,
     CategoryForm,
+    ColorVariantFormSet,
+    ColorVariantImageFormSet,
     ProductForm,
-    ProductImageFormSet,
     ProductVariantFormSet,
+    SizeVariantFormSet,
 )
 
 
@@ -247,6 +251,76 @@ class CategoryDeleteView(StaffRequiredMixin, DeleteView):
         return super().post(request, *args, **kwargs)
 
 
+# Banner Management Views
+class BannerListView(StaffRequiredMixin, ListView):
+    model = Banner
+    template_name = "admin/banner_list.html"
+    context_object_name = "banners"
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = Banner.objects.all()
+        status = self.request.GET.get("status")
+        if status == "active":
+            qs = qs.filter(is_active=True)
+        elif status == "inactive":
+            qs = qs.filter(is_active=False)
+        return qs.order_by("display_order", "created_at")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["active_menu"] = "banners"
+        context["filter_status"] = self.request.GET.get("status", "")
+        context["max_active"] = Banner.MAX_ACTIVE
+        return context
+
+
+class BannerCreateView(StaffRequiredMixin, CreateView):
+    model = Banner
+    form_class = BannerForm
+    template_name = "admin/banner_form.html"
+    success_url = reverse_lazy("admin_panel:banner_list")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Banner created successfully!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["active_menu"] = "banners"
+        context["form_title"] = "Create Banner"
+        context["max_active"] = Banner.MAX_ACTIVE
+        return context
+
+
+class BannerUpdateView(StaffRequiredMixin, UpdateView):
+    model = Banner
+    form_class = BannerForm
+    template_name = "admin/banner_form.html"
+    success_url = reverse_lazy("admin_panel:banner_list")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Banner updated successfully!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["active_menu"] = "banners"
+        context["form_title"] = "Edit Banner"
+        context["max_active"] = Banner.MAX_ACTIVE
+        return context
+
+
+class BannerDeleteView(StaffRequiredMixin, DeleteView):
+    model = Banner
+    success_url = reverse_lazy("admin_panel:banner_list")
+
+    def post(self, request, *args, **kwargs):
+        banner = self.get_object()
+        messages.success(request, "Banner deleted successfully!")
+        return super().post(request, *args, **kwargs)
+
+
 # Product Management Views
 class ProductListView(StaffRequiredMixin, ListView):
     model = Product
@@ -255,7 +329,9 @@ class ProductListView(StaffRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        qs = Product.objects.select_related("category").prefetch_related("images", "variants")
+        qs = Product.objects.select_related("category").prefetch_related(
+            "variants", "color_variants__images"
+        )
         search = self.request.GET.get("search")
         category = self.request.GET.get("category")
         status = self.request.GET.get("status")
@@ -286,34 +362,66 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
     form_class = ProductForm
     template_name = "admin/product_form.html"
     success_url = reverse_lazy("admin_panel:product_list")
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context["image_formset"] = ProductImageFormSet(self.request.POST, self.request.FILES)
-            context["variant_formset"] = ProductVariantFormSet(self.request.POST)
+            context["color_formset"] = ColorVariantFormSet(
+                self.request.POST, self.request.FILES, prefix="colors"
+            )
         else:
-            context["image_formset"] = ProductImageFormSet()
-            context["variant_formset"] = ProductVariantFormSet()
+            context["color_formset"] = ColorVariantFormSet(prefix="colors")
+        color_formset = context["color_formset"]
+        context["color_formsets_data"] = []
+        for i, cf in enumerate(color_formset.forms):
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            if self.request.POST:
+                context["color_formsets_data"].append({
+                    "color_form": cf,
+                    "image_formset": ColorVariantImageFormSet(
+                        self.request.POST, self.request.FILES, prefix=prefix_img
+                    ),
+                    "size_formset": SizeVariantFormSet(self.request.POST, prefix=prefix_sz),
+                })
+            else:
+                cv = getattr(cf, "instance", None)
+                inst = cv if (cv and cv.pk) else None
+                context["color_formsets_data"].append({
+                    "color_form": cf,
+                    "image_formset": ColorVariantImageFormSet(instance=inst, prefix=prefix_img),
+                    "size_formset": SizeVariantFormSet(instance=inst, prefix=prefix_sz),
+                })
         context["active_menu"] = "products"
         context["form_title"] = "Create Product"
         return context
-    
+
     def form_valid(self, form):
-        context = self.get_context_data()
-        image_formset = context["image_formset"]
-        variant_formset = context["variant_formset"]
-        
-        if image_formset.is_valid() and variant_formset.is_valid():
-            self.object = form.save()
-            image_formset.instance = self.object
-            image_formset.save()
-            variant_formset.instance = self.object
-            variant_formset.save()
-            messages.success(self.request, "Product created successfully!")
-            return redirect(self.success_url)
-        else:
+        self.object = form.save()
+        color_formset = ColorVariantFormSet(
+            self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
+        )
+        if not color_formset.is_valid():
             return self.form_invalid(form)
+        color_formset.save()
+        for i, cf in enumerate(color_formset.forms):
+            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                continue
+            cv = cf.instance
+            if not cv.pk:
+                continue
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            image_fs = ColorVariantImageFormSet(
+                self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
+            )
+            size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
+            if image_fs.is_valid():
+                image_fs.save()
+            if size_fs.is_valid():
+                size_fs.save()
+        messages.success(self.request, "Product created successfully!")
+        return redirect(self.success_url)
 
 
 class ProductUpdateView(StaffRequiredMixin, UpdateView):
@@ -321,38 +429,71 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
     form_class = ProductForm
     template_name = "admin/product_form.html"
     success_url = reverse_lazy("admin_panel:product_list")
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        product = self.object
         if self.request.POST:
-            context["image_formset"] = ProductImageFormSet(
-                self.request.POST, self.request.FILES, instance=self.object
-            )
-            context["variant_formset"] = ProductVariantFormSet(
-                self.request.POST, instance=self.object
+            context["color_formset"] = ColorVariantFormSet(
+                self.request.POST, self.request.FILES, instance=product, prefix="colors"
             )
         else:
-            context["image_formset"] = ProductImageFormSet(instance=self.object)
-            context["variant_formset"] = ProductVariantFormSet(instance=self.object)
+            context["color_formset"] = ColorVariantFormSet(
+                instance=product, prefix="colors"
+            )
+        color_formset = context["color_formset"]
+        context["color_formsets_data"] = []
+        for i, cf in enumerate(color_formset.forms):
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            cv = getattr(cf, "instance", None)
+            inst = cv if (cv and cv.pk) else None
+            if self.request.POST:
+                context["color_formsets_data"].append({
+                    "color_form": cf,
+                    "image_formset": ColorVariantImageFormSet(
+                        self.request.POST, self.request.FILES, instance=inst, prefix=prefix_img
+                    ),
+                    "size_formset": SizeVariantFormSet(
+                        self.request.POST, instance=inst, prefix=prefix_sz
+                    ),
+                })
+            else:
+                context["color_formsets_data"].append({
+                    "color_form": cf,
+                    "image_formset": ColorVariantImageFormSet(instance=inst, prefix=prefix_img),
+                    "size_formset": SizeVariantFormSet(instance=inst, prefix=prefix_sz),
+                })
         context["active_menu"] = "products"
         context["form_title"] = "Edit Product"
         return context
-    
+
     def form_valid(self, form):
-        context = self.get_context_data()
-        image_formset = context["image_formset"]
-        variant_formset = context["variant_formset"]
-        
-        if image_formset.is_valid() and variant_formset.is_valid():
-            self.object = form.save()
-            image_formset.instance = self.object
-            image_formset.save()
-            variant_formset.instance = self.object
-            variant_formset.save()
-            messages.success(self.request, "Product updated successfully!")
-            return redirect(self.success_url)
-        else:
+        self.object = form.save()
+        color_formset = ColorVariantFormSet(
+            self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
+        )
+        if not color_formset.is_valid():
             return self.form_invalid(form)
+        color_formset.save()
+        for i, cf in enumerate(color_formset.forms):
+            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                continue
+            cv = cf.instance
+            if not cv.pk:
+                continue
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            image_fs = ColorVariantImageFormSet(
+                self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
+            )
+            size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
+            if image_fs.is_valid():
+                image_fs.save()
+            if size_fs.is_valid():
+                size_fs.save()
+        messages.success(self.request, "Product updated successfully!")
+        return redirect(self.success_url)
 
 
 class ProductDeleteView(StaffRequiredMixin, DeleteView):

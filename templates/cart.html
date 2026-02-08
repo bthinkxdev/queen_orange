@@ -16,17 +16,27 @@
                         {% for item in items %}
                             <div class="cart-item">
                                 <div class="cart-item-image">
-                                    {% with image=item.product.images.first %}
-                                        {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
-                                        {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
-                                        {% endif %}
-                                    {% endwith %}
+                                    {% if item.size_variant %}
+                                        {% with image=item.size_variant.color_variant.images.first %}
+                                            {% if image %}
+                                                <img src="{{ image.image.url }}" alt="{{ item.product.name }}">
+                                            {% else %}
+                                                <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        {% with card_images=item.product.get_card_image_urls %}
+                                            {% if card_images %}
+                                                <img src="{{ card_images.0 }}" alt="{{ item.product.name }}">
+                                            {% else %}
+                                                <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}">
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
                                 </div>
                                 <div class="cart-item-details">
                                     <h3 class="cart-item-name">{{ item.product.name }}</h3>
-                                    <p class="cart-item-meta">Size: {{ item.variant.size }}{% if item.variant.color %} | Color: {{ item.variant.color }}{% endif %}</p>
+                                    <p class="cart-item-meta">{{ item.variant_display }}</p>
                                     <p class="cart-item-price">₹{{ item.unit_price }}</p>
                                     <div class="cart-item-actions">
                                         <form method="post" action="{% url 'store:cart_update' %}" class="quantity-controls js-cart-qty-form">

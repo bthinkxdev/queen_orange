@@ -5,123 +5,208 @@
 {% block page_title %}Products{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Manage Products</h3>
-        <a href="{% url 'admin_panel:product_create' %}" class="btn btn-primary">
+<div class="product-listing-card">
+    <div class="product-listing-header">
+        <h2 class="product-listing-title">Product Listings</h2>
+        <a href="{% url 'admin_panel:product_create' %}" class="btn btn-primary product-add-btn">
             <i class="fas fa-plus"></i>
-            <span>Add Product</span>
+            Add Product
         </a>
     </div>
 
-    <div class="card-body">
-        <!-- Filters -->
-        <form method="get" class="filters">
-            <div class="search-box">
+    <div class="product-listing-toolbar">
+        <form method="get" class="filters filters-inline product-listing-filters">
+            <div class="product-search-wrap">
                 <i class="fas fa-search"></i>
-                <input type="text" name="search" class="form-control" placeholder="Search products..." 
+                <input type="text" name="search" class="form-control" placeholder="Search by product name or ID..." 
                        value="{{ search_query }}">
             </div>
-            
-            <div class="filter-group">
-                <select name="category" class="form-control" onchange="this.form.submit()">
-                    <option value="">All Categories</option>
-                    {% for category in categories %}
-                        <option value="{{ category.id }}" {% if filter_category == category.id|stringformat:"s" %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <select name="status" class="form-control" onchange="this.form.submit()">
-                    <option value="">All Status</option>
-                    <option value="active" {% if filter_status == "active" %}selected{% endif %}>Active</option>
-                    <option value="inactive" {% if filter_status == "inactive" %}selected{% endif %}>Inactive</option>
-                </select>
-            </div>
+            <select name="category" class="form-control product-filter-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if filter_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="status" class="form-control product-filter-select" onchange="this.form.submit()">
+                <option value="">All Status</option>
+                <option value="active" {% if filter_status == "active" %}selected{% endif %}>Live</option>
+                <option value="inactive" {% if filter_status == "inactive" %}selected{% endif %}>Inactive</option>
+            </select>
+            <button type="submit" class="btn btn-secondary product-filter-btn">
+                <i class="fas fa-filter"></i> Apply
+            </button>
         </form>
+    </div>
 
-        <!-- Table -->
-        {% if products %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Image</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for product in products %}
-                            <tr>
-                                <td>
-                                    {% with image=product.images.first %}
-                                        {% if image %}
-                                            <img src="{{ image.image.url }}" alt="{{ product.name }}" 
-                                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
-                                        {% else %}
-                                            <div style="width: 50px; height: 50px; background: var(--gray-200); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-image" style="color: var(--gray-400);"></i>
-                                            </div>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    <div style="font-weight: 500;">{{ product.name|truncatechars:40 }}</div>
-                                    <div style="font-size: 0.8rem; color: var(--gray-600);">
-                                        {% if product.is_featured %}<span class="badge badge-warning" style="font-size: 0.7rem;">Featured</span>{% endif %}
-                                        {% if product.is_bestseller %}<span class="badge badge-info" style="font-size: 0.7rem;">Bestseller</span>{% endif %}
-                                    </div>
-                                </td>
-                                <td>{{ product.category.name }}</td>
-                                <td>
-                                    <div style="font-weight: 600;">₹{{ product.price }}</div>
-                                    {% if product.original_price %}
-                                        <div style="font-size: 0.8rem; color: var(--gray-500); text-decoration: line-through;">₹{{ product.original_price }}</div>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% with total_stock=product.variants.all|length %}
-                                        {% if total_stock > 0 %}
-                                            <span class="badge badge-success">{{ total_stock }} variants</span>
-                                        {% else %}
-                                            <span class="badge badge-danger">No variants</span>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td>
-                                    {% if product.is_active %}
-                                        <span class="badge badge-success">Active</span>
-                                    {% else %}
-                                        <span class="badge badge-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="table-actions">
-                                        <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="btn btn-sm btn-secondary" title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{% url 'admin_panel:product_edit' product.pk %}" class="btn btn-sm btn-secondary">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                        {% if product.is_active %}
-                                        <button type="button" class="btn btn-sm btn-danger delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" title="Delete product">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
+    <div class="product-listing-body">
+        <!-- Mobile filter trigger -->
+        <button type="button" class="btn btn-secondary filter-trigger mb-2" id="filterTrigger" aria-label="Open filters">
+            <i class="fas fa-filter"></i> Filters
+        </button>
+
+        <!-- Mobile filter sheet -->
+        <div class="filter-overlay" id="filterOverlay" aria-hidden="true"></div>
+        <div class="filters-sheet" id="filtersSheet">
+            <div class="filters-sheet-header">
+                <strong>Filters</strong>
+                <button type="button" class="btn btn-sm btn-secondary" id="filterSheetClose" aria-label="Close">✕</button>
+            </div>
+            <form method="get" class="filters-sheet-body">
+                <div class="form-group">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Search products..." value="{{ search_query }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-control">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if filter_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="active" {% if filter_status == "active" %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if filter_status == "inactive" %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="filters-sheet-footer">
+                    <button type="button" class="btn btn-secondary" id="filterClear">Clear</button>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Products list -->
+        {% if products %}
+            <!-- Mobile cards -->
+            <div class="list-cards">
+                {% for product in products %}
+                    <div class="list-card">
+                        <div class="list-card-header" style="flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+                                {% with card_images=product.get_card_image_urls %}
+                                    {% if card_images %}
+                                        <img src="{{ card_images.0 }}" alt="{{ product.name }}" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px;">
+                                    {% else %}
+                                        <div style="width: 56px; height: 56px; background: var(--gray-200); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-image" style="color: var(--gray-400);"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="list-card-title" style="margin-bottom: 0.25rem;">{{ product.name|truncatechars:40 }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-600);">{{ product.category.name }}</div>
+                                </div>
+                            </div>
+                            <div>
+                                {% if product.is_active %}
+                                    <span class="badge badge-success">Live</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">Inactive</span>
+                                {% endif %}
+                                {% if product.is_featured %}<span class="badge badge-warning" style="font-size: 0.7rem;">Featured</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="list-card-meta">
+                            <span><strong style="color: #388e3c;">₹{{ product.price }}</strong>{% if product.original_price %} <span style="text-decoration: line-through; color: var(--gray-500);">₹{{ product.original_price }}</span>{% endif %}</span>
+                            {% with total_stock=product.variants.all|length %}
+                                <span>{{ total_stock }} variant{{ total_stock|pluralize }}</span>
+                            {% endwith %}
+                        </div>
+                        <div class="list-card-actions">
+                            <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="btn btn-secondary" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'admin_panel:product_edit' product.pk %}" class="btn btn-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            {% if product.is_active %}
+                                <button type="button" class="btn btn-danger delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Desktop table - Flipkart-style rows -->
+            <div class="list-table product-listing-table-wrap">
+                <div class="product-listing-table">
+                    <div class="product-listing-thead">
+                        <div class="product-col product-col-img">Product</div>
+                        <div class="product-col product-col-price">Price</div>
+                        <div class="product-col product-col-stock">Inventory</div>
+                        <div class="product-col product-col-status">Status</div>
+                        <div class="product-col product-col-actions">Actions</div>
+                    </div>
+                    {% for product in products %}
+                    <div class="product-row">
+                        <div class="product-col product-col-img">
+                            <div class="product-row-info">
+                                {% with card_images=product.get_card_image_urls %}
+                                    {% if card_images %}
+                                        <img src="{{ card_images.0 }}" alt="{{ product.name }}" class="product-thumb">
+                                    {% else %}
+                                        <div class="product-thumb product-thumb-placeholder">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <div class="product-details">
+                                    <a href="{% url 'admin_panel:product_edit' product.pk %}" class="product-name">{{ product.name }}</a>
+                                    <div class="product-meta">
+                                        <span class="product-id">ID: {{ product.pk }}</span>
+                                        <span class="product-category">{{ product.category.name }}</span>
+                                    </div>
+                                    <div class="product-tags">
+                                        {% if product.is_featured %}<span class="product-tag product-tag-featured">Featured</span>{% endif %}
+                                        {% if product.is_bestseller %}<span class="product-tag product-tag-bestseller">Bestseller</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="product-col product-col-price">
+                            <span class="product-price">₹{{ product.price }}</span>
+                            {% if product.original_price %}
+                                <span class="product-mrp">₹{{ product.original_price }}</span>
+                                {% if product.discount_percent %}
+                                    <span class="product-discount">{{ product.discount_percent }}% off</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="product-col product-col-stock">
+                            {% with total_stock=product.variants.all|length %}
+                                {% if total_stock > 0 %}
+                                    <span class="product-stock product-stock-ok">{{ total_stock }} variant{{ total_stock|pluralize }}</span>
+                                {% else %}
+                                    <span class="product-stock product-stock-none">No variants</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="product-col product-col-status">
+                            {% if product.is_active %}
+                                <span class="product-status product-status-live">Live</span>
+                            {% else %}
+                                <span class="product-status product-status-inactive">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div class="product-col product-col-actions">
+                            <a href="{% url 'admin_panel:product_edit' product.pk %}" class="product-action-link">Edit</a>
+                            <span class="product-action-divider">|</span>
+                            <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="product-action-link">View</a>
+                            {% if product.is_active %}
+                            <span class="product-action-divider">|</span>
+                            <button type="button" class="product-action-link product-action-delete delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" title="Delete">Delete</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
 
             <!-- Pagination -->
@@ -141,11 +226,12 @@
                 </div>
             {% endif %}
         {% else %}
-            <div class="empty-state">
-                <i class="fas fa-box"></i>
-                <p>No products found</p>
+            <div class="product-listing-empty">
+                <div class="product-listing-empty-icon"><i class="fas fa-box-open"></i></div>
+                <p class="product-listing-empty-title">No products found</p>
+                <p class="product-listing-empty-desc">Add your first product to start selling.</p>
                 <a href="{% url 'admin_panel:product_create' %}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Create First Product
+                    <i class="fas fa-plus"></i> Add Product
                 </a>
             </div>
         {% endif %}
