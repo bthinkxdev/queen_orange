@@ -300,13 +300,18 @@ class AddToCartView(LoginRequiredForActionMixin, View):
             # messages.success(request, "Added to cart.")
             if is_ajax:
                 cart_count = sum(item.quantity for item in cart.items.all())
-                return JsonResponse({"success": True, "cart_count": cart_count})
+                payload = {"success": True, "cart_count": cart_count}
+                action = request.POST.get("action", "add")
+                if action == "buy":
+                    payload["redirect"] = reverse("store:checkout")
+                elif action == "whatsapp":
+                    payload["redirect"] = f"{reverse('store:checkout')}?payment=whatsapp"
+                return JsonResponse(payload)
         action = request.POST.get("action", "add")
         if action == "buy":
             return redirect("store:checkout")
         if action == "whatsapp":
             return redirect(f"{reverse_lazy('store:checkout')}?payment=whatsapp")
-                # Add ?added=1 to cart redirect for notification
         url = reverse("store:cart") + "?added=1"
         return redirect(url)
 

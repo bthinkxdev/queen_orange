@@ -234,7 +234,11 @@ function initQuickAddToCart() {
                     },
                     body: formData,
                 });
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 401 && data.login_required && typeof window.openLoginModal === "function") {
+                    window.openLoginModal(window.location.pathname + window.location.search);
+                    return;
+                }
                 if (!response.ok || !data.success) {
                     showNotification(data.error || "Unable to add to cart.", "error");
                     return;
@@ -248,7 +252,49 @@ function initQuickAddToCart() {
     });
 }
 
+function initCartFormInterceptor() {
+    document.querySelectorAll('form[action*="/cart/add/"]').forEach(function(form) {
+        form.addEventListener("submit", async function(event) {
+            var submitter = event.submitter;
+            var action = (submitter && submitter.name === "action" && submitter.value) ? submitter.value : "add";
+            if (action === "whatsapp") return;
+            event.preventDefault();
+            try {
+                var formData = new FormData(form);
+                formData.set("action", action);
+                var response = await fetch(form.action, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: formData,
+                });
+                var data = await response.json().catch(function() { return {}; });
+                if (response.status === 401 && data.login_required && typeof window.openLoginModal === "function") {
+                    window.openLoginModal(window.location.pathname + window.location.search);
+                    return;
+                }
+                if (!response.ok || !data.success) {
+                    showNotification(data.error || "Unable to add to cart.", "error");
+                    return;
+                }
+                updateCartBadge(data.cart_count);
+                showNotification("Added to cart!");
+                if (action === 'buy' && data.redirect) {
+                    window.location.href = data.redirect;
+                } else if (action === 'buy') {
+                    window.location.href = "/checkout/";
+                }
+            } catch (e) {
+                showNotification("Unable to add to cart.", "error");
+            }
+        });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initQuickAddToCart();
+    initCartFormInterceptor();
 });
 
