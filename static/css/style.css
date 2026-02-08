@@ -1993,19 +1993,37 @@ input, textarea, select {
 
 .story-video {
     position: relative;
+    display: block;
     width: 100%;
-    padding-top: 177.78%; /* 9:16 aspect ratio for vertical videos */
+    aspect-ratio: 9 / 16;
     background: var(--gray-100);
     overflow: hidden;
+    text-decoration: none;
+    color: inherit;
 }
 
-.story-video iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
+.story-video img {
+    display: block;
     width: 100%;
     height: 100%;
-    border: none;
+    object-fit: cover;
+}
+
+.story-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 3rem;
+    color: #fff;
+    transition: background var(--transition-base);
+}
+
+.story-video:hover .story-play,
+.story-video:focus .story-play {
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .story-content {
