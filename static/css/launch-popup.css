@@ -1,0 +1,246 @@
+/* ============================================
+   Golden Elegance – Launch Offer Popup
+   Mobile-first, one-time, non-intrusive
+   ============================================ */
+
+.launch-popup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(33, 33, 33, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.launch-popup-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.launch-popup {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, #1a0a1f 0%, #2d1b3d 50%, #1f1229 100%);
+    color: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+.launch-popup-overlay.is-visible .launch-popup {
+    transform: translateY(0);
+}
+
+/* Decorative top edge */
+.launch-popup::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #d4af37, #f4e4a6, #d4af37, transparent);
+    border-radius: 2px;
+}
+
+.launch-popup-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s ease, transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.launch-popup-close:hover,
+.launch-popup-close:focus {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.launch-popup-close:active {
+    transform: scale(0.95);
+}
+
+.launch-popup-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.launch-popup-inner {
+    padding: 28px 20px 28px;
+    padding-top: 36px;
+}
+
+.launch-popup-crown {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.launch-popup-title {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #f4e4a6 0%, #d4af37 50%, #f4e4a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.02em;
+}
+
+.launch-popup-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.launch-popup-list {
+    list-style: none;
+    margin: 0 0 22px 0;
+    padding: 0;
+}
+
+.launch-popup-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.launch-popup-list li:last-child {
+    border-bottom: none;
+}
+
+.launch-popup-list .icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%);
+    border-radius: 50%;
+    font-size: 11px;
+}
+
+.launch-popup-highlight {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(244, 228, 166, 0.15) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    text-align: center;
+}
+
+.launch-popup-highlight strong {
+    color: #f4e4a6;
+    font-size: 1.05rem;
+}
+
+.launch-popup-cta-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.launch-popup-cta {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    color: #1a0a1f;
+    background: linear-gradient(135deg, #f4e4a6 0%, #d4af37 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+}
+
+.launch-popup-cta:hover,
+.launch-popup-cta:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+}
+
+.launch-popup-cta:active {
+    transform: translateY(0);
+}
+
+.launch-popup-footer {
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 14px;
+}
+
+/* Desktop: centered modal instead of bottom sheet */
+@media (min-width: 768px) {
+    .launch-popup-overlay {
+        align-items: center;
+        padding: 20px;
+    }
+
+    .launch-popup {
+        width: 100%;
+        max-width: 420px;
+        max-height: 90vh;
+        border-radius: 20px;
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    .launch-popup-overlay.is-visible .launch-popup {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    .launch-popup::before {
+        width: 80px;
+    }
+
+    .launch-popup-inner {
+        padding: 32px 28px 32px;
+        padding-top: 40px;
+    }
+
+    .launch-popup-title {
+        font-size: 1.65rem;
+    }
+}

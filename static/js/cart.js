@@ -120,7 +120,7 @@ function generateWhatsAppMessage() {
 }
 
 // Generate WhatsApp link
-function getWhatsAppLink(message = null, phone = '919876543210') {
+function getWhatsAppLink(message = null, phone = '918281405062') {
     const finalMessage = message || generateWhatsAppMessage();
     return `https://wa.me/${phone}?text=${finalMessage}`;
 }

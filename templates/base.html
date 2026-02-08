@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'css/filters.css' %}">
     <link rel="stylesheet" href="{% static 'css/mobile-optimizations.css' %}">
     <link rel="stylesheet" href="{% static 'css/error.css' %}">
+    <link rel="stylesheet" href="{% static 'css/launch-popup.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -142,6 +143,32 @@
 
     {% block content %}{% endblock %}
 
+    <!-- One-time launch offer popup (mobile-first) -->
+    <div class="launch-popup-overlay" id="launchPopupOverlay" role="dialog" aria-labelledby="launchPopupTitle" aria-modal="true">
+        <div class="launch-popup" id="launchPopup" onclick="event.stopPropagation()">
+            <button type="button" class="launch-popup-close" id="launchPopupClose" aria-label="Close">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+            <div class="launch-popup-inner">
+                <p class="launch-popup-crown" aria-hidden="true">👑</p>
+                <h2 class="launch-popup-title" id="launchPopupTitle">Golden Elegance – Exciting News</h2>
+                <p class="launch-popup-subtitle">We're bringing you more attractive offers very soon.</p>
+                <ul class="launch-popup-list">
+                    <li><span class="icon">🌐</span> Our official website is live – shopping made easier and faster</li>
+                    <li><span class="icon">💰</span> Special reduced rates on beautiful Chains and premium gold-plated ornaments</li>
+                    <li><span class="icon">🎉</span> First purchase on our website gets an <strong>extra 10% off</strong></li>
+                </ul>
+                <div class="launch-popup-highlight">
+                    <strong>Elegant designs · Trusted quality · Exciting offers</strong>
+                </div>
+                <div class="launch-popup-cta-wrap">
+                    <a href="{% url 'store:product_list' %}" class="launch-popup-cta">Shop Now – Explore Collection</a>
+                </div>
+                <p class="launch-popup-footer">Stay connected with Golden Elegance ✨</p>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="container">
             <div class="footer-grid">
@@ -217,6 +244,38 @@
     </a>
 
     <script src="{% static 'js/main.js' %}"></script>
+    <script>
+    (function() {
+        var STORAGE_KEY = 'golden_elegance_launch_popup_seen';
+        var DELAY_MS = 1800;
+        function shouldShow() {
+            try { return !localStorage.getItem(STORAGE_KEY); } catch (e) { return true; }
+        }
+        function markSeen() {
+            try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+        }
+        function showPopup() {
+            var overlay = document.getElementById('launchPopupOverlay');
+            if (overlay) overlay.classList.add('is-visible');
+        }
+        function hidePopup() {
+            var overlay = document.getElementById('launchPopupOverlay');
+            if (overlay) overlay.classList.remove('is-visible');
+            markSeen();
+        }
+        function init() {
+            if (!shouldShow()) return;
+            var overlay = document.getElementById('launchPopupOverlay');
+            var closeBtn = document.getElementById('launchPopupClose');
+            if (!overlay || !closeBtn) return;
+            overlay.addEventListener('click', function(e) { if (e.target === overlay) hidePopup(); });
+            closeBtn.addEventListener('click', hidePopup);
+            setTimeout(showPopup, DELAY_MS);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
+    })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
