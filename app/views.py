@@ -262,9 +262,14 @@ class AddToCartView(LoginRequiredForActionMixin, View):
         is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
         form = CartAddForm(request.POST)
         if not form.is_valid():
-            messages.error(request, "Invalid cart data.")
+            err_msg = "Invalid cart data."
+            if form.errors:
+                first_errors = [str(e) for err_list in form.errors.values() for e in err_list]
+                if first_errors:
+                    err_msg = first_errors[0]
+            messages.error(request, err_msg)
             if is_ajax:
-                return JsonResponse({"success": False, "error": "Invalid cart data."}, status=400)
+                return JsonResponse({"success": False, "error": err_msg}, status=400)
             product_id = request.POST.get("product_id")
             if product_id and Product.objects.filter(pk=product_id).exists():
                 product = Product.objects.get(pk=product_id)

@@ -252,8 +252,16 @@ function initQuickAddToCart() {
     });
 }
 
+function getCartAddUrl(form) {
+    var actionAttr = form.getAttribute("action") || "";
+    if (actionAttr.charAt(0) === "/") {
+        return window.location.origin + actionAttr;
+    }
+    return form.action || (window.location.origin + "/cart/add/");
+}
+
 function initCartFormInterceptor() {
-    document.querySelectorAll('form[action*="/cart/add/"]').forEach(function(form) {
+    document.querySelectorAll('form[action*="cart/add"]').forEach(function(form) {
         form.addEventListener("submit", async function(event) {
             var submitter = event.submitter;
             var action = (submitter && submitter.name === "action" && submitter.value) ? submitter.value : "add";
@@ -262,7 +270,11 @@ function initCartFormInterceptor() {
             try {
                 var formData = new FormData(form);
                 formData.set("action", action);
-                var response = await fetch(form.action, {
+                if (!formData.get("quantity") || parseInt(formData.get("quantity"), 10) < 1) {
+                    formData.set("quantity", "1");
+                }
+                var url = getCartAddUrl(form);
+                var response = await fetch(url, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCookie("csrftoken"),
@@ -270,7 +282,13 @@ function initCartFormInterceptor() {
                     },
                     body: formData,
                 });
-                var data = await response.json().catch(function() { return {}; });
+                var data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    showNotification("Unable to add to cart. (Invalid response from server.)", "error");
+                    return;
+                }
                 if (response.status === 401 && data.login_required && typeof window.openLoginModal === "function") {
                     window.openLoginModal(window.location.pathname + window.location.search);
                     return;
@@ -287,7 +305,7 @@ function initCartFormInterceptor() {
                     window.location.href = "/checkout/";
                 }
             } catch (e) {
-                showNotification("Unable to add to cart.", "error");
+                showNotification("Unable to add to cart. Please try again.", "error");
             }
         });
     });
