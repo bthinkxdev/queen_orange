@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice - {{ order.order_number }}</title>
     <style>
-        /* A4 Print Styles */
+        /* A4 Single Page – compact for jewelry invoice */
         @page {
             size: A4;
-            margin: 0;
+            margin: 8mm;
         }
         
         * {
@@ -19,27 +19,28 @@
         
         body {
             font-family: 'Arial', 'Helvetica', sans-serif;
-            font-size: 12pt;
-            line-height: 1.6;
+            font-size: 10pt;
+            line-height: 1.35;
             color: #333;
             background: white;
         }
         
         .invoice-container {
-            width: 210mm; /* A4 width */
-            min-height: 297mm; /* A4 height */
+            width: 210mm;
+            max-height: 297mm;
             margin: 0 auto;
-            padding: 20mm;
+            padding: 10mm 12mm;
             background: white;
+            page-break-inside: avoid;
         }
         
         .invoice-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #6D4C41;
-            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #6D4C41;
+            margin-bottom: 12px;
         }
         
         .company-info {
@@ -47,23 +48,23 @@
         }
         
         .company-name {
-            font-size: 32pt;
+            font-size: 22pt;
             font-weight: bold;
             color: #6D4C41;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             font-family: 'Georgia', serif;
         }
         
         .company-tagline {
-            font-size: 11pt;
+            font-size: 9pt;
             color: #8D6E63;
-            margin-bottom: 15px;
+            margin-bottom: 6px;
         }
         
         .company-details {
-            font-size: 10pt;
+            font-size: 9pt;
             color: #666;
-            line-height: 1.8;
+            line-height: 1.5;
         }
         
         .invoice-meta {
@@ -71,73 +72,69 @@
         }
         
         .invoice-title {
-            font-size: 28pt;
+            font-size: 20pt;
             font-weight: bold;
             color: #3E2723;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
         }
         
         .invoice-number {
-            font-size: 14pt;
+            font-size: 11pt;
             color: #6D4C41;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .invoice-date {
-            font-size: 10pt;
+            font-size: 9pt;
             color: #666;
         }
         
         .invoice-body {
-            margin-bottom: 30px;
+            margin-bottom: 12px;
         }
         
         .info-section {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
+            gap: 10px;
         }
         
         .bill-to,
         .ship-to {
             flex: 1;
-            padding: 15px;
+            padding: 8px 10px;
             background: #F5F5F3;
-            border-radius: 8px;
-            margin-right: 15px;
-        }
-        
-        .ship-to {
-            margin-right: 0;
+            border-radius: 6px;
         }
         
         .section-title {
-            font-size: 11pt;
+            font-size: 9pt;
             font-weight: bold;
             color: #6D4C41;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         
         .customer-details {
-            font-size: 11pt;
-            line-height: 1.8;
+            font-size: 9pt;
+            line-height: 1.45;
         }
         
         .customer-name {
             font-weight: bold;
-            font-size: 12pt;
+            font-size: 10pt;
             color: #3E2723;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
-        /* Items Table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
+            font-size: 9pt;
         }
         
         .items-table thead {
@@ -146,12 +143,12 @@
         }
         
         .items-table th {
-            padding: 12px;
+            padding: 6px 8px;
             text-align: left;
-            font-size: 11pt;
+            font-size: 9pt;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         
         .items-table th:last-child,
@@ -168,8 +165,8 @@
         }
         
         .items-table td {
-            padding: 12px;
-            font-size: 11pt;
+            padding: 5px 8px;
+            font-size: 9pt;
         }
         
         .item-name {
@@ -178,169 +175,140 @@
         }
         
         .item-variant {
-            font-size: 10pt;
+            font-size: 8pt;
             color: #8D6E63;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         
-        /* Totals Section */
         .totals-section {
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
         
         .totals-table {
-            width: 300px;
+            width: 220px;
             margin-left: auto;
         }
         
         .totals-table tr {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            font-size: 11pt;
+            padding: 3px 0;
+            font-size: 9pt;
         }
         
         .totals-table .total-row {
             border-top: 2px solid #6D4C41;
-            padding-top: 12px;
-            margin-top: 8px;
-            font-size: 14pt;
-            font-weight: bold;
-            color: #6D4C41;
-        }
-        
-        .total-label {
-            font-weight: 600;
-        }
-        
-        .total-value {
-            font-weight: 600;
-        }
-        
-        /* Footer */
-        .invoice-footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #E0E0DE;
-        }
-        
-        .payment-info {
-            margin-bottom: 20px;
-        }
-        
-        .payment-info-title {
+            padding-top: 6px;
+            margin-top: 4px;
             font-size: 11pt;
             font-weight: bold;
             color: #6D4C41;
+        }
+        
+        .total-label { font-weight: 600; }
+        .total-value { font-weight: 600; }
+        
+        .invoice-footer {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #E0E0DE;
+        }
+        
+        .payment-info {
             margin-bottom: 8px;
         }
         
+        .payment-info-title {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #6D4C41;
+            margin-bottom: 4px;
+        }
+        
         .payment-details {
-            font-size: 10pt;
+            font-size: 8pt;
             color: #666;
-            line-height: 1.8;
+            line-height: 1.4;
         }
         
         .payment-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 10pt;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 8pt;
             font-weight: 600;
-            margin-top: 5px;
         }
         
-        .payment-badge.pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .payment-badge.paid {
-            background: #d1f4dd;
-            color: #0f5132;
-        }
+        .payment-badge.pending { background: #fff3cd; color: #856404; }
+        .payment-badge.paid { background: #d1f4dd; color: #0f5132; }
         
         .order-status-badge {
             display: inline-block;
-            padding: 6px 15px;
-            border-radius: 15px;
-            font-size: 11pt;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 9pt;
             font-weight: 600;
-            margin-left: 10px;
+            margin-left: 6px;
         }
         
-        .status-placed {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        
-        .status-confirmed {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-shipped {
-            background: #cfe2ff;
-            color: #084298;
-        }
-        
-        .status-delivered {
-            background: #d1f4dd;
-            color: #0f5132;
-        }
-        
-        .status-cancelled {
-            background: #f8d7da;
-            color: #842029;
-        }
+        .status-placed { background: #d1ecf1; color: #0c5460; }
+        .status-confirmed { background: #fff3cd; color: #856404; }
+        .status-shipped { background: #cfe2ff; color: #084298; }
+        .status-delivered { background: #d1f4dd; color: #0f5132; }
+        .status-cancelled { background: #f8d7da; color: #842029; }
         
         .notes-section {
             background: #F5F5F3;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: 8px;
         }
         
         .notes-title {
-            font-size: 11pt;
+            font-size: 9pt;
             font-weight: bold;
             color: #6D4C41;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         
         .notes-content {
-            font-size: 10pt;
+            font-size: 8pt;
             color: #666;
-            line-height: 1.8;
+            line-height: 1.4;
         }
         
         .thank-you {
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             color: #6D4C41;
             font-weight: 600;
-            margin-top: 30px;
+            margin-top: 8px;
         }
         
-        /* Print Specific */
         @media print {
             body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            
             .invoice-container {
                 margin: 0;
                 box-shadow: none;
+                max-height: none;
+                height: auto;
             }
-            
-            .no-print {
-                display: none !important;
+            .no-print { display: none !important; }
+            .invoice-container,
+            .invoice-header,
+            .info-section,
+            .items-table,
+            .totals-section,
+            .invoice-footer {
+                page-break-inside: avoid;
             }
-            
             @page {
-                margin: 0;
+                size: A4;
+                margin: 8mm;
             }
         }
         
@@ -389,11 +357,11 @@
         <div class="invoice-header">
             <div class="company-info">
                 <div class="company-name">Golden Elegance</div>
-                <div class="company-tagline">Premium Women's & Baby Clothing</div>
+                <div class="company-tagline">Premium Gold-Plated Jewelry & Ornaments</div>
                 <div class="company-details">
                     Email: {{ site_email|default:"goldeneleganceindia@gmail.com" }}<br>
                     WhatsApp: {{ site_phone|default:"+91 82814 05062" }}<br>
-                    Website: www.goldenelegance.com
+                    Website: www.goldeneleganceindia.shop
                 </div>
             </div>
             <div class="invoice-meta">
@@ -492,7 +460,7 @@
                 <div class="notes-title">Terms & Conditions</div>
                 <div class="notes-content">
                     • All products are covered under our quality guarantee.<br>
-                    • Returns accepted within 7 days of delivery.<br>
+                    • Exchange accepted within 7 days of delivery.<br>
                     • For any queries, please contact our customer support.<br>
                     • Thank you for shopping with Golden Elegance!
                 </div>

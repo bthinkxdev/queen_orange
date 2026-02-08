@@ -1,37 +1,31 @@
 /**
- * Banner Slider
- * Auto-rotating banner/carousel with smooth fade transitions
+ * Banner Slider – horizontal sliding (no fade)
  */
 document.addEventListener('DOMContentLoaded', function () {
-    const slides = document.querySelectorAll('#bannerSlider .banner-slide');
+    const slider = document.getElementById('bannerSlider');
+    const slides = slider ? slider.querySelectorAll('.banner-slide') : [];
     
-    if (slides.length === 0) {
-        return; // Exit if no slides found
-    }
+    if (slides.length === 0) return;
+    
+    const total = slides.length;
+    slider.style.width = (total * 100) + '%';
+    
+    slides.forEach(function (slide) {
+        slide.style.flex = '0 0 ' + (100 / total) + '%';
+    });
     
     let current = 0;
     
-    function showSlide(idx) {
-        slides.forEach((slide, i) => {
-            if (i === idx) {
-                slide.classList.add('active');
-                slide.style.opacity = '1';
-            } else {
-                slide.classList.remove('active');
-                slide.style.opacity = '0';
-            }
-        });
+    function goTo(index) {
+        current = (index + total) % total;
+        const offset = (100 / total) * current;
+        slider.style.transform = 'translateX(-' + offset + '%)';
     }
     
-    function nextSlide() {
-        current = (current + 1) % slides.length;
-        showSlide(current);
+    function next() {
+        goTo(current + 1);
     }
     
-    // Initialize first slide
-    slides[0].classList.add('active');
-    
-    // Change slide every 3.8 seconds
-    setInterval(nextSlide, 3800);
+    goTo(0);
+    setInterval(next, 3800);
 });
-
