@@ -328,10 +328,32 @@ input, textarea, select {
     .logo {
         font-size: 16px;
         gap: 6px;
+        flex-shrink: 0;
     }
     
     .logo-text {
         font-size: 16px;
+    }
+
+    /* Reduce button sizes on tablet */
+    .search-btn,
+    .user-btn,
+    .wishlist-btn,
+    .cart-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .search-icon,
+    .user-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .cart-icon,
+    .wishlist-icon {
+        width: 18px;
+        height: 18px;
     }
 }
 
@@ -343,11 +365,36 @@ input, textarea, select {
     .logo {
         font-size: 14px;
         gap: 4px;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
     
     .logo-text {
         font-size: 14px;
         white-space: nowrap;
+    }
+
+    /* Hide user and wishlist buttons on phone to show logo */
+    .user-btn,
+    .wishlist-btn {
+        display: none;
+    }
+
+    /* Reduce remaining button sizes on phone */
+    .search-btn,
+    .cart-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .search-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .cart-icon {
+        width: 16px;
+        height: 16px;
     }
 }
 
