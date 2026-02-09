@@ -113,9 +113,11 @@
                         </div>
                         <div class="list-card-meta">
                             <span><strong style="color: #388e3c;">₹{{ product.price }}</strong>{% if product.original_price %} <span style="text-decoration: line-through; color: var(--gray-500);">₹{{ product.original_price }}</span>{% endif %}</span>
-                            {% with total_stock=product.variants.all|length %}
-                                <span>{{ total_stock }} variant{{ total_stock|pluralize }}</span>
-                            {% endwith %}
+                            {% if product.color_variants.all %}
+                                <span>{{ product.inventory_count }} in stock</span>
+                            {% else %}
+                                <span>No Stocks</span>
+                            {% endif %}
                         </div>
                         <div class="list-card-actions">
                             <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="btn btn-secondary" title="View">
@@ -180,13 +182,11 @@
                             {% endif %}
                         </div>
                         <div class="product-col product-col-stock">
-                            {% with total_stock=product.variants.all|length %}
-                                {% if total_stock > 0 %}
-                                    <span class="product-stock product-stock-ok">{{ total_stock }} variant{{ total_stock|pluralize }}</span>
-                                {% else %}
-                                    <span class="product-stock product-stock-none">No variants</span>
-                                {% endif %}
-                            {% endwith %}
+                            {% if product.color_variants.all %}
+                                <span class="product-stock product-stock-ok">{{ product.inventory_count }} in stock</span>
+                            {% else %}
+                                <span class="product-stock product-stock-none">No Stock</span>
+                            {% endif %}
                         </div>
                         <div class="product-col product-col-status">
                             {% if product.is_active %}

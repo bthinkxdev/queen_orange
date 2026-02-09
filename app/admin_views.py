@@ -330,7 +330,7 @@ class ProductListView(StaffRequiredMixin, ListView):
     
     def get_queryset(self):
         qs = Product.objects.select_related("category").prefetch_related(
-            "variants", "color_variants__images"
+            "variants", "color_variants__images", "color_variants__size_variants"
         )
         search = self.request.GET.get("search")
         category = self.request.GET.get("category")
@@ -354,6 +354,15 @@ class ProductListView(StaffRequiredMixin, ListView):
         context["search_query"] = self.request.GET.get("search", "")
         context["filter_category"] = self.request.GET.get("category", "")
         context["filter_status"] = self.request.GET.get("status", "")
+        
+        # Calculate inventory for each product
+        for product in context["products"]:
+            total_inventory = 0
+            for color_variant in product.color_variants.all():
+                for size_variant in color_variant.size_variants.all():
+                    total_inventory += size_variant.stock_quantity
+            product.inventory_count = total_inventory
+        
         return context
 
 
