@@ -23,9 +23,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function next() {
+        // Always move one slide to the left (next), looping at the end
         goTo(current + 1);
     }
     
+    // Start at the first slide, then advance every 5 seconds
     goTo(0);
-    setInterval(next, 3800);
+    setInterval(next, 5000);
 });
