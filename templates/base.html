@@ -7,6 +7,7 @@
     <title>{% block title %}Queen Orange{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Premium women and babies clothing.{% endblock %}">
     <meta name="theme-color" content="#FF9800">
+    <link rel="stylesheet" href="{% static 'css/loader.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/home-sections.css' %}">
     <link rel="stylesheet" href="{% static 'css/mobile-optimizations.css' %}">
@@ -18,6 +19,9 @@
 <body data-wishlist-toggle-url="{% url 'store:wishlist_toggle' %}"
       data-login-url="{% url 'auth:login' %}"
       data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
+    <!-- Page Loader -->
+    <div id="page-loader" class="page-loader"><div class="loader-spinner"></div></div>
+    <script src="{% static 'js/loader.js' %}"></script>
     <header class="header">
         {% comment %} <div class="header-announcement coming-soon-banner">
             <div class="container">
