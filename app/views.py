@@ -109,6 +109,7 @@ class HomeView(TemplateView):
                 .prefetch_related(
                     Prefetch("variants", queryset=variant_qs),
                     "color_variants__images",
+                    "color_variants__size_variants",
                 )[:8]
             )
             context["bestseller_products"] = (
@@ -118,6 +119,7 @@ class HomeView(TemplateView):
                 .prefetch_related(
                     Prefetch("variants", queryset=variant_qs),
                     "color_variants__images",
+                    "color_variants__size_variants",
                 )[:8]
             )
             active_banners = list(

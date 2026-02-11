@@ -229,6 +229,8 @@
                                     </svg>
                                     Add to Cart
                                 </button>
+                            {% elif product.has_any_sellable_stock %}
+                                <a href="{% url 'store:product_detail' product.slug %}" class="featured-add-to-cart">View Details</a>
                             {% else %}
                                 <span class="featured-add-to-cart" style="opacity: 0.6; cursor: not-allowed;">Out of Stock</span>
                             {% endif %}
@@ -322,6 +324,8 @@
                                             data-color="{{ variant.color }}">
                                         Add to Cart
                                     </button>
+                                {% elif product.has_any_sellable_stock %}
+                                    <a href="{% url 'store:product_detail' product.slug %}" class="bestseller-add-to-cart">View Details</a>
                                 {% else %}
                                     <span class="bestseller-add-to-cart" style="opacity: 0.6; cursor: not-allowed;">Out of Stock</span>
                                 {% endif %}
