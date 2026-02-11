@@ -1,5 +1,5 @@
 {% load static %}{% load color_tags %}
-{# Reusable product card partial. Pass product (with .images, .category). Optional: show_add_to_cart (default True). #}
+{# Reusable product card partial. Pass product (with .get_card_image_urls, .category). Optional: show_add_to_cart (default True). #}
 <div class="featured-product-card">
     {% if product.discount_percent %}
         <span class="featured-product-badge">{{ product.discount_percent }}% OFF</span>

@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.decorators import user_passes_test
+from django.db import transaction
 from django.db.models import Count, Sum, Q, F
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
@@ -130,17 +131,35 @@ class AdminDashboardView(StaffRequiredMixin, TemplateView):
         # Recent orders
         recent_orders = Order.objects.select_related("address").order_by("-created_at")[:10]
         
-        # Top selling products (last 30 days)
-        top_products = (
-            Product.objects.filter(
-                order_items__order__created_at__gte=last_30_days
+        # Top selling products (last 30 days): sum quantities from non-cancelled orders only
+        top_rows = list(
+            OrderItem.objects.filter(
+                order__created_at__gte=last_30_days,
             )
+            .exclude(order__status=Order.Status.CANCELLED)
+            .values("product_id")
             .annotate(
-                total_sold=Sum("order_items__quantity"),
-                revenue=Sum(F("order_items__quantity") * F("order_items__unit_price"))
+                total_sold=Sum("quantity"),
+                revenue=Sum(F("quantity") * F("unit_price")),
             )
             .order_by("-total_sold")[:5]
         )
+        if top_rows:
+            product_ids = [r["product_id"] for r in top_rows]
+            products_by_id = {p.pk: p for p in Product.objects.filter(pk__in=product_ids)}
+            top_products = []
+            for r in top_rows:
+                p = products_by_id.get(r["product_id"])
+                if p:
+                    top_products.append(
+                        type("TopProductRow", (), {
+                            "name": p.name,
+                            "total_sold": r["total_sold"],
+                            "revenue": r["revenue"] or 0,
+                        })()
+                    )
+        else:
+            top_products = []
         
         # Recent messages
         unresolved_messages = ContactMessage.objects.filter(is_resolved=False).count()
@@ -405,6 +424,7 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
         context["form_title"] = "Create Product"
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         self.object = form.save()
         color_formset = ColorVariantFormSet(
@@ -413,6 +433,7 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
         if not color_formset.is_valid():
             return self.form_invalid(form)
         color_formset.save()
+        # Only update images and sizes for each saved color variant; never touch other variants.
         for i, cf in enumerate(color_formset.forms):
             if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
                 continue
@@ -477,6 +498,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         context["form_title"] = "Edit Product"
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         self.object = form.save()
         color_formset = ColorVariantFormSet(
@@ -485,6 +507,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         if not color_formset.is_valid():
             return self.form_invalid(form)
         color_formset.save()
+        # Only update images and sizes for this color variant; never overwrite sibling variants.
         for i, cf in enumerate(color_formset.forms):
             if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
                 continue

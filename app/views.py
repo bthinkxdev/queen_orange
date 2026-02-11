@@ -275,7 +275,10 @@ def _normalize_image_url(url):
 
 
 class ProductColorImagesView(View):
-    """AJAX: return image URLs for a color variant. Used for dynamic gallery on product page."""
+    """AJAX: return image URLs for a color variant. Used for dynamic gallery on product page.
+    Strict isolation: images are loaded only via color_variant.images (never product.images).
+    When product_id is provided, the color variant must belong to that product.
+    """
 
     def get(self, request, *args, **kwargs):
         color_variant_id = request.GET.get("color_variant_id")
@@ -292,7 +295,7 @@ class ProductColorImagesView(View):
         if not color_variant:
             return JsonResponse({"images": []})
         images = []
-        for img in color_variant.images.order_by("-is_primary", "id"):
+        for img in color_variant.images.filter(image__isnull=False).exclude(image="").order_by("-is_primary", "id"):
             if img.image:
                 try:
                     raw_url = img.image.url
@@ -375,7 +378,8 @@ class NewArrivalsView(View):
 
 
 class TopSellingView(View):
-    """JSON API: top selling products from paid orders, excluding inactive."""
+    """JSON API: top selling products from non-cancelled orders (placed/confirmed/shipped/delivered/paid).
+    Includes COD and other methods; not limited to payment.status=PAID."""
 
     def get(self, request):
         try:
@@ -384,11 +388,10 @@ class TopSellingView(View):
                 limit = min(max(int(limit), 1), 24)
             except (TypeError, ValueError):
                 limit = 8
-            paid_order_filter = Q(
-                order__payment__status=Payment.Status.PAID,
-            ) & ~Q(order__status=Order.Status.CANCELLED)
+            # Non-cancelled orders only (so COD, WhatsApp, and paid all count)
+            order_filter = ~Q(order__status=Order.Status.CANCELLED)
             product_ids_with_qty = (
-                OrderItem.objects.filter(paid_order_filter)
+                OrderItem.objects.filter(order_filter)
                 .values("product_id")
                 .annotate(total_sold=Sum("quantity"))
                 .filter(total_sold__gt=0, product__is_active=True)

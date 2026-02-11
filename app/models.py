@@ -63,6 +63,9 @@ class ProductQuerySet(models.QuerySet):
 
 
 class Product(TimeStampedModel):
+    """Product has no direct image field. Images live on ColorVariant (ColorVariantImage).
+    Use product.get_card_image_urls() or color_variant.images for display; never product.images.
+    """
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=220, unique=True)
@@ -211,7 +214,9 @@ class ColorVariantImage(TimeStampedModel):
 
 
 class SizeVariant(TimeStampedModel):
-    """Size option under a color with its own stock."""
+    """Size option under a color with its own stock.
+    One size per (color_variant, size); stock is per color. Editing one color cannot affect another.
+    """
     color_variant = models.ForeignKey(
         ColorVariant, on_delete=models.CASCADE, related_name="size_variants"
     )

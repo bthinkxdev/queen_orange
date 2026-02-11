@@ -320,6 +320,9 @@ def _validate_image_file(image, required=False):
 
 
 class ColorVariantImageForm(forms.ModelForm):
+    """One image per ColorVariant. Always use with ColorVariantImageFormSet(instance=<ColorVariant>).
+    Do not expose or set color_variant in the form; the formset binds it from the parent instance.
+    """
     class Meta:
         model = ColorVariantImage
         fields = ["image", "is_primary", "alt_text"]
@@ -347,6 +350,8 @@ ColorVariantFormSet = inlineformset_factory(
 )
 
 
+# Each image is tied to a single ColorVariant. Use with instance=<ColorVariant> only.
+# Removed images (DELETE checked) are deleted by formset.save(); no shared image reuse.
 ColorVariantImageFormSet = inlineformset_factory(
     ColorVariant,
     ColorVariantImage,
