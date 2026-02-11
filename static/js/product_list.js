@@ -1,70 +1,76 @@
-// Get CSRF token from cookie (Django sets this automatically)
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+/**
+ * Collection page: Sort redirect, Filter bottom sheet
+ */
+(function () {
+    "use strict";
 
-// Handle product delete button with conditional logic
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteButtons = document.querySelectorAll('.delete-btn');
-    const csrftoken = getCookie('csrftoken');
-    
-    deleteButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const productId = this.getAttribute('data-product-id');
-            const productName = this.getAttribute('data-product-name');
-            
-            // Get the base URL from data attribute or construct it
-            const deleteCheckUrl = `/dashboard/products/${productId}/delete-check/`;
-            const deleteUrl = `/dashboard/products/${productId}/delete/`;
-            
-            // Check if product can be deleted
-            fetch(deleteCheckUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.can_delete) {
-                        let message;
-                        if (data.will_delete_completely) {
-                            message = `Are you sure you want to DELETE "${productName}" completely?\n\nThis product has no orders and will be permanently removed.`;
-                        } else {
-                            message = `Are you sure you want to set "${productName}" to INACTIVE?\n\n`;
-                        }
-                        
-                        if (confirm(message)) {
-                            // Submit the delete form with CSRF token
-                            const form = document.createElement('form');
-                            form.method = 'post';
-                            form.action = deleteUrl;
-                            
-                            // Create CSRF token input
-                            const csrfInput = document.createElement('input');
-                            csrfInput.type = 'hidden';
-                            csrfInput.name = 'csrfmiddlewaretoken';
-                            csrfInput.value = csrftoken;
-                            
-                            form.appendChild(csrfInput);
-                            document.body.appendChild(form);
-                            form.submit();
-                        }
-                    } else {
-                        // Cannot delete - show error
-                        alert(`❌ Cannot Delete\n\n"${productName}" has ${data.active_orders ? 'active orders' : 'pending orders'}.\n\n${data.message}\n\nThe product can only be deleted once all orders are delivered or cancelled.`);
-                    }
-                })
-                .catch(function() {
-                    alert('An error occurred while checking deletion status.');
-                });
+    var sortSelect = document.getElementById("collectionSort");
+    var filterBtn = document.getElementById("filterBtn");
+    var filterSheet = document.getElementById("filterSheet");
+    var filterOverlay = document.getElementById("filterOverlay");
+
+    function getQueryParams() {
+        var params = new URLSearchParams(window.location.search);
+        return params;
+    }
+
+    function buildUrl(overrides) {
+        var params = getQueryParams();
+        if (overrides) {
+            Object.keys(overrides).forEach(function (key) {
+                if (overrides[key] === "" || overrides[key] == null) {
+                    params.delete(key);
+                } else {
+                    params.set(key, overrides[key]);
+                }
+            });
+        }
+        var qs = params.toString();
+        return (window.location.pathname + (qs ? "?" + qs : ""));
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener("change", function () {
+            window.location.href = buildUrl({ sort: this.value, page: "" });
         });
+    }
+
+    function openFilterSheet() {
+        if (filterSheet) filterSheet.classList.add("is-open");
+        if (filterOverlay) {
+            filterOverlay.classList.add("is-open");
+            filterOverlay.setAttribute("aria-hidden", "false");
+        }
+        if (filterSheet) filterSheet.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeFilterSheet() {
+        if (filterSheet) filterSheet.classList.remove("is-open");
+        if (filterOverlay) {
+            filterOverlay.classList.remove("is-open");
+            filterOverlay.setAttribute("aria-hidden", "true");
+        }
+        if (filterSheet) filterSheet.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+    }
+
+    if (filterBtn) {
+        filterBtn.addEventListener("click", openFilterSheet);
+    }
+
+    var closeButtons = document.querySelectorAll(".js-filter-sheet-close");
+    closeButtons.forEach(function (btn) {
+        btn.addEventListener("click", closeFilterSheet);
     });
-});
+
+    if (filterOverlay) {
+        filterOverlay.addEventListener("click", closeFilterSheet);
+    }
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && filterSheet && filterSheet.classList.contains("is-open")) {
+            closeFilterSheet();
+        }
+    });
+})();

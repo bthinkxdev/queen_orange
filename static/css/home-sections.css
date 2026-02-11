@@ -64,6 +64,10 @@
 
 .section-features .feature-card {
     padding: var(--space-4);
+    background: var(--white);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 768px) {
@@ -135,7 +139,7 @@
     min-width: 100%;
 }
 
-/* Fade edges for scroll indication */
+/* Scroll wrapper: no gradient smudge on mobile; subtle edge hint on desktop only */
 .scroll-section-wrapper {
     position: relative;
 }
@@ -153,37 +157,45 @@
     transition: opacity var(--transition-base);
 }
 
-.scroll-section-wrapper::before {
-    left: 0;
-    background: linear-gradient(to right, var(--white) 40%, transparent);
+/* Hide side gradients on mobile to avoid smudge; cards have crisp edges instead */
+@media (max-width: 1023px) {
+    .scroll-section-wrapper::before,
+    .scroll-section-wrapper::after {
+        display: none !important;
+    }
 }
 
-.scroll-section-wrapper::after {
-    right: 0;
-    background: linear-gradient(to left, var(--white) 40%, transparent);
-}
+@media (min-width: 1024px) {
+    .scroll-section-wrapper::before {
+        left: 0;
+        background: linear-gradient(to right, var(--white) 50%, transparent);
+    }
 
-.scroll-section-wrapper.has-scroll-left::before,
-.scroll-section-wrapper.has-scroll-right::after {
-    opacity: 1;
-}
+    .scroll-section-wrapper::after {
+        right: 0;
+        background: linear-gradient(to left, var(--white) 50%, transparent);
+    }
 
-.section-recently-viewed .scroll-section-wrapper::before,
-.section-recently-viewed .scroll-section-wrapper::after {
-    background: linear-gradient(to right, var(--gray-50) 40%, transparent);
-}
+    .scroll-section-wrapper.has-scroll-left::before,
+    .scroll-section-wrapper.has-scroll-right::after {
+        opacity: 1;
+    }
 
-.section-recently-viewed .scroll-section-wrapper.has-scroll-right::after {
-    background: linear-gradient(to left, var(--gray-50) 40%, transparent);
-}
+    .section-recently-viewed .scroll-section-wrapper::before {
+        background: linear-gradient(to right, var(--gray-50) 50%, transparent);
+    }
 
-/* Deal section: fade edges use section background */
-.section-featured .scroll-section-wrapper::before {
-    background: linear-gradient(to right, rgba(233, 30, 99, 0.98) 40%, transparent);
-}
+    .section-recently-viewed .scroll-section-wrapper::after {
+        background: linear-gradient(to left, var(--gray-50) 50%, transparent);
+    }
 
-.section-featured .scroll-section-wrapper::after {
-    background: linear-gradient(to left, rgba(233, 30, 99, 0.98) 40%, transparent);
+    .section-featured .scroll-section-wrapper::before {
+        background: linear-gradient(to right, rgba(233, 30, 99, 0.98) 50%, transparent);
+    }
+
+    .section-featured .scroll-section-wrapper::after {
+        background: linear-gradient(to left, rgba(233, 30, 99, 0.98) 50%, transparent);
+    }
 }
 
 /* ============================================
@@ -193,19 +205,25 @@
 
 .section-categories {
     position: relative;
-    background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
+    background: var(--white);
     overflow: hidden;
 }
 
-.section-categories::before {
-    content: '';
-    position: absolute;
-    top: -10%;
-    right: -5%;
-    width: 40%;
-    height: 60%;
-    background: radial-gradient(ellipse, rgba(233, 30, 99, 0.06) 0%, transparent 70%);
-    pointer-events: none;
+@media (min-width: 768px) {
+    .section-categories {
+        background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
+    }
+
+    .section-categories::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        right: -5%;
+        width: 40%;
+        height: 60%;
+        background: radial-gradient(ellipse, rgba(233, 30, 99, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
 }
 
 /* Grid: 4 cols on mobile to fit all categories in 1–2 rows; 6 cols tablet, 8 cols desktop */
@@ -236,7 +254,7 @@
     }
 }
 
-/* Category card - compact for single-screen fit */
+/* Category card - crisp edges, professional look */
 .category-card {
     display: flex;
     flex-direction: column;
@@ -244,8 +262,8 @@
     gap: var(--space-2);
     padding: var(--space-2);
     background: var(--white);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--gray-100);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: all var(--transition-base);
@@ -276,14 +294,14 @@
 @media (min-width: 768px) {
     .category-image {
         max-width: 100px;
-        border-radius: var(--radius-xl);
+        border-radius: var(--radius-md);
     }
 }
 
 @media (min-width: 1024px) {
     .category-image {
         max-width: 120px;
-        border-radius: var(--radius-2xl);
+        border-radius: var(--radius-lg);
     }
 }
 
@@ -347,9 +365,9 @@
     flex-shrink: 0;
     width: 160px;
     background: var(--white);
-    border-radius: var(--radius-2xl);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--gray-100);
+    border: 1px solid var(--gray-200);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
     display: flex;
@@ -459,7 +477,7 @@
     flex-shrink: 0;
     width: 150px;
     background: var(--white);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid var(--gray-200);
     transition: all var(--transition-base);
@@ -586,9 +604,9 @@
     flex-shrink: 0;
     width: 110px;
     background: var(--white);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--gray-100);
+    border: 1px solid var(--gray-200);
     transition: all var(--transition-base);
     scroll-snap-align: start;
 }
@@ -697,9 +715,9 @@
     flex-shrink: 0;
     width: 260px;
     background: var(--white);
-    border-radius: var(--radius-2xl);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-lg);
     transition: all var(--transition-base);
     display: flex;
     flex-direction: column;
@@ -727,8 +745,9 @@
     padding: var(--space-3);
     margin-bottom: var(--space-4);
     background: rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .deal-countdown-item {
@@ -773,8 +792,9 @@
     color: var(--primary-dark);
     font-weight: 700;
     font-size: 16px;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     transition: all var(--transition-base);
 }
 
@@ -783,11 +803,11 @@
     box-shadow: var(--shadow-xl);
 }
 
-/* Deal card uses featured-product-card structure - adjust for white bg */
+/* Deal card uses featured-product-card structure - crisp edges */
 .section-featured .featured-product-card {
     background: var(--white);
-    border-radius: var(--radius-2xl);
-    border: none;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: var(--shadow-lg);
 }
 
@@ -857,9 +877,9 @@
     flex-shrink: 0;
     width: 220px;
     background: var(--white);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--gray-100);
+    border: 1px solid var(--gray-200);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
     display: flex;
@@ -886,8 +906,8 @@
     left: var(--space-3);
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-    border-radius: 50%;
+    background: var(--primary-dark);
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -896,6 +916,7 @@
     color: var(--white);
     z-index: 2;
     box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .bestseller-image {
@@ -903,6 +924,11 @@
     width: 100%;
     aspect-ratio: 1;
     background: var(--gray-50);
+}
+
+.home-ref-card .home-ref-image.bestseller-image {
+    aspect-ratio: auto;
+    padding-top: 125%;
 }
 
 .bestseller-image img {
@@ -944,6 +970,189 @@
     .bestsellers-grid .bestseller-card:nth-child(4n + 4) .bestseller-image {
         aspect-ratio: 1.08;
     }
+}
+
+/* ============================================
+   HOME REFERENCE-STYLE PRODUCT CARDS
+   (Rating on image, brand, ↓N%, prices – exact like reference)
+   ============================================ */
+
+.home-ref-card {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.home-ref-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--gray-300);
+}
+
+.home-ref-card .home-ref-image {
+    position: relative;
+    width: 100%;
+    padding-top: 125%;
+    aspect-ratio: auto;
+    background: var(--gray-50);
+    overflow: hidden;
+}
+
+.home-ref-card .home-ref-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.home-ref-card:hover .home-ref-image img {
+    transform: scale(1.04);
+}
+
+/* Rating strip on image – bottom-left, dark box, white text */
+.home-card-rating {
+    position: absolute;
+    bottom: var(--space-2);
+    left: var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(44, 44, 44, 0.85);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--white);
+    z-index: 2;
+}
+
+.home-card-rating .rating-star {
+    color: #facc15;
+    display: inline-flex;
+}
+
+.home-card-rating .rating-sep {
+    opacity: 0.7;
+    margin: 0 2px;
+}
+
+/* Badge on image top-left: BESTSELLER (green) or ↓N% */
+.home-card-badge {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-radius: var(--radius-sm);
+    z-index: 2;
+}
+
+.home-card-badge.is-bestseller {
+    background: #16a34a;
+    color: var(--white);
+}
+
+.home-card-badge.is-discount {
+    background: rgba(44, 44, 44, 0.9);
+    color: var(--white);
+}
+
+/* Wishlist on image – top-right, white circle */
+.home-ref-card .product-card-wishlist {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: var(--white);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.home-ref-card .product-card-wishlist .wishlist-heart {
+    width: 18px;
+    height: 18px;
+}
+
+/* Info below image */
+.home-ref-info {
+    padding: var(--space-3);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.home-card-brand {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--black);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 4px;
+    line-height: 1.2;
+}
+
+.home-card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-800);
+    line-height: 1.35;
+    margin: 0 0 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-card-discount {
+    font-size: 12px;
+    font-weight: 600;
+    color: #16a34a;
+    margin: 0 0 4px;
+}
+
+.home-ref-prices {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.home-ref-prices .current-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--black);
+}
+
+.home-ref-prices .original-price {
+    font-size: 13px;
+    color: var(--gray-400);
+    text-decoration: line-through;
+}
+
+.home-card-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: #16a34a;
+    margin-top: 4px;
 }
 
 /* ============================================
@@ -1054,6 +1263,26 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* ============================================
+   HOME PAGE: Crisp card edges (stories, testimonials, CTA)
+   ============================================ */
+
+.section-stories .story-card {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.section-testimonials .testimonial-card {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.cta-section .cta-card {
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* Reduced motion */

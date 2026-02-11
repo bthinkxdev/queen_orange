@@ -8,16 +8,61 @@
 
     var WISHLIST_SVG = '<svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
+    function formatPriceNoDecimals(val) {
+        if (val == null || val === "") return "0";
+        var n = parseFloat(val);
+        if (isNaN(n)) return "0";
+        return String(Math.round(n));
+    }
+
+    function buildRefCardContent(p, imgWrap, info) {
+        if (p.category_name) {
+            var brand = document.createElement("p");
+            brand.className = "home-card-brand";
+            brand.textContent = p.category_name;
+            info.appendChild(brand);
+        }
+        var nameEl = document.createElement("h3");
+        nameEl.className = "home-card-name card-title";
+        nameEl.textContent = p.name || "";
+        info.appendChild(nameEl);
+        if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
+            var disc = document.createElement("span");
+            disc.className = "home-card-discount";
+            disc.textContent = "↓" + (p.discount_percent || 0) + "%";
+            info.appendChild(disc);
+        }
+        var priceWrap = document.createElement("div");
+        priceWrap.className = "home-ref-prices card-price";
+        var curr = document.createElement("span");
+        curr.className = "current-price";
+        curr.textContent = "₹" + formatPriceNoDecimals(p.price);
+        priceWrap.appendChild(curr);
+        if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
+            var orig = document.createElement("span");
+            orig.className = "original-price";
+            orig.textContent = "₹" + formatPriceNoDecimals(p.original_price);
+            priceWrap.appendChild(orig);
+        }
+        info.appendChild(priceWrap);
+        if (p.discount_percent && p.discount_percent >= 50) {
+            var tag = document.createElement("span");
+            tag.className = "home-card-tag";
+            tag.textContent = "Hot Deal";
+            info.appendChild(tag);
+        }
+    }
+
     function buildCardTall(p) {
         if (!p || typeof p !== "object") return null;
         var card = document.createElement("div");
-        card.className = "product-card-tall featured-product-card";
+        card.className = "product-card-tall featured-product-card home-ref-card";
         var imgSrc = (Array.isArray(p.card_images) ? p.card_images[0] : null) || p.image_url || "";
         var link = document.createElement("a");
         link.href = p.url || "#";
         link.className = "featured-product-link";
         var imgWrap = document.createElement("div");
-        imgWrap.className = "card-image featured-product-image product-card-image-slider" + ((p.card_images && p.card_images.length > 1) ? " js-product-card-slider" : "");
+        imgWrap.className = "home-ref-image card-image product-card-image-slider" + ((p.card_images && p.card_images.length > 1) ? " js-product-card-slider" : "");
         if (p.card_images && p.card_images.length > 1) imgWrap.setAttribute("data-card-images", JSON.stringify(p.card_images));
         var img = document.createElement("img");
         img.src = imgSrc.trim() || "/static/images/banner.png";
@@ -26,32 +71,20 @@
         img.className = "card-slider-img";
         img.setAttribute("decoding", "async");
         imgWrap.appendChild(img);
+        var rating = document.createElement("span");
+        rating.className = "home-card-rating";
+        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+';
+        imgWrap.appendChild(rating);
+        if (p.discount_percent && p.discount_percent > 0) {
+            var badge = document.createElement("span");
+            badge.className = "home-card-badge is-discount";
+            badge.textContent = "↓" + p.discount_percent + "%";
+            imgWrap.appendChild(badge);
+        }
         link.appendChild(imgWrap);
         var info = document.createElement("div");
-        info.className = "card-info featured-product-info";
-        if (p.category_name) {
-            var cat = document.createElement("div");
-            cat.className = "featured-product-category";
-            cat.textContent = p.category_name;
-            info.appendChild(cat);
-        }
-        var title = document.createElement("h3");
-        title.className = "card-title";
-        title.textContent = p.name || "";
-        info.appendChild(title);
-        var priceWrap = document.createElement("div");
-        priceWrap.className = "card-price featured-product-price";
-        var curr = document.createElement("span");
-        curr.className = "current-price";
-        curr.textContent = "₹" + (p.price || "0");
-        priceWrap.appendChild(curr);
-        if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
-            var orig = document.createElement("span");
-            orig.className = "original-price";
-            orig.textContent = "₹" + p.original_price;
-            priceWrap.appendChild(orig);
-        }
-        info.appendChild(priceWrap);
+        info.className = "home-ref-info card-info featured-product-info";
+        buildRefCardContent(p, imgWrap, info);
         link.appendChild(info);
         card.appendChild(link);
         var wishlist = document.createElement("button");
@@ -61,12 +94,6 @@
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.insertBefore(wishlist, card.firstChild);
-        if (p.discount_percent && p.discount_percent > 0) {
-            var badge = document.createElement("span");
-            badge.className = "featured-product-badge";
-            badge.textContent = p.discount_percent + "% OFF";
-            card.insertBefore(badge, card.firstChild);
-        }
         var cta = document.createElement("a");
         cta.href = p.url || "#";
         cta.className = "featured-add-to-cart";
@@ -78,12 +105,8 @@
     function buildCardCompact(p) {
         if (!p || typeof p !== "object") return null;
         var card = document.createElement("div");
-        card.className = "product-card-compact featured-product-card";
+        card.className = "product-card-compact featured-product-card home-ref-card";
         var imgSrc = (Array.isArray(p.card_images) ? p.card_images[0] : null) || p.image_url || "";
-        var badge = document.createElement("span");
-        badge.className = "badge-popular";
-        badge.textContent = "🔥 Popular";
-        card.appendChild(badge);
         var wishlist = document.createElement("button");
         wishlist.type = "button";
         wishlist.className = "product-card-wishlist js-wishlist-toggle";
@@ -95,33 +118,25 @@
         link.href = p.url || "#";
         link.className = "featured-product-link";
         var imgWrap = document.createElement("div");
-        imgWrap.className = "card-image featured-product-image";
+        imgWrap.className = "home-ref-image card-image featured-product-image";
         var img = document.createElement("img");
         img.src = imgSrc.trim() || "/static/images/banner.png";
         img.alt = p.name || "";
         img.loading = "lazy";
         img.setAttribute("decoding", "async");
         imgWrap.appendChild(img);
+        var rating = document.createElement("span");
+        rating.className = "home-card-rating";
+        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 2k';
+        imgWrap.appendChild(rating);
+        var badge = document.createElement("span");
+        badge.className = "home-card-badge is-bestseller";
+        badge.textContent = "BESTSELLER";
+        imgWrap.appendChild(badge);
         link.appendChild(imgWrap);
         var info = document.createElement("div");
-        info.className = "card-info";
-        var title = document.createElement("h3");
-        title.className = "card-title";
-        title.textContent = p.name || "";
-        info.appendChild(title);
-        var priceWrap = document.createElement("div");
-        priceWrap.className = "card-price";
-        var curr = document.createElement("span");
-        curr.className = "current-price";
-        curr.textContent = "₹" + (p.price || "0");
-        priceWrap.appendChild(curr);
-        if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
-            var orig = document.createElement("span");
-            orig.className = "original-price";
-            orig.textContent = "₹" + p.original_price;
-            priceWrap.appendChild(orig);
-        }
-        info.appendChild(priceWrap);
+        info.className = "home-ref-info card-info";
+        buildRefCardContent(p, imgWrap, info);
         link.appendChild(info);
         card.appendChild(link);
         var cta = document.createElement("a");
@@ -136,28 +151,38 @@
         if (!p || typeof p !== "object") return null;
         var card = document.createElement("a");
         card.href = p.url || "#";
-        card.className = "product-card-mini featured-product-card";
+        card.className = "product-card-mini featured-product-card home-ref-card";
         var imgSrc = (Array.isArray(p.card_images) ? p.card_images[0] : null) || p.image_url || "";
         var imgWrap = document.createElement("div");
-        imgWrap.className = "card-image";
+        imgWrap.className = "home-ref-image card-image";
         var img = document.createElement("img");
         img.src = imgSrc.trim() || "/static/images/banner.png";
         img.alt = p.name || "";
         img.loading = "lazy";
         img.setAttribute("decoding", "async");
         imgWrap.appendChild(img);
+        var rating = document.createElement("span");
+        rating.className = "home-card-rating";
+        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+';
+        imgWrap.appendChild(rating);
         card.appendChild(imgWrap);
         var info = document.createElement("div");
-        info.className = "card-info";
-        var title = document.createElement("h3");
-        title.className = "card-title";
-        title.textContent = p.name || "";
-        info.appendChild(title);
+        info.className = "home-ref-info card-info";
+        if (p.category_name) {
+            var brand = document.createElement("p");
+            brand.className = "home-card-brand";
+            brand.textContent = p.category_name;
+            info.appendChild(brand);
+        }
+        var nameEl = document.createElement("h3");
+        nameEl.className = "home-card-name card-title";
+        nameEl.textContent = p.name || "";
+        info.appendChild(nameEl);
         var priceWrap = document.createElement("div");
-        priceWrap.className = "card-price";
+        priceWrap.className = "home-ref-prices card-price";
         var curr = document.createElement("span");
         curr.className = "current-price";
-        curr.textContent = "₹" + (p.price || "0");
+        curr.textContent = "₹" + formatPriceNoDecimals(p.price);
         priceWrap.appendChild(curr);
         info.appendChild(priceWrap);
         card.appendChild(info);

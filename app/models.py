@@ -63,6 +63,9 @@ class ProductQuerySet(models.QuerySet):
 
 
 class Product(TimeStampedModel):
+    """Product has no direct image field. Images live on ColorVariant (ColorVariantImage).
+    Use product.get_card_image_urls() or color_variant.images for display; never product.images.
+    """
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=220, unique=True)
@@ -118,6 +121,30 @@ class Product(TimeStampedModel):
             return url
         # Host-only or protocol-relative (e.g. i1.ytimg.com/vi/.../hqdefault.jpg)
         return "https://" + url.lstrip("/")
+    def has_any_sellable_stock(self):
+        """
+        True if product has in-stock ProductVariant OR in-stock SizeVariant (via color_variants).
+        Use for displaying Add to Cart vs View Details vs Out of Stock on product cards.
+        Uses prefetched data when available (e.g. from HomeView) to avoid N+1 queries.
+        """
+        if getattr(self, "_has_sellable_stock", None) is not None:
+            return self._has_sellable_stock
+        # ProductVariant: use prefetch (HomeView prefetches in-stock variants only)
+        pv_list = list(self.variants.all())
+        if any(v for v in pv_list if getattr(v, "is_active", True) and (getattr(v, "stock_quantity", 0) or 0) > 0):
+            self._has_sellable_stock = True
+            return True
+        # SizeVariant: use prefetched color_variants__size_variants when available
+        for cv in self.color_variants.all():
+            if not getattr(cv, "is_active", True):
+                continue
+            for sv in cv.size_variants.all():
+                if getattr(sv, "is_active", True) and (getattr(sv, "stock_quantity", 0) or 0) > 0:
+                    self._has_sellable_stock = True
+                    return True
+        self._has_sellable_stock = False
+        return False
+
     def get_card_image_urls(self, limit=20):
         """
         Ordered list of image URLs for product cards (hover/touch slider on home and collections).
@@ -187,7 +214,9 @@ class ColorVariantImage(TimeStampedModel):
 
 
 class SizeVariant(TimeStampedModel):
-    """Size option under a color with its own stock."""
+    """Size option under a color with its own stock.
+    One size per (color_variant, size); stock is per color. Editing one color cannot affect another.
+    """
     color_variant = models.ForeignKey(
         ColorVariant, on_delete=models.CASCADE, related_name="size_variants"
     )
