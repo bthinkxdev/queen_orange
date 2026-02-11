@@ -163,6 +163,7 @@
     </section>
 
     <!-- Deal Of The Day - Full-width highlight, countdown timer -->
+    {% if deal_products %}
     <section class="section section-featured">
         <div class="container">
             <div class="section-header">
@@ -179,7 +180,7 @@
             <div class="scroll-section-wrapper js-scroll-shadow deal-scroll-wrapper">
                 <div class="scroll-section deal-products-scroll">
                     <div class="featured-products-grid deal-products-inner">
-                {% for product in featured_products %}
+                {% for product in deal_products %}
                     <div class="featured-product-card home-ref-card">
                         <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
                                 data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
@@ -236,8 +237,6 @@
                             {% endif %}
                         {% endwith %}
                     </div>
-                {% empty %}
-                    <p class="section-empty">No featured products available.</p>
                 {% endfor %}
                     </div>
                 </div>
@@ -252,6 +251,7 @@
             </div>
         </div>
     </section>
+    {% endif %}
 
     <!-- Bestsellers -->
     <section class="section section-bestsellers">

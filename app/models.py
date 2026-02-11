@@ -72,8 +72,14 @@ class Product(TimeStampedModel):
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     original_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], blank=True, null=True)
+    # Optional material information (for filtering on collection page)
+    material = models.CharField(max_length=120, blank=True)
+    # Flag + optional date window for Deal Of The Day
     is_featured = models.BooleanField(default=False, db_index=True)
     is_bestseller = models.BooleanField(default=False, db_index=True)
+    is_deal_of_day = models.BooleanField(default=False, db_index=True)
+    deal_of_day_start = models.DateField(blank=True, null=True, db_index=True)
+    deal_of_day_end = models.DateField(blank=True, null=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
 
     objects = ProductQuerySet.as_manager()
@@ -83,6 +89,8 @@ class Product(TimeStampedModel):
         indexes = [
             models.Index(fields=["is_active", "is_featured"]),
             models.Index(fields=["is_active", "is_bestseller"]),
+            models.Index(fields=["is_active", "is_deal_of_day"]),
+            models.Index(fields=["is_active", "material"]),
             models.Index(fields=["category", "is_active"]),
         ]
 

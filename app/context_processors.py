@@ -1,4 +1,4 @@
-from .models import Wishlist
+from .models import Wishlist, ContactMessage
 from .services import CartService
 
 
@@ -25,4 +25,15 @@ def wishlist_context(request):
         "wishlist_count": wishlist_count,
         "wishlist_product_ids": wishlist_product_ids,
     }
+
+
+def admin_message_badge(request):
+    """
+    Provide unresolved contact message count for admin navigation badge.
+    """
+    count = 0
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated and user.is_staff:
+        count = ContactMessage.objects.filter(is_resolved=False).count()
+    return {"admin_unresolved_messages": count}
 

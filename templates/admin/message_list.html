@@ -49,9 +49,9 @@
         </div>
 
         <!-- Messages List -->
-        {% if messages %}
+        {% if contact_messages %}
             <div style="display: grid; gap: 1rem;">
-                {% for message in messages %}
+                {% for message in contact_messages %}
                     <div class="card message-card" style="box-shadow: none; border: 1px solid var(--gray-200);">
                         <div class="card-body">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem;">

@@ -636,6 +636,18 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label class="form-label">Material <small>(optional, e.g. Cotton, Silk, Brass)</small></label>
+                {{ form.material }}
+                {% if form.material.errors %}
+                    <div class="form-error-message">
+                        {% for error in form.material.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
             <div class="grid-2">
                 <div class="form-check">
                     {{ form.is_featured }}
@@ -652,7 +664,9 @@
                         <small style="display: block; color: var(--gray-600); font-weight: 400;">Highlight as top seller</small>
                     </label>
                 </div>
+            </div>
 
+            <div class="grid-2">
                 <div class="form-check">
                     {{ form.is_active }}
                     <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
@@ -812,9 +826,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Prevent double form submission (avoids duplicate S3 uploads)
-    const productForm = document.querySelector('.product-form-wrapper form');
-    if (productForm) {
-        productForm.addEventListener('submit', function(e) {
+    const productFormEl = document.querySelector('.product-form-wrapper form');
+    if (productFormEl) {
+        productFormEl.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn && submitBtn.dataset.submitting === 'true') {
                 e.preventDefault();
@@ -881,7 +895,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Color variant block: remove button and Add another color
     const colorFormset = document.getElementById('color-formset');
     const addColorBtn = document.getElementById('add-color-btn');
-    const productForm = colorFormset ? colorFormset.closest('form') : document.querySelector('.product-form-wrapper form');
+    const productForm = colorFormset ? colorFormset.closest('form') : productFormEl;
     const totalFormsInput = productForm ? productForm.querySelector('input[name="colors-TOTAL_FORMS"]') : null;
 
     if (colorFormset) {
@@ -890,9 +904,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 const block = this.closest('.color-variant-block');
                 if (block) {
-                    block.style.display = 'none';
-                    block.classList.add('deleted');
-                    if (totalFormsInput) totalFormsInput.value = Math.max(0, parseInt(totalFormsInput.value, 10) - 1);
+                    // For brand new (unsaved) colors simply remove the block from the DOM.
+                    // Do NOT decrement TOTAL_FORMS – Django formsets expect it to be monotonic.
+                    block.parentNode && block.parentNode.removeChild(block);
+                    if (colorFormset) {
+                        updateFormNumbers(colorFormset, 'color-variant-block');
+                    }
                 }
             });
         });
@@ -913,9 +930,11 @@ document.addEventListener('DOMContentLoaded', function() {
             clone.style.display = '';
 
             function repl(s) {
-                return s.replace(new RegExp('colors-' + oldIndex + '-', 'g'), 'colors-' + newIndex + '-')
-                    .replace(new RegExp('color-' + oldIndex + '-images-', 'g'), 'color-' + newIndex + '-images-')
-                    .replace(new RegExp('color-' + oldIndex + '-sizes-', 'g'), 'color-' + newIndex + '-sizes-');
+                // Always replace the numeric color index dynamically to avoid hardcoded indices.
+                return s
+                    .replace(/colors-(\d+)-/g, 'colors-' + newIndex + '-')
+                    .replace(/color-(\d+)-images-/g, 'color-' + newIndex + '-images-')
+                    .replace(/color-(\d+)-sizes-/g, 'color-' + newIndex + '-sizes-');
             }
             clone.querySelectorAll('[name]').forEach(function(el) {
                 var n = el.getAttribute('name');
@@ -947,14 +966,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (removeBtn) {
                 removeBtn.addEventListener('click', function(ev) {
                     ev.preventDefault();
-                    clone.style.display = 'none';
-                    clone.classList.add('deleted');
-                    totalFormsInput.value = Math.max(0, parseInt(totalFormsInput.value, 10) - 1);
+                    // Removing a newly-added color: drop the DOM node but keep TOTAL_FORMS as-is.
+                    clone.parentNode && clone.parentNode.removeChild(clone);
+                    if (colorFormset) {
+                        updateFormNumbers(colorFormset, 'color-variant-block');
+                    }
                 });
             }
 
             colorFormset.appendChild(clone);
-            totalFormsInput.value = newIndex + 1;
+            // Increment TOTAL_FORMS monotonically so Django management form stays consistent.
+            totalFormsInput.value = String(newIndex + 1);
 
             clone.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
@@ -974,12 +996,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var rows = formset.querySelectorAll('.size-row');
         if (rows.length === 0) return;
         var lastRow = rows[rows.length - 1];
-        var oldIndex = parseInt(totalInput.value, 10) - 1;
         var newIndex = parseInt(totalInput.value, 10);
 
         var clone = lastRow.cloneNode(true);
         function repl(str) {
-            return str.replace(new RegExp('-sizes-' + oldIndex + '-', 'g'), '-sizes-' + newIndex + '-');
+            // Replace the dynamic index between "-sizes-" and the next "-" with the new index.
+            return str.replace(/-sizes-(\d+)-/g, '-sizes-' + newIndex + '-');
         }
         clone.querySelectorAll('[name]').forEach(function(el) {
             var n = el.getAttribute('name');

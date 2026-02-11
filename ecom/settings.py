@@ -79,6 +79,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'app.context_processors.cart_context',
                 'app.context_processors.wishlist_context',
+                'app.context_processors.admin_message_badge',
             ],
         },
     },
@@ -187,15 +188,24 @@ if USE_S3:
     AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
     AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME")
+    # Optional: tag all S3 objects by client / project
+    # Example env value: queen-orange
+    AWS_S3_CLIENT_TAG = config("AWS_S3_CLIENT_TAG", default=None)
     
     # Correct S3 custom domain with region
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
     
     # S3 Configuration (No ACLs - rely on bucket policy)
     # Bucket has "BucketOwnerEnforced" which disables ACLs
-    AWS_S3_OBJECT_PARAMETERS = {
+    base_s3_object_params = {
         'CacheControl': 'max-age=86400',
     }
+    # If a client tag is configured, add it as an S3 object tag
+    # This results in Tagging="Client=queen-orange" on every uploaded object
+    if AWS_S3_CLIENT_TAG:
+        base_s3_object_params['Tagging'] = f'Client={AWS_S3_CLIENT_TAG}'
+
+    AWS_S3_OBJECT_PARAMETERS = base_s3_object_params
     AWS_DEFAULT_ACL = None  # Don't use ACLs, bucket policy handles public access
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = False

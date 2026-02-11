@@ -149,8 +149,12 @@ class ProductForm(forms.ModelForm):
             "description",
             "price",
             "original_price",
+            "material",
             "is_featured",
             "is_bestseller",
+            "is_deal_of_day",
+            "deal_of_day_start",
+            "deal_of_day_end",
             "is_active",
         ]
         widgets = {
@@ -160,8 +164,12 @@ class ProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Product Description"}),
             "price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00", "step": "0.01"}),
             "original_price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0.00 (optional)", "step": "0.01"}),
+            "material": forms.TextInput(attrs={"class": "form-control", "placeholder": "Material (e.g. Cotton, Brass)"}),
             "is_featured": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "is_bestseller": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_deal_of_day": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "deal_of_day_start": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "deal_of_day_end": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
     
@@ -170,6 +178,9 @@ class ProductForm(forms.ModelForm):
         self.fields["slug"].required = False
         self.fields["original_price"].required = False
         self.fields["description"].required = False
+        self.fields["material"].required = False
+        self.fields["deal_of_day_start"].required = False
+        self.fields["deal_of_day_end"].required = False
         
         # Filter categories to only show active ones
         active_categories = Category.objects.filter(is_active=True)
@@ -356,9 +367,13 @@ ColorVariantImageFormSet = inlineformset_factory(
     ColorVariant,
     ColorVariantImage,
     form=ColorVariantImageForm,
+    # Strictly enforce max 3 images per color:
+    # - At most 3 total forms (existing + empty)
+    # - On edit: if 3 images already exist, no extra empty forms are rendered
+    # - On create: up to 3 blank slots are shown
     extra=3,
     can_delete=True,
-    max_num=10,
+    max_num=3,
 )
 
 

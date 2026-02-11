@@ -30,7 +30,7 @@
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                 </svg>
                 <span>Filter</span>
-                {% if filters.category != "all" or filters.min_price or filters.max_price or filters.size %}
+                {% if filters.category != "all" or filters.min_price or filters.max_price or filters.size or filters.material %}
                     <span class="toolbar-filter-dot" aria-hidden="true"></span>
                 {% endif %}
             </button>
@@ -156,6 +156,15 @@
                     <option value="">All Sizes</option>
                     {% for size_option in size_options %}
                         <option value="{{ size_option }}" {% if filters.size == size_option %}selected{% endif %}>{{ size_option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-sheet-group">
+                <label>Material</label>
+                <select name="material">
+                    <option value="">All Materials</option>
+                    {% for material in material_options %}
+                        <option value="{{ material }}" {% if filters.material == material %}selected{% endif %}>{{ material }}</option>
                     {% endfor %}
                 </select>
             </div>

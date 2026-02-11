@@ -136,6 +136,24 @@ body {
     text-align: center;
 }
 
+.nav-item-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.nav-count-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 0.05rem 0.55rem;
+    border-radius: 999px;
+    min-width: 1.5rem;
+    text-align: center;
+    font-weight: 600;
+}
+
 .nav-divider {
     height: 1px;
     background: var(--gray-200);

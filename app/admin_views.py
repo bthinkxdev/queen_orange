@@ -3,12 +3,14 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
-from django.db.models import Count, Sum, Q, F
+from django.db.models import Count, Sum, Q, F, ProtectedError
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -22,6 +24,7 @@ from datetime import timedelta
 
 from .models import (
     Banner,
+    CartItem,
     Category,
     ContactMessage,
     Order,
@@ -567,8 +570,47 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         )
         if not color_formset.is_valid():
             return self.form_invalid(form)
-        color_formset.save()
-        # Only update images and sizes for this color variant; never overwrite sibling variants.
+        # Handle color variants in a way that respects order/cart history:
+        # - If a color (or its sizes) has existing orders/carts, we *deactivate* it instead of hard-deleting.
+        # - Otherwise, we allow real deletion.
+        colors = color_formset.save(commit=False)
+
+        # First handle deletions explicitly to avoid ProtectedError from PROTECT FKs (OrderItem/CartItem).
+        for cv in color_formset.deleted_objects:
+            # Any size under this color that is referenced by orders or carts?
+            has_protected_links = SizeVariant.objects.filter(
+                color_variant=cv
+            ).filter(
+                Q(order_items__isnull=False) | Q(cart_items__isnull=False)
+            ).exists()
+
+            if has_protected_links:
+                # Soft-delete: deactivate color + its sizes, but keep history intact.
+                cv.is_active = False
+                cv.save(update_fields=["is_active"])
+                SizeVariant.objects.filter(color_variant=cv).update(is_active=False)
+                messages.warning(
+                    self.request,
+                    f"Color '{cv.name}' has existing orders or carts and was deactivated instead of deleted.",
+                )
+            else:
+                try:
+                    cv.delete()
+                except ProtectedError:
+                    # Fallback safety: if DB still blocks, deactivate instead.
+                    cv.is_active = False
+                    cv.save(update_fields=["is_active"])
+                    SizeVariant.objects.filter(color_variant=cv).update(is_active=False)
+                    messages.warning(
+                        self.request,
+                        f"Color '{cv.name}' is linked to existing data and was deactivated instead of deleted.",
+                    )
+
+        # Save/update remaining (non-deleted) colors.
+        for cv in colors:
+            cv.save()
+
+        # Only update images and sizes for each non-deleted color variant; never overwrite sibling variants.
         for i, cf in enumerate(color_formset.forms):
             if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
                 continue
@@ -584,7 +626,38 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
             if image_fs.is_valid():
                 image_fs.save()
             if size_fs.is_valid():
-                size_fs.save()
+                # Handle size variants similarly: deactivate instead of hard-delete when referenced.
+                size_variants = size_fs.save(commit=False)
+
+                # Deletions first.
+                for sv in size_fs.deleted_objects:
+                    has_links = (
+                        OrderItem.objects.filter(size_variant=sv).exists()
+                        or CartItem.objects.filter(size_variant=sv).exists()
+                    )
+                    if has_links:
+                        sv.is_active = False
+                        sv.save(update_fields=["is_active"])
+                        messages.warning(
+                            self.request,
+                            f"Size '{sv.size}' for color '{sv.color_variant.name}' has existing orders or carts "
+                            "and was deactivated instead of deleted.",
+                        )
+                    else:
+                        try:
+                            sv.delete()
+                        except ProtectedError:
+                            sv.is_active = False
+                            sv.save(update_fields=["is_active"])
+                            messages.warning(
+                                self.request,
+                                f"Size '{sv.size}' for color '{sv.color_variant.name}' is linked to existing data "
+                                "and was deactivated instead of deleted.",
+                            )
+
+                # Save/update remaining sizes
+                for sv in size_variants:
+                    sv.save()
         messages.success(self.request, "Product updated successfully!")
         return redirect(self.success_url)
 
@@ -800,7 +873,7 @@ class OrderUpdateStatusView(StaffRequiredMixin, View):
 class MessageListView(StaffRequiredMixin, ListView):
     model = ContactMessage
     template_name = "admin/message_list.html"
-    context_object_name = "messages"
+    context_object_name = "contact_messages"
     paginate_by = 20
     
     def get_queryset(self):
@@ -926,4 +999,115 @@ class S3FileUploadView(StaffRequiredMixin, View):
                 'success': False,
                 'error': f'Upload failed: {str(e)}'
             }, status=500)
+
+
+class DealOfDayListView(StaffRequiredMixin, TemplateView):
+    """Admin view to manage Deal Of The Day products separately from the product form."""
+    template_name = "admin/deals_list.html"
+
+    def get_queryset(self):
+        qs = Product.objects.select_related("category").order_by(
+            "category__name", "name"
+        )
+        search = (self.request.GET.get("q") or "").strip()
+        if search:
+            qs = qs.filter(
+                Q(name__icontains=search)
+                | Q(category__name__icontains=search)
+            )
+        current_only = self.request.GET.get("current")
+        if current_only == "1":
+            today = timezone.now().date()
+            # Filter for products that are marked as deal and are currently active
+            qs = qs.filter(
+                Q(
+                    is_deal_of_day=True,
+                    deal_of_day_start__lte=today,
+                    deal_of_day_end__gte=today,
+                )
+                | Q(
+                    is_deal_of_day=True,
+                    deal_of_day_start__isnull=True,
+                    deal_of_day_end__isnull=True,
+                )
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
+        paginator = Paginator(qs, 20)
+        page = self.request.GET.get("page")
+        try:
+            page_obj = paginator.page(page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        context["active_menu"] = "deals"
+        context["products"] = page_obj.object_list
+        context["page_obj"] = page_obj
+        context["paginator"] = paginator
+        context["is_paginated"] = paginator.num_pages > 1
+        context["search_query"] = (self.request.GET.get("q") or "").strip()
+        today = timezone.now().date()
+        context["today"] = today
+        context["filter_current"] = self.request.GET.get("current") == "1"
+        
+        # Count current active deals for badge
+        if context["filter_current"]:
+            context["active_deals_count"] = paginator.count
+        else:
+            # Count total current deals even when filter is off
+            current_deals_qs = Product.objects.filter(
+                Q(
+                    is_deal_of_day=True,
+                    deal_of_day_start__lte=today,
+                    deal_of_day_end__gte=today,
+                )
+                | Q(
+                    is_deal_of_day=True,
+                    deal_of_day_start__isnull=True,
+                    deal_of_day_end__isnull=True,
+                )
+            )
+            context["active_deals_count"] = current_deals_qs.count()
+        
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Bulk update deal-of-day flags and date ranges for products."""
+        products = self.get_queryset()
+        updated_count = 0
+
+        for product in products:
+            prefix = f"p{product.pk}_"
+            is_deal_flag = request.POST.get(f"is_deal_{product.pk}") == "on"
+            start_raw = request.POST.get(f"start_{product.pk}") or ""
+            end_raw = request.POST.get(f"end_{product.pk}") or ""
+
+            start_date = parse_date(start_raw) if start_raw else None
+            end_date = parse_date(end_raw) if end_raw else None
+
+            changed = (
+                product.is_deal_of_day != is_deal_flag
+                or product.deal_of_day_start != start_date
+                or product.deal_of_day_end != end_date
+            )
+            if not changed:
+                continue
+
+            product.is_deal_of_day = is_deal_flag
+            product.deal_of_day_start = start_date
+            product.deal_of_day_end = end_date
+            product.save(update_fields=["is_deal_of_day", "deal_of_day_start", "deal_of_day_end"])
+            updated_count += 1
+
+        if updated_count:
+            messages.success(request, f"Updated deals for {updated_count} product(s).")
+        else:
+            messages.info(request, "No changes were made.")
+
+        return redirect("admin_panel:deal_list")
 

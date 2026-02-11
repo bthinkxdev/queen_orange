@@ -35,6 +35,9 @@ urlpatterns = [
     path("categories/<int:pk>/edit/", admin_views.CategoryUpdateView.as_view(), name="category_edit"),
     path("categories/<int:pk>/delete/", admin_views.CategoryDeleteView.as_view(), name="category_delete"),
     
+    # Deals Of The Day
+    path("deals/", admin_views.DealOfDayListView.as_view(), name="deal_list"),
+    
     # Products
     path("products/", admin_views.ProductListView.as_view(), name="product_list"),
     path("products/create/", admin_views.ProductCreateView.as_view(), name="product_create"),

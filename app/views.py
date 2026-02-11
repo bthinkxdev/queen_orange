@@ -48,6 +48,7 @@ class ProductListView(ListView):
             min_price = self.request.GET.get("min_price")
             max_price = self.request.GET.get("max_price")
             size = self.request.GET.get("size")
+            material = self.request.GET.get("material")
             query = self.request.GET.get("q")
 
             if category and category != "all":
@@ -61,6 +62,8 @@ class ProductListView(ListView):
                     Q(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
                     | Q(color_variants__size_variants__size=size, color_variants__size_variants__is_active=True, color_variants__size_variants__stock_quantity__gt=0)
                 )
+            if material:
+                qs = qs.filter(material__iexact=material.strip())
             if query:
                 qs = qs.filter(
                     Q(name__icontains=query)
@@ -96,9 +99,20 @@ class ProductListView(ListView):
             "min_price": self.request.GET.get("min_price", ""),
             "max_price": self.request.GET.get("max_price", ""),
             "size": self.request.GET.get("size", ""),
+            "material": self.request.GET.get("material", ""),
             "q": self.request.GET.get("q", ""),
             "sort": self.request.GET.get("sort", "newest"),
         }
+        # Distinct non-empty material options for filter dropdown
+        material_qs = (
+            Product.objects.active()
+            .exclude(material__isnull=True)
+            .exclude(material__exact="")
+            .values_list("material", flat=True)
+            .distinct()
+            .order_by("material")
+        )
+        context["material_options"] = list(material_qs)
         context["size_options"] = ["S", "M", "L", "XL", "XXL", "6M", "12M", "18M", "24M", "3Y"]
         context["sort_options"] = [
             ("newest", "Newest"),
@@ -116,16 +130,23 @@ class HomeView(TemplateView):
             context = super().get_context_data(**kwargs)
             context["categories"] = Category.objects.filter(is_active=True)
             variant_qs = ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0).order_by("id")
-            context["featured_products"] = (
+            # Deal Of The Day products (admin-controlled flag + optional date window)
+            today = timezone.now().date()
+            deal_qs = (
                 Product.objects.active()
-                .filter(is_featured=True)
+                .filter(is_deal_of_day=True)
                 .select_related("category")
                 .prefetch_related(
                     Prefetch("variants", queryset=variant_qs),
                     "color_variants__images",
                     "color_variants__size_variants",
-                )[:8]
+                )
             )
+            deal_qs = deal_qs.filter(
+                Q(deal_of_day_start__isnull=True) | Q(deal_of_day_start__lte=today),
+                Q(deal_of_day_end__isnull=True) | Q(deal_of_day_end__gte=today),
+            )[:8]
+            context["deal_products"] = list(deal_qs)
             context["bestseller_products"] = (
                 Product.objects.active()
                 .filter(is_bestseller=True)

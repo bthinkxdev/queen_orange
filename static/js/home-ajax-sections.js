@@ -8,6 +8,9 @@
 
     var WISHLIST_SVG = '<svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
+    // Cached wishlist product IDs for the current user (used to prefill heart state)
+    var wishlistProductIds = [];
+
     function formatPriceNoDecimals(val) {
         if (val == null || val === "") return "0";
         var n = parseFloat(val);
@@ -196,6 +199,47 @@
         return buildCardTall;
     }
 
+    // Apply "in-wishlist" class to any wishlist toggle buttons whose product IDs
+    // are present in wishlistProductIds (used for New Arrivals / Top Selling cards).
+    function applyWishlistState() {
+        if (!wishlistProductIds || !wishlistProductIds.length) return;
+        var idSet = new Set();
+        wishlistProductIds.forEach(function (id) {
+            var num = parseInt(id, 10);
+            if (!isNaN(num)) idSet.add(num);
+        });
+        if (!idSet.size) return;
+        var buttons = document.querySelectorAll(".js-wishlist-toggle[data-product-id]");
+        buttons.forEach(function (btn) {
+            var pid = parseInt(btn.getAttribute("data-product-id") || "", 10);
+            if (!isNaN(pid) && idSet.has(pid)) {
+                btn.classList.add("in-wishlist");
+            }
+        });
+    }
+
+    // Fetch wishlist IDs for the logged-in user (if any). Safe for guests (returns empty list).
+    function fetchWishlistIds() {
+        var url = "/api/wishlist/ids/";
+        try {
+            fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+                .then(function (response) {
+                    if (!response || !response.ok) return null;
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (!data || !Array.isArray(data.product_ids)) return;
+                    wishlistProductIds = data.product_ids;
+                    applyWishlistState();
+                })
+                .catch(function () {
+                    // Fail silently; wishlist hearts will still toggle on click via wishlist.js
+                });
+        } catch (e) {
+            // Swallow any unexpected errors
+        }
+    }
+
     function loadSection(section) {
         var apiUrl = section.getAttribute("data-api-url");
         var sectionType = section.getAttribute("data-section-type") || "new-arrivals";
@@ -218,6 +262,8 @@
                     var node = builder(p);
                     if (node) container.appendChild(node);
                 });
+                // Ensure wishlist heart state is applied to any newly-added cards.
+                applyWishlistState();
                 if (typeof window.ProductCardSliderInit === "function") {
                     window.ProductCardSliderInit();
                 }
@@ -288,6 +334,8 @@
 
     function init() {
         document.querySelectorAll(".js-home-ajax-section").forEach(loadSection);
+        // Load wishlist product IDs once and apply prefilled heart state where relevant.
+        fetchWishlistIds();
         initScrollShadows();
         initDealCountdown();
     }
