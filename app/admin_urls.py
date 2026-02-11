@@ -51,5 +51,8 @@ urlpatterns = [
     # Messages
     path("messages/", admin_views.MessageListView.as_view(), name="message_list"),
     path("messages/<int:pk>/toggle-resolved/", admin_views.MessageToggleResolvedView.as_view(), name="message_toggle_resolved"),
+    
+    # File Upload (S3)
+    path("upload/s3/", admin_views.S3FileUploadView.as_view(), name="s3_upload"),
 ]
 

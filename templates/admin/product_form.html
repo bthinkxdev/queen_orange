@@ -811,6 +811,23 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Prevent double form submission (avoids duplicate S3 uploads)
+    const productForm = document.querySelector('.product-form-wrapper form');
+    if (productForm) {
+        productForm.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn && submitBtn.dataset.submitting === 'true') {
+                e.preventDefault();
+                return false;
+            }
+            if (submitBtn) {
+                submitBtn.dataset.submitting = 'true';
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            }
+        });
+    }
+
     // File size validation constants
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
     

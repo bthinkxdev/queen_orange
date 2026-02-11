@@ -374,9 +374,39 @@ class SizeVariantForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["sku"].required = False
-        choices = [("", "---------")] + [(s, s) for s in STANDARD_SIZES]
+        
+        # Start with all standard sizes
+        available_sizes = list(STANDARD_SIZES)
+        
+        # If editing an existing size variant, get the color variant
+        if self.instance and self.instance.pk and self.instance.color_variant_id:
+            # Get all sizes already used in this color variant (excluding current instance)
+            existing_sizes = SizeVariant.objects.filter(
+                color_variant_id=self.instance.color_variant_id
+            ).exclude(pk=self.instance.pk).values_list('size', flat=True)
+            
+            # Remove already-used sizes from available sizes
+            available_sizes = [s for s in available_sizes if s not in existing_sizes]
+            
+            # Always add the current instance's size so it can be edited
+            if self.instance.size and self.instance.size not in available_sizes:
+                available_sizes.append(self.instance.size)
+        elif self.instance and self.instance.color_variant_id and not self.instance.pk:
+            # New size variant being added to an existing color variant
+            existing_sizes = SizeVariant.objects.filter(
+                color_variant_id=self.instance.color_variant_id
+            ).values_list('size', flat=True)
+            
+            # Remove already-used sizes from available sizes
+            available_sizes = [s for s in available_sizes if s not in existing_sizes]
+        
+        # Add custom sizes that might not be in STANDARD_SIZES
         if self.instance and getattr(self.instance, "size", None) and self.instance.size not in STANDARD_SIZES:
-            choices.append((self.instance.size, self.instance.size))
+            if self.instance.size not in available_sizes:
+                available_sizes.append(self.instance.size)
+        
+        # Create choices list with filtered sizes
+        choices = [("", "---------")] + [(s, s) for s in available_sizes]
         self.fields["size"].widget.choices = choices
 
     def clean_stock_quantity(self):

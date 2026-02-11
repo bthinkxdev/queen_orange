@@ -242,13 +242,44 @@ class CategoryDeleteView(StaffRequiredMixin, DeleteView):
     success_url = reverse_lazy("admin_panel:category_list")
     
     def post(self, request, *args, **kwargs):
-        category = self.get_object()
-        if category.products.exists():
+        """Override post to check for existing products before deleting"""
+        self.object = self.get_object()
+        
+        if self.object.products.exists():
             messages.error(request, "Cannot delete category with existing products.")
             return redirect("admin_panel:category_list")
         
-        messages.success(request, f"Category '{category.name}' deleted successfully!")
-        return super().post(request, *args, **kwargs)
+        success_url = self.get_success_url()
+        category_name = self.object.name
+        
+        # Manually handle image deletion via storage backend
+        if self.object.image:
+            try:
+                image_name = self.object.image.name
+                storage = self.object.image.storage
+                
+                # Null the image field before deleting the file
+                Category.objects.filter(pk=self.object.pk).update(image=None)
+                
+                # Delete the file from storage (works with both local and S3)
+                try:
+                    storage.delete(image_name)
+                except Exception:
+                    pass  # Ignore if file doesn't exist
+                    
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to delete category image: {str(e)}")
+        
+        # Delete the category object
+        try:
+            Category.objects.filter(pk=self.object.pk).delete()
+            messages.success(request, f"Category '{category_name}' deleted successfully!")
+        except Exception as e:
+            messages.error(request, f"Error deleting category: {str(e)}")
+            
+        return redirect(success_url)
 
 
 # Banner Management Views
@@ -315,10 +346,40 @@ class BannerDeleteView(StaffRequiredMixin, DeleteView):
     model = Banner
     success_url = reverse_lazy("admin_panel:banner_list")
 
-    def post(self, request, *args, **kwargs):
-        banner = self.get_object()
-        messages.success(request, "Banner deleted successfully!")
-        return super().post(request, *args, **kwargs)
+    def delete(self, request, *args, **kwargs):
+        """Override delete to handle S3 image deletion properly"""
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        
+        # Manually handle S3 file deletion
+        if self.object.image:
+            try:
+                # Store the image name for deletion
+                image_name = self.object.image.name
+                storage = self.object.image.storage
+                
+                # Update DB to NULL the image field before deletion
+                Banner.objects.filter(pk=self.object.pk).update(image=None)
+                
+                # Delete the file from S3
+                try:
+                    storage.delete(image_name)
+                except Exception:
+                    pass  # Ignore if file doesn't exist
+                    
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to delete banner image: {str(e)}")
+        
+        # Delete the banner object (image field is already None in DB)
+        try:
+            Banner.objects.filter(pk=self.object.pk).delete()
+            messages.success(request, "Banner deleted successfully!")
+        except Exception as e:
+            messages.error(request, f"Error deleting banner: {str(e)}")
+            
+        return redirect(success_url)
 
 
 # Product Management Views
@@ -509,12 +570,13 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
     model = Product
     success_url = reverse_lazy("admin_panel:product_list")
     
-    def post(self, request, *args, **kwargs):
-        product = self.get_object()
+    def delete(self, request, *args, **kwargs):
+        """Override delete to handle S3 image deletion and order checks properly"""
+        self.object = self.get_object()
         
         # Check if product has any orders at all
         all_orders = Order.objects.filter(
-            items__product=product
+            items__product=self.object
         ).distinct()
         
         # Check if product has any active orders (not delivered or cancelled)
@@ -531,7 +593,7 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
             
             messages.error(
                 request,
-                f"Cannot delete product '{product.name}' because it has {order_count} active order(s) "
+                f"Cannot delete product '{self.object.name}' because it has {order_count} active order(s) "
                 f"({order_numbers}). This product can only be inactive once all associated orders are "
                 f"delivered or cancelled."
             )
@@ -539,16 +601,51 @@ class ProductDeleteView(StaffRequiredMixin, DeleteView):
         
         # If there are no orders at all, completely delete
         if not all_orders.exists():
-            messages.success(request, f"Product '{product.name}' deleted successfully!")
-            return super().post(request, *args, **kwargs)
+            product_name = self.object.name
+            success_url = self.get_success_url()
+            
+            # Delete all color variant images from S3 before deleting the product
+            from .models import ColorVariant, ColorVariantImage
+            color_variants = ColorVariant.objects.filter(product=self.object)
+            
+            for variant in color_variants:
+                for img in variant.images.all():
+                    if img.image:
+                        try:
+                            # Store the image name for deletion
+                            image_name = img.image.name
+                            storage = img.image.storage
+                            
+                            # Update DB to NULL the image field
+                            ColorVariantImage.objects.filter(pk=img.pk).update(image=None)
+                            
+                            # Delete the file from S3
+                            try:
+                                storage.delete(image_name)
+                            except Exception:
+                                pass  # Ignore if file doesn't exist
+                                
+                        except Exception as e:
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.warning(f"Failed to delete color variant image: {str(e)}")
+            
+            # Delete the product and all related objects
+            try:
+                Product.objects.filter(pk=self.object.pk).delete()
+                messages.success(request, f"Product '{product_name}' deleted successfully!")
+            except Exception as e:
+                messages.error(request, f"Error deleting product: {str(e)}")
+                
+            return redirect(success_url)
         
         # If all orders are delivered/cancelled, set to inactive instead of deleting
         if all_orders.exists():
-            product.is_active = False
-            product.save()
+            self.object.is_active = False
+            self.object.save()
             messages.success(
                 request,
-                f"Product '{product.name}' has been set to inactive."
+                f"Product '{self.object.name}' has been set to inactive."
             )
             return redirect("admin_panel:product_list")
 
@@ -711,4 +808,99 @@ class MessageToggleResolvedView(StaffRequiredMixin, View):
         messages.success(request, f"Message marked as {status_text}.")
         
         return redirect("admin_panel:message_list")
+
+
+class S3FileUploadView(StaffRequiredMixin, View):
+    """Handle direct S3 file uploads via AJAX"""
+    
+    def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Check if file is in request
+            if 'file' not in request.FILES:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No file provided'
+                }, status=400)
+            
+            file = request.FILES['file']
+            upload_path = request.POST.get('upload_path', 'uploads')
+            
+            logger.info(f"Uploading file: {file.name}, size: {file.size}, type: {file.content_type}")
+            
+            # Validate file size (5MB max)
+            max_size = 5 * 1024 * 1024  # 5MB
+            if file.size > max_size:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'File size exceeds 5MB limit. Current size: {file.size / (1024*1024):.2f}MB'
+                }, status=400)
+            
+            # Validate image file
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if file.content_type not in allowed_types:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Invalid file type. Allowed: JPG, PNG, GIF, WebP'
+                }, status=400)
+            
+            # Save file using Django's storage backend (will use S3 if configured)
+            from django.core.files.storage import default_storage
+            from django.utils.text import slugify
+            from django.conf import settings
+            import os
+            from datetime import datetime
+            
+            # Generate unique filename
+            ext = os.path.splitext(file.name)[1].lower()
+            base_name = slugify(os.path.splitext(file.name)[0])
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{base_name}_{timestamp}{ext}"
+            file_path = f"{upload_path}/{filename}"
+            
+            logger.info(f"Saving to: {file_path}")
+            
+            # Upload to S3 with explicit ACL
+            if settings.USE_S3:
+                # For S3, use the configured storage (no ACL needed, bucket policy handles access)
+                from custom_storage import MediaFileStorage
+                storage = MediaFileStorage()
+                saved_path = storage.save(file_path, file)
+                file_url = storage.url(saved_path)
+            else:
+                saved_path = default_storage.save(file_path, file)
+                file_url = default_storage.url(saved_path)
+            
+            logger.info(f"File saved to: {saved_path}")
+            logger.info(f"File URL: {file_url}")
+            
+            # Verify the file exists
+            if settings.USE_S3:
+                exists = storage.exists(saved_path)
+            else:
+                exists = default_storage.exists(saved_path)
+                
+            if not exists:
+                logger.error(f"File not found after upload: {saved_path}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Upload failed - file not found after upload'
+                }, status=500)
+            
+            return JsonResponse({
+                'success': True,
+                'file_path': saved_path,
+                'file_url': file_url,
+                'file_name': filename,
+                'file_size': file.size
+            })
+            
+        except Exception as e:
+            logger.error(f"Upload error: {str(e)}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Upload failed: {str(e)}'
+            }, status=500)
 
