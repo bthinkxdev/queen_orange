@@ -3,7 +3,8 @@ import re
 
 
 class MediaFileStorage(S3Boto3Storage):
-    location = "media"
+    # Store all media files under the S3 "queen-orange/media" prefix
+    location = "queen-orange/media"
     file_overwrite = False
     default_acl = None  # Don't use ACLs, rely on bucket policy
     

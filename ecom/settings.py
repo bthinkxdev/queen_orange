@@ -220,7 +220,9 @@ if USE_S3:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    # Public base URL for media files in S3:
+    # files will be stored under: queen-orange/media/<upload_to>/<filename>
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/queen-orange/media/"
 else:
     # Local file storage for everything
     STORAGES = {
