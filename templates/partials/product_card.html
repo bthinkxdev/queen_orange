@@ -1,7 +1,9 @@
 {% load static %}{% load color_tags %}
 {# Reusable product card partial. Pass product (with .get_card_image_urls, .category). Optional: show_add_to_cart (default True). #}
 <div class="featured-product-card">
-    {% if product.discount_percent %}
+    {% if product.is_bestseller %}
+        <span class="featured-product-badge featured-product-badge-bestseller">BESTSELLER</span>
+    {% elif product.discount_percent %}
         <span class="featured-product-badge">{{ product.discount_percent }}% OFF</span>
     {% endif %}
     <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
@@ -23,10 +25,13 @@
         <div class="featured-product-info">
             <div class="featured-product-category">{{ product.category.name|default:"" }}</div>
             <h3>{{ product.name }}</h3>
+            {% if product.original_price and product.original_price > product.price %}
+                <span class="featured-product-discount-pct">{{ product.discount_percent }}% off</span>
+            {% endif %}
             <div class="featured-product-price">
-                <span class="current-price">₹{{ product.price }}</span>
+                <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
                 {% if product.original_price %}
-                    <span class="original-price">₹{{ product.original_price }}</span>
+                    <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
                 {% endif %}
             </div>
         </div>

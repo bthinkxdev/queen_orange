@@ -180,10 +180,7 @@
                 <div class="scroll-section deal-products-scroll">
                     <div class="featured-products-grid deal-products-inner">
                 {% for product in featured_products %}
-                    <div class="featured-product-card">
-                        {% if product.discount_percent %}
-                            <span class="featured-product-badge">{{ product.discount_percent }}% OFF</span>
-                        {% endif %}
+                    <div class="featured-product-card home-ref-card">
                         <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
                                 data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                             <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -192,30 +189,33 @@
                         </button>
                         <a href="{% url 'store:product_detail' product.slug %}" class="featured-product-link">
                             {% with card_images=product.get_card_image_urls %}
-                            <div class="featured-product-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                            <div class="home-ref-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
                                 {% if card_images %}
                                     <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% else %}
                                     <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% endif %}
+                                <span class="home-card-rating"><span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+</span>
+                                {% if product.discount_percent %}
+                                    <span class="home-card-badge is-discount">↓{{ product.discount_percent }}%</span>
+                                {% endif %}
                             </div>
                             {% endwith %}
-                            <div class="featured-product-info">
-                                <div class="featured-product-category">{{ product.category.name }}</div>
-                                <h3 class="">{{ product.name }}</h3>
-                                {% with variant=product.variants.first %}
-                                    {% if variant %}
-                                        <div class="featured-product-name" style="font-size: 0.75em; color: #666; margin-top: 0; margin-bottom: 2px; line-height: 1.2;">
-                                           Color: {{ variant.color|default:'N/A' }}, Size: {{ variant.size|default:'N/A' }}
-                                        </div>
-                                    {% endif %}
-                                {% endwith %}
-                                <div class="featured-product-price">
-                                    <span class="current-price">₹{{ product.price }}</span>
-                                    {% if product.original_price %}
-                                        <span class="original-price">₹{{ product.original_price }}</span>
+                            <div class="home-ref-info">
+                                <p class="home-card-brand">{{ product.category.name|default:"Queen Orange" }}</p>
+                                <h3 class="home-card-name">{{ product.name }}</h3>
+                                {% if product.original_price and product.original_price > product.price %}
+                                    <span class="home-card-discount">↓{{ product.discount_percent }}%</span>
+                                {% endif %}
+                                <div class="home-ref-prices">
+                                    <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
+                                    {% if product.original_price and product.original_price > product.price %}
+                                        <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
                                     {% endif %}
                                 </div>
+                                {% if product.discount_percent and product.discount_percent >= 50 %}
+                                    <span class="home-card-tag">Hot Deal</span>
+                                {% endif %}
                             </div>
                         </a>
                         {% with variant=product.variants.first %}
@@ -277,8 +277,7 @@
             <div class="bestsellers-scroll-container">
                 <div class="bestsellers-grid">
                     {% for product in bestseller_products %}
-                        <div class="bestseller-card">
-                            <span class="bestseller-rank">#{{ forloop.counter }}</span>
+                        <div class="bestseller-card home-ref-card">
                             <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
                                     data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                                 <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -287,33 +286,29 @@
                             </button>
                             <a href="{% url 'store:product_detail' product.slug %}" class="bestseller-link">
                                 {% with card_images=product.get_card_image_urls %}
-                                <div class="bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                                <div class="home-ref-image bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
                                     {% if card_images %}
                                         <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                     {% else %}
                                         <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                     {% endif %}
+                                    <span class="home-card-rating"><span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> {{ forloop.counter }}k</span>
+                                    <span class="home-card-badge is-bestseller">BESTSELLER</span>
                                 </div>
                                 {% endwith %}
-                                <div class="bestseller-info">
-                                    <h3 class="bestseller-name">{{ product.name }}</h3>
-                                    {% with variant=product.variants.first %}
-                                        {% if variant %}
-                                            <div style="font-size: 0.75em; color: #666; margin-top: 0; margin-bottom: 2px; line-height: 1.2;">
-                                               Color: {{ variant.color|default:'N/A' }}, Size: {{ variant.size|default:'N/A' }}
-                                            </div>
-                                        {% endif %}
-                                    {% endwith %}
-                                    <div class="bestseller-rating">
-                                        <span class="rating-stars">⭐⭐⭐⭐⭐</span>
-                                        <span class="rating-count">(120+)</span>
-                                    </div>
-                                    <div class="bestseller-price">
-                                        <span class="current-price">₹{{ product.price }}</span>
-                                        {% if product.original_price %}
-                                            <span class="original-price">₹{{ product.original_price }}</span>
+                                <div class="home-ref-info bestseller-info">
+                                    <p class="home-card-brand">{{ product.category.name|default:"Queen Orange" }}</p>
+                                    <h3 class="home-card-name bestseller-name">{{ product.name }}</h3>
+                                    {% if product.original_price and product.original_price > product.price %}
+                                        <span class="home-card-discount">↓{{ product.discount_percent }}%</span>
+                                    {% endif %}
+                                    <div class="home-ref-prices bestseller-price">
+                                        <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
+                                        {% if product.original_price and product.original_price > product.price %}
+                                            <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
                                         {% endif %}
                                     </div>
+                                    <span class="home-card-tag">Hot Deal</span>
                                 </div>
                             </a>
                             {% with variant=product.variants.first %}

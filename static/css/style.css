@@ -1645,13 +1645,17 @@ input, textarea, select {
     left: var(--space-3);
     padding: var(--space-2) var(--space-3);
     background: var(--primary-dark);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 700;
     color: var(--white);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     z-index: 2;
+}
+
+.featured-product-badge-bestseller {
+    background: #16a34a;
 }
 
 .featured-product-info {
@@ -1683,6 +1687,14 @@ input, textarea, select {
     overflow: hidden;
     min-height: 44px;
     margin-bottom: var(--space-2);
+}
+
+.featured-product-discount-pct {
+    font-size: 12px;
+    font-weight: 600;
+    color: #16a34a;
+    display: inline-block;
+    margin-bottom: 2px;
 }
 
 .featured-product-price {

@@ -67,7 +67,15 @@ class ProductListView(ListView):
                     | Q(description__icontains=query)
                     | Q(category__name__icontains=query)
                 )
-            
+            sort = (self.request.GET.get("sort") or "").strip().lower()
+            if sort == "price_asc":
+                qs = qs.order_by("price")
+            elif sort == "price_desc":
+                qs = qs.order_by("-price")
+            elif sort == "newest":
+                qs = qs.order_by("-created_at")
+            else:
+                qs = qs.order_by("-created_at")
             return qs.distinct().prefetch_related("color_variants__images")
         except Exception as e:
             logger.error(f"Error in ProductListView.get_queryset: {str(e)}", exc_info=True)
@@ -89,8 +97,14 @@ class ProductListView(ListView):
             "max_price": self.request.GET.get("max_price", ""),
             "size": self.request.GET.get("size", ""),
             "q": self.request.GET.get("q", ""),
+            "sort": self.request.GET.get("sort", "newest"),
         }
         context["size_options"] = ["S", "M", "L", "XL", "XXL", "6M", "12M", "18M", "24M", "3Y"]
+        context["sort_options"] = [
+            ("newest", "Newest"),
+            ("price_asc", "Price: Low to High"),
+            ("price_desc", "Price: High to Low"),
+        ]
         return context
 
 
