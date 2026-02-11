@@ -84,12 +84,10 @@ class ReportsDashboardView(StaffRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["active_menu"] = "reports"
+        # Lock down reports list in UI:
+        # only expose the Sales report tile in the reports hub.
         context["report_types"] = [
-            {"key": "orders", "name": "Orders Report", "url": "admin_panel:report_orders", "icon": "fa-shopping-bag"},
             {"key": "sales", "name": "Sales Report", "url": "admin_panel:report_sales", "icon": "fa-chart-line"},
-            {"key": "products", "name": "Product Performance", "url": "admin_panel:report_products", "icon": "fa-box"},
-            {"key": "customers", "name": "Customer Report", "url": "admin_panel:report_customers", "icon": "fa-users"},
-            {"key": "inventory", "name": "Inventory / Stock", "url": "admin_panel:report_inventory", "icon": "fa-warehouse"},
         ]
         return context
 
