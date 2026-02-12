@@ -820,15 +820,15 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
 
 
 class NewArrivalsView(View):
-    """JSON API: latest active products. ?limit=30 default (capped at 30)."""
+    """JSON API: latest active products. ?limit=20 default (capped at 20)."""
 
     def get(self, request):
         try:
-            limit = request.GET.get("limit", "30")
+            limit = request.GET.get("limit", "20")
             try:
-                limit = min(max(int(limit), 1), 30)
+                limit = min(max(int(limit), 1), 20)
             except (TypeError, ValueError):
-                limit = 30
+                limit = 20
 
             qs = (
                 _active_color_variant_qs()
