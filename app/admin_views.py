@@ -491,13 +491,45 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
 
     @transaction.atomic
     def form_valid(self, form):
+        # STEP 1 — Log POST for debugging management form / indices
+        print("=== ProductCreateView POST ===")
+        print(self.request.POST)
+
         self.object = form.save()
         color_formset = ColorVariantFormSet(
             self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
         )
-        if not color_formset.is_valid():
+
+        # STEP 2 — Log validation state and errors before saving
+        color_valid = color_formset.is_valid()
+        print("Color formset valid (create):", color_valid)
+        print("Color formset errors (create):", color_formset.errors)
+
+        if not color_valid:
             return self.form_invalid(form)
+
+        # STEP 3 — Validate all nested image/size formsets before saving anything.
+        nested_valid = True
+        for i, cf in enumerate(color_formset.forms):
+            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                continue
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            image_fs = ColorVariantImageFormSet(
+                self.request.POST, self.request.FILES, prefix=prefix_img
+            )
+            size_fs = SizeVariantFormSet(self.request.POST, prefix=prefix_sz)
+            if not image_fs.is_valid() or not size_fs.is_valid():
+                nested_valid = False
+        # Log nested state (images/sizes)
+        print("Nested image/size formsets valid (create):", nested_valid)
+
+        if not nested_valid:
+            return self.form_invalid(form)
+
+        # STEP 4 — All valid: first save colors, then save nested formsets
         color_formset.save()
+
         # Only update images and sizes for each saved color variant; never touch other variants.
         for i, cf in enumerate(color_formset.forms):
             if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
@@ -511,10 +543,12 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
                 self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
             )
             size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
+            # At this point these should be valid already, but we keep the guard.
             if image_fs.is_valid():
                 image_fs.save()
             if size_fs.is_valid():
                 size_fs.save()
+
         messages.success(self.request, "Product created successfully!")
         return redirect(self.success_url)
 
@@ -565,16 +599,59 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
 
     @transaction.atomic
     def form_valid(self, form):
+        # STEP 1 — Log POST for debugging management form / indices
+        print("=== ProductUpdateView POST ===")
+        print(self.request.POST)
+
         self.object = form.save()
         color_formset = ColorVariantFormSet(
             self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
         )
-        if not color_formset.is_valid():
+
+        # STEP 2 — Log validation state and errors before saving
+        color_valid = color_formset.is_valid()
+        print("Color formset valid (update):", color_valid)
+        print("Color formset errors (update):", color_formset.errors)
+
+        if not color_valid:
             return self.form_invalid(form)
         # Handle color variants in a way that respects order/cart history:
         # - If a color (or its sizes) has existing orders/carts, we *deactivate* it instead of hard-deleting.
         # - Otherwise, we allow real deletion.
         colors = color_formset.save(commit=False)
+
+        # STEP 3 — Validate all nested image/size formsets for non-deleted colors
+        nested_valid = True
+        for i, cf in enumerate(color_formset.forms):
+            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                continue
+            cv = cf.instance
+            if not cv.pk:
+                # New color being added in update; still validate its nested data.
+                prefix_img = "color-%s-images" % i
+                prefix_sz = "color-%s-sizes" % i
+                image_fs_tmp = ColorVariantImageFormSet(
+                    self.request.POST, self.request.FILES, prefix=prefix_img
+                )
+                size_fs_tmp = SizeVariantFormSet(self.request.POST, prefix=prefix_sz)
+                if not image_fs_tmp.is_valid() or not size_fs_tmp.is_valid():
+                    nested_valid = False
+                continue
+
+            prefix_img = "color-%s-images" % i
+            prefix_sz = "color-%s-sizes" % i
+            image_fs_tmp = ColorVariantImageFormSet(
+                self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
+            )
+            size_fs_tmp = SizeVariantFormSet(
+                self.request.POST, instance=cv, prefix=prefix_sz
+            )
+            if not image_fs_tmp.is_valid() or not size_fs_tmp.is_valid():
+                nested_valid = False
+
+        print("Nested image/size formsets valid (update):", nested_valid)
+        if not nested_valid:
+            return self.form_invalid(form)
 
         # First handle deletions explicitly to avoid ProtectedError from PROTECT FKs (OrderItem/CartItem).
         for cv in color_formset.deleted_objects:

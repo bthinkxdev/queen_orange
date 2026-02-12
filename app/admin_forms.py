@@ -300,6 +300,18 @@ class ColorVariantForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["color_code"].required = False
+        # Allow leaving display_order blank; we'll default it to 0.
+        self.fields["display_order"].required = False
+
+    def clean_display_order(self):
+        """
+        Make display_order optional and default to 0 when left empty.
+        This prevents hard validation failures when admins don't care about manual ordering.
+        """
+        value = self.cleaned_data.get("display_order")
+        if value in (None, ""):
+            return 0
+        return value
 
 
 def _validate_image_file(image, required=False):
@@ -429,6 +441,30 @@ class SizeVariantForm(forms.ModelForm):
         choices = [("", "---------")] + [(s, s) for s in available_sizes]
         self.fields["size"].widget.choices = choices
 
+    def clean(self):
+        """
+        Allow completely blank extra rows (no size, no stock, no SKU) to be ignored.
+        Such rows are marked for deletion so the formset will drop them without errors.
+        """
+        cleaned_data = super().clean()
+        size = (cleaned_data.get("size") or "").strip()
+        stock = cleaned_data.get("stock_quantity")
+        sku = (cleaned_data.get("sku") or "").strip()
+
+        is_completely_blank = (
+            not size
+            and (stock is None or stock == "" or stock == 0)
+            and not sku
+            and not self.instance.pk
+        )
+        if is_completely_blank:
+            # Mark this form as deleted so the inline formset ignores it.
+            if "DELETE" in cleaned_data:
+                cleaned_data["DELETE"] = True
+            # Clear any field-level errors so this row never blocks validation.
+            self._errors = {}
+        return cleaned_data
+
     def clean_stock_quantity(self):
         val = self.cleaned_data.get("stock_quantity")
         if val is not None and val < 0:
@@ -437,6 +473,13 @@ class SizeVariantForm(forms.ModelForm):
 
     def clean_size(self):
         size = (self.cleaned_data.get("size") or "").strip()
+        stock = self.cleaned_data.get("stock_quantity")
+        sku = (self.cleaned_data.get("sku") or "").strip()
+
+        # If the entire row is blank, let form.clean() handle marking it as deleted.
+        if not size and (stock is None or stock == "" or stock == 0) and not sku and not self.instance.pk:
+            return ""
+
         if not size:
             raise forms.ValidationError("Size is required.")
         if self.instance and self.instance.color_variant_id:
@@ -455,5 +498,7 @@ SizeVariantFormSet = inlineformset_factory(
     extra=1,
     can_delete=True,
     max_num=50,
+    min_num=0,
+    validate_min=False,
 )
 

@@ -15,6 +15,9 @@
     <!-- Page Loader -->
     <div id="page-loader" class="page-loader"><div class="loader-spinner"></div></div>
     <script src="{% static 'js/loader.js' %}"></script>
+    <!-- Global toast container -->
+    <div id="admin-toast-container" style="position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+
     <div class="admin-wrapper">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -108,9 +111,9 @@
             <!-- Content Area -->
             <div class="content-area">
                 {% if messages %}
-                    <div class="messages-container">
+                    <div class="messages-container" data-has-messages="1">
                         {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">
+                            <div class="alert alert-{{ message.tags }}" data-message-tag="{{ message.tags|default:'info' }}" data-message-text="{{ message|escapejs }}">
                                 <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
                                 {{ message }}
                                 <button class="alert-close">&times;</button>
@@ -151,20 +154,69 @@
             }
         });
 
-        // Alert close buttons
-        document.querySelectorAll('.alert-close').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                if (btn.parentElement) btn.parentElement.remove();
-            });
-        });
+        // Simple toast helper
+        function showAdminToast(message, type) {
+            var container = document.getElementById('admin-toast-container');
+            if (!container) return;
+            var toast = document.createElement('div');
+            toast.className = 'admin-toast admin-toast-' + (type || 'info');
+            toast.style.minWidth = '260px';
+            toast.style.maxWidth = '360px';
+            toast.style.padding = '0.75rem 1rem';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.backgroundColor = type === 'error' ? '#f44336' : (type === 'success' ? '#4caf50' : '#323232');
+            toast.style.color = '#fff';
+            toast.style.display = 'flex';
+            toast.style.alignItems = 'center';
+            toast.style.justifyContent = 'space-between';
+            toast.style.gap = '0.75rem';
 
-        // Auto-dismiss alerts after 5 seconds
-        setTimeout(() => {
-            document.querySelectorAll('.alert').forEach(alert => {
-                alert.style.animation = 'slideOut 0.3s ease forwards';
-                setTimeout(() => alert.remove(), 300);
+            var span = document.createElement('span');
+            span.textContent = message;
+            span.style.fontSize = '0.875rem';
+            span.style.flex = '1';
+
+            var closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.textContent = '×';
+            closeBtn.style.border = 'none';
+            closeBtn.style.background = 'transparent';
+            closeBtn.style.color = '#fff';
+            closeBtn.style.fontSize = '1.1rem';
+            closeBtn.style.cursor = 'pointer';
+
+            closeBtn.addEventListener('click', function () {
+                toast.remove();
             });
-        }, 5000);
+
+            toast.appendChild(span);
+            toast.appendChild(closeBtn);
+            container.appendChild(toast);
+
+            setTimeout(function () {
+                if (!toast.isConnected) return;
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-4px)';
+                setTimeout(function () {
+                    toast.remove();
+                }, 250);
+            }, 4000);
+        }
+
+        // Convert Django messages into toasts
+        (function () {
+            var container = document.querySelector('.messages-container[data-has-messages="1"]');
+            if (!container) return;
+            var alerts = container.querySelectorAll('.alert');
+            alerts.forEach(function (alertEl) {
+                var tag = alertEl.getAttribute('data-message-tag') || 'info';
+                var text = alertEl.getAttribute('data-message-text') || alertEl.textContent || '';
+                showAdminToast(text.trim(), tag === 'error' ? 'error' : (tag === 'success' ? 'success' : 'info'));
+            });
+            // Hide the inline alerts after converting to toasts
+            container.style.display = 'none';
+        })();
     </script>
 
     <script src="{% static 'js/admin-mobile.js' %}"></script>
