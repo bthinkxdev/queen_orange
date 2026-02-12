@@ -1019,7 +1019,7 @@
     height: 100%;
 }
 
-/* Align "View Details" at bottom when some cards have discount/original price and others don't */
+/* Align card content and CTA at bottom when card heights vary */
 .section-featured .featured-product-card .featured-product-link {
     min-height: 0;
 }

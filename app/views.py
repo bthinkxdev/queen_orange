@@ -456,6 +456,25 @@ class ProductDetailView(DetailView):
                 .select_related("category")
                 .prefetch_related("color_variants__images")[:4]
             )
+            # Similar products: other color variants of the same product (exclude current)
+            color_variants_list = context.get("color_variants") or []
+            selected_cv_for_similar = color_variants_list[0] if color_variants_list else None
+            similar_qs = (
+                ColorVariant.objects.filter(
+                    product=product,
+                    is_active=True,
+                    product__is_active=True,
+                    images__image__isnull=False,
+                )
+                .exclude(images__image="")
+            )
+            if selected_cv_for_similar:
+                similar_qs = similar_qs.exclude(pk=selected_cv_for_similar.pk)
+            context["similar_variants"] = list(
+                similar_qs.select_related("product", "product__category")
+                .prefetch_related("images")
+                .distinct()[:12]
+            )
             context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
             context["active_page"] = "collection"
             # Wishlist is variant-focused: check if selected color variant is in wishlist
@@ -1190,8 +1209,6 @@ class AddToCartView(LoginRequiredForActionMixin, View):
         action = request.POST.get("action", "add")
         if action == "buy":
             return redirect("store:checkout")
-        if action == "whatsapp":
-            return redirect(f"{reverse_lazy('store:checkout')}?payment=whatsapp")
         # Add ?added=1 to cart redirect for notification
         url = reverse("store:cart") + "?added=1"
         return redirect(url)

@@ -335,24 +335,6 @@
     text-decoration: line-through;
 }
 
-.collection-card-cta {
-    display: block;
-    margin: 0 var(--space-3) var(--space-3);
-    padding: var(--space-2) var(--space-3);
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    background: var(--primary-dark);
-    color: var(--white);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    transition: background var(--transition-fast);
-}
-
-.collection-card-cta:hover {
-    background: var(--gray-900);
-}
-
 /* Empty state */
 .collection-empty {
     text-align: center;
