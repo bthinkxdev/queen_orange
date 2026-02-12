@@ -809,35 +809,51 @@
     border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: var(--shadow-lg);
+    height: 100%;
 }
 
-/* Deal products inner - flex for horizontal scroll on mobile */
+/* Align "View Details" at bottom when some cards have discount/original price and others don't */
+.section-featured .featured-product-card .featured-product-link {
+    min-height: 0;
+}
+
+.section-featured .featured-product-card .featured-add-to-cart {
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+/* Deal products: standard card size, horizontal scroll left/right on all breakpoints */
 .deal-products-inner {
     display: flex;
     gap: var(--space-5);
     width: max-content;
 }
 
-/* Desktop: 2-3 col grid for deal products */
+/* Standard card width for Deal Of The Day – scrollable row */
+.section-featured .deal-products-inner .featured-product-card {
+    flex-shrink: 0;
+    width: 280px;
+    scroll-snap-align: start;
+}
+
+.section-featured .deal-products-scroll {
+    scroll-snap-type: x mandatory;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Slightly wider cards on larger screens, still scrollable */
+@media (min-width: 640px) {
+    .section-featured .deal-products-inner .featured-product-card {
+        width: 300px;
+    }
+}
+
 @media (min-width: 1024px) {
-    .section-featured .scroll-section {
-        overflow: visible;
-        margin: 0;
-        padding: 0;
-        scroll-snap-type: none;
+    .section-featured .deal-products-inner .featured-product-card {
+        width: 320px;
     }
-
-    .section-featured .deal-products-inner,
-    .section-featured .featured-products-grid.deal-products-inner {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        width: 100%;
-    }
-
-    .section-featured .scroll-section-wrapper::before,
-    .section-featured .scroll-section-wrapper::after {
-        display: none;
-    }
+    /* Keep scroll shadows visible on desktop for deal section */
 }
 
 /* ============================================

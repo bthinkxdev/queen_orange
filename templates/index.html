@@ -196,7 +196,7 @@
                                 {% else %}
                                     <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% endif %}
-                                <span class="home-card-rating"><span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+</span>
+                                <span class="home-card-rating"><span class="rating-star">★</span> {{ product.average_rating|floatformat:1|default:"0.0" }} <span class="rating-sep">|</span> {{ product.total_reviews|default:0 }}{% if product.total_reviews >= 1000 %}+{% endif %}</span>
                                 {% if product.discount_percent %}
                                     <span class="home-card-badge is-discount">↓{{ product.discount_percent }}%</span>
                                 {% endif %}
@@ -292,7 +292,7 @@
                                     {% else %}
                                         <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                     {% endif %}
-                                    <span class="home-card-rating"><span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> {{ forloop.counter }}k</span>
+                                    <span class="home-card-rating"><span class="rating-star">★</span> {{ product.average_rating|floatformat:1|default:"0.0" }} <span class="rating-sep">|</span> {{ product.total_reviews|default:0 }}{% if product.total_reviews >= 1000 %}+{% endif %}</span>
                                     <span class="home-card-badge is-bestseller">BESTSELLER</span>
                                 </div>
                                 {% endwith %}

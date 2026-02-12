@@ -56,44 +56,46 @@
             <div class="collection-product-grid">
                 {% for product in products %}
                     <article class="collection-product-card">
-                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
-                                data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                        {# `products` is a ColorVariant queryset; wishlist remains product-scoped #}
+                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.product.id in wishlist_product_ids %}in-wishlist{% endif %}"
+                                data-product-id="{{ product.product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                             <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                         </button>
-                        <a href="{% url 'store:product_detail' product.slug %}" class="collection-card-link">
-                            {% with card_images=product.get_card_image_urls %}
+                        <a href="{% url 'store:product_detail' product.product.slug %}?variant={{ product.id }}" class="collection-card-link">
+                            {% with images=product.images.all %}
                             <div class="collection-card-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
-                                {% if card_images %}
-                                    <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                {% if images %}
+                                    <img src="{{ images.0.image.url }}" alt="{{ product.product.name }} - {{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% else %}
-                                    <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                                    <img src="{% static 'images/banner.png' %}" alt="{{ product.product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% endif %}
-                                {% if product.is_bestseller %}
+                                {% if product.product.is_bestseller %}
                                     <span class="collection-card-badge collection-card-badge-bestseller">BESTSELLER</span>
-                                {% elif product.discount_percent %}
-                                    <span class="collection-card-badge collection-card-badge-discount">↓{{ product.discount_percent }}%</span>
+                                {% elif product.product.discount_percent %}
+                                    <span class="collection-card-badge collection-card-badge-discount">↓{{ product.product.discount_percent }}%</span>
                                 {% endif %}
                             </div>
                             {% endwith %}
                             <div class="collection-card-info">
-                                <p class="collection-card-category">{{ product.category.name|default:"" }}</p>
-                                <h3 class="collection-card-name">{{ product.name }}</h3>
+                                <p class="collection-card-category">{{ product.product.category.name|default:"" }}</p>
+                                <h3 class="collection-card-name">{{ product.product.name }}</h3>
+                                <p class="collection-card-variant-color">{{ product.name }}</p>
                                 <div class="collection-card-price-block">
-                                    {% if product.original_price and product.original_price > product.price %}
-                                        <span class="collection-card-discount-pct">{{ product.discount_percent }}% off</span>
+                                    {% if product.product.original_price and product.product.original_price > product.product.price %}
+                                        <span class="collection-card-discount-pct">{{ product.product.discount_percent }}% off</span>
                                     {% endif %}
                                     <div class="collection-card-prices">
-                                        <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
-                                        {% if product.original_price and product.original_price > product.price %}
-                                            <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
+                                        <span class="current-price">₹{{ product.product.price|floatformat:0 }}</span>
+                                        {% if product.product.original_price and product.product.original_price > product.product.price %}
+                                            <span class="original-price">₹{{ product.product.original_price|floatformat:0 }}</span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
                         </a>
-                        <a href="{% url 'store:product_detail' product.slug %}" class="collection-card-cta">View Details</a>
+                        <a href="{% url 'store:product_detail' product.product.slug %}?variant={{ product.id }}" class="collection-card-cta">View Details</a>
                     </article>
                 {% endfor %}
             </div>

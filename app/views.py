@@ -37,15 +37,52 @@ from .models import (
 from .services import CartError, CartService, OrderService, StockError
 
 
+def _active_color_variant_qs():
+    """
+    Base queryset for ColorVariant listings (collection & home JSON APIs).
+
+    Rules:
+    - ColorVariant is active
+    - Parent product is active
+    - At least one associated image
+    - At least one in-stock SizeVariant (optional business rule: stock > 0)
+    """
+    try:
+        return (
+            ColorVariant.objects.filter(
+                is_active=True,
+                product__is_active=True,
+                images__image__isnull=False,
+                size_variants__is_active=True,
+                size_variants__stock_quantity__gt=0,
+            )
+            .exclude(images__image="")
+            .select_related("product", "product__category")
+            .prefetch_related("images", "size_variants")
+            .distinct()
+        )
+    except Exception as e:
+        logger.error(f"Error building _active_color_variant_qs: {str(e)}", exc_info=True)
+        return ColorVariant.objects.none()
+
+
 class ProductListView(ListView):
+    """
+    Collection page.
+
+    NOTE: This now lists ColorVariant rows instead of Products, treating each
+    color as a standalone card while still using Product as the parent entity
+    for name, price, rating, etc.
+    """
+
     template_name = "category.html"
-    context_object_name = "products"
+    context_object_name = "products"  # actually ColorVariant instances
     paginate_by = 24
 
     def get_queryset(self):
         try:
-            qs = Product.objects.active().select_related("category")
-            
+            qs = _active_color_variant_qs()
+
             category = self.request.GET.get("category")
             min_price = self.request.GET.get("min_price")
             max_price = self.request.GET.get("max_price")
@@ -54,37 +91,39 @@ class ProductListView(ListView):
             query = self.request.GET.get("q")
 
             if category and category != "all":
-                qs = qs.filter(category__slug=category)
+                qs = qs.filter(product__category__slug=category)
             if min_price:
-                qs = qs.filter(price__gte=min_price)
+                qs = qs.filter(product__price__gte=min_price)
             if max_price:
-                qs = qs.filter(price__lte=max_price)
+                qs = qs.filter(product__price__lte=max_price)
             if size:
+                # Only variants that have this size in stock
                 qs = qs.filter(
-                    Q(variants__size=size, variants__is_active=True, variants__stock_quantity__gt=0)
-                    | Q(color_variants__size_variants__size=size, color_variants__size_variants__is_active=True, color_variants__size_variants__stock_quantity__gt=0)
+                    size_variants__size=size,
+                    size_variants__is_active=True,
+                    size_variants__stock_quantity__gt=0,
                 )
             if material:
-                qs = qs.filter(material__iexact=material.strip())
+                qs = qs.filter(product__material__iexact=material.strip())
             if query:
                 qs = qs.filter(
-                    Q(name__icontains=query)
-                    | Q(description__icontains=query)
-                    | Q(category__name__icontains=query)
+                    Q(product__name__icontains=query)
+                    | Q(product__description__icontains=query)
+                    | Q(product__category__name__icontains=query)
                 )
             sort = (self.request.GET.get("sort") or "").strip().lower()
             if sort == "price_asc":
-                qs = qs.order_by("price")
+                qs = qs.order_by("product__price", "product__created_at")
             elif sort == "price_desc":
-                qs = qs.order_by("-price")
+                qs = qs.order_by("-product__price", "-product__created_at")
             elif sort == "newest":
-                qs = qs.order_by("-created_at")
+                qs = qs.order_by("-product__created_at", "display_order", "id")
             else:
-                qs = qs.order_by("-created_at")
-            return qs.distinct().prefetch_related("color_variants__images")
+                qs = qs.order_by("-product__created_at", "display_order", "id")
+            return qs
         except Exception as e:
             logger.error(f"Error in ProductListView.get_queryset: {str(e)}", exc_info=True)
-            return Product.objects.none()
+            return ColorVariant.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -229,6 +268,43 @@ class ProductDetailView(DetailView):
             color_variants = list(product.color_variants.all()) if hasattr(product, "color_variants") else []
 
             if color_variants:
+                # Determine which color variant should be selected by default.
+                # Priority:
+                # 1) ?variant=<ColorVariant.id> that belongs to this product
+                # 2) First color with in‑stock SizeVariant
+                # 3) Fallback to the first color variant
+                selected_cv = None
+                variant_param = self.request.GET.get("variant")
+                if variant_param:
+                    try:
+                        vid = int(variant_param)
+                    except (TypeError, ValueError):
+                        vid = None
+                    if vid:
+                        for cv in color_variants:
+                            if cv.id == vid:
+                                selected_cv = cv
+                                break
+
+                if not selected_cv:
+                    # First color with any in‑stock size
+                    for cv in color_variants:
+                        for sv in cv.size_variants.all():
+                            if getattr(sv, "is_active", True) and (sv.stock_quantity or 0) > 0:
+                                selected_cv = cv
+                                break
+                        if selected_cv:
+                            break
+
+                if not selected_cv and color_variants:
+                    selected_cv = color_variants[0]
+
+                if selected_cv:
+                    # Reorder color_variants so the selected one is first. This ensures:
+                    # - Its images are used in the main gallery by default
+                    # - Its color swatch is pre-highlighted in the template/JS
+                    color_variants.sort(key=lambda cv: 0 if cv.id == selected_cv.id else 1)
+
                 # New flow: color-first, sizes per color
                 context["color_variants"] = color_variants
                 all_sizes = set()
@@ -536,6 +612,12 @@ def _serialize_product_for_json(product, detail_url=None):
     if getattr(product, "original_price", None) and product.original_price and product.price:
         if product.original_price > product.price:
             discount = round(((float(product.original_price) - float(product.price)) / float(product.original_price)) * 100)
+    avg_rating = getattr(product, "average_rating", None)
+    if avg_rating is not None:
+        avg_rating = float(avg_rating)
+    total_reviews = getattr(product, "total_reviews", None)
+    if total_reviews is not None:
+        total_reviews = int(total_reviews)
     return {
         "id": product.id,
         "name": product.name or "",
@@ -548,6 +630,85 @@ def _serialize_product_for_json(product, detail_url=None):
         "card_images": card_images,
         "category_name": category_name or "",
         "has_stock": has_stock,
+        "average_rating": avg_rating,
+        "total_reviews": total_reviews,
+    }
+
+
+def _serialize_color_variant_for_json(color_variant, detail_url=None):
+    """
+    Build a dict for JSON APIs where each card represents ONE ColorVariant.
+
+    - Primary image & card images come strictly from this ColorVariant.images
+    - Pricing & rating come from the parent Product
+    - URL encodes the selected variant via query param, keeping canonical product URL
+    """
+    product = getattr(color_variant, "product", None)
+    if not product:
+        return {}
+
+    if detail_url is None:
+        base = reverse("store:product_detail", args=[product.slug])
+        detail_url = f"{base}?variant={color_variant.id}"
+
+    # Images: do not mix between variants
+    images_qs = getattr(color_variant, "images", None)
+    card_images = []
+    if images_qs is not None:
+        for img in images_qs.all():
+            if getattr(img, "image", None):
+                try:
+                    raw_url = img.image.url
+                except Exception:
+                    continue
+                url = _normalize_image_url(raw_url)
+                if url:
+                    card_images.append(url)
+
+    image_url = card_images[0] if card_images else "/static/images/banner.png"
+
+    # Stock > 0 rule at variant level
+    has_stock = False
+    size_variants = getattr(color_variant, "size_variants", None)
+    if size_variants is not None:
+        for sv in size_variants.all():
+            if getattr(sv, "is_active", True) and (sv.stock_quantity or 0) > 0:
+                has_stock = True
+                break
+
+    discount = 0
+    if getattr(product, "original_price", None) and product.original_price and product.price:
+        if product.original_price > product.price:
+            discount = round(
+                ((float(product.original_price) - float(product.price)) / float(product.original_price)) * 100
+            )
+
+    avg_rating = getattr(product, "average_rating", None)
+    if avg_rating is not None:
+        avg_rating = float(avg_rating)
+    total_reviews = getattr(product, "total_reviews", None)
+    if total_reviews is not None:
+        total_reviews = int(total_reviews)
+
+    category_name = ""
+    if getattr(product, "category", None):
+        category_name = product.category.name or ""
+
+    return {
+        # Keep id as product.id so wishlist buttons remain product-scoped
+        "id": product.id,
+        "name": product.name or "",
+        "slug": product.slug or "",
+        "price": str(product.price),
+        "original_price": str(product.original_price) if product.original_price else None,
+        "discount_percent": discount,
+        "url": detail_url,
+        "image_url": image_url,
+        "card_images": card_images,
+        "category_name": category_name,
+        "has_stock": has_stock,
+        "average_rating": avg_rating,
+        "total_reviews": total_reviews,
     }
 
 
@@ -561,16 +722,13 @@ class NewArrivalsView(View):
                 limit = min(max(int(limit), 1), 24)
             except (TypeError, ValueError):
                 limit = 8
+
             qs = (
-                Product.objects.filter(is_active=True)
-                .select_related("category")
-                .prefetch_related("variants", "color_variants__images")
-                .order_by("-created_at")[:limit]
+                _active_color_variant_qs()
+                .order_by("-product__created_at", "display_order", "id")[:limit]
             )
-            if hasattr(Product, "color_variants"):
-                qs = qs.prefetch_related("color_variants__size_variants")
-            products = list(qs)
-            payload = [_serialize_product_for_json(p) for p in products]
+            variants = list(qs)
+            payload = [_serialize_color_variant_for_json(cv) for cv in variants]
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("NewArrivalsView: %s", e)
@@ -601,13 +759,19 @@ class TopSellingView(View):
             if not ids_ordered:
                 return JsonResponse({"products": []})
             preserved_order = dict((pk, i) for i, pk in enumerate(ids_ordered))
-            qs = (
-                Product.objects.filter(pk__in=ids_ordered, is_active=True)
-                .select_related("category")
-                .prefetch_related("variants", "color_variants__images", "color_variants__size_variants")
-            )
-            products = sorted(list(qs), key=lambda p: preserved_order.get(p.pk, 999))
-            payload = [_serialize_product_for_json(p) for p in products]
+
+            # Start from all active color variants for these products, then
+            # sort by product popularity + display order and trim to `limit`.
+            qs = _active_color_variant_qs().filter(product_id__in=ids_ordered)
+            variants = sorted(
+                list(qs),
+                key=lambda cv: (
+                    preserved_order.get(getattr(cv.product, "pk", None), 999),
+                    getattr(cv, "display_order", 0),
+                    cv.id,
+                ),
+            )[:limit]
+            payload = [_serialize_color_variant_for_json(cv) for cv in variants]
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("TopSellingView: %s", e)
@@ -637,13 +801,17 @@ class RecentlyViewedView(View):
             if not ids:
                 return JsonResponse({"products": []})
             preserved_order = dict((pk, i) for i, pk in enumerate(ids))
-            qs = (
-                Product.objects.filter(pk__in=ids, is_active=True)
-                .select_related("category")
-                .prefetch_related("variants", "color_variants__images", "color_variants__size_variants")
+
+            qs = _active_color_variant_qs().filter(product_id__in=ids)
+            variants = sorted(
+                list(qs),
+                key=lambda cv: (
+                    preserved_order.get(getattr(cv.product, "pk", None), 999),
+                    getattr(cv, "display_order", 0),
+                    cv.id,
+                ),
             )
-            products = sorted(list(qs), key=lambda p: preserved_order.get(p.pk, 999))
-            payload = [_serialize_product_for_json(p) for p in products]
+            payload = [_serialize_color_variant_for_json(cv) for cv in variants]
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("RecentlyViewedView: %s", e)

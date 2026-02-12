@@ -18,6 +18,16 @@
         return String(Math.round(n));
     }
 
+    function formatRatingDisplay(p) {
+        var avg = p && (p.average_rating != null) ? Number(p.average_rating) : 0;
+        var total = p && (p.total_reviews != null) ? parseInt(p.total_reviews, 10) : 0;
+        if (isNaN(avg)) avg = 0;
+        if (isNaN(total) || total < 0) total = 0;
+        var avgStr = avg.toFixed(1);
+        var countStr = total >= 1000 ? total + "+" : String(total);
+        return '<span class="rating-star">★</span> ' + avgStr + ' <span class="rating-sep">|</span> ' + countStr;
+    }
+
     function buildRefCardContent(p, imgWrap, info) {
         if (p.category_name) {
             var brand = document.createElement("p");
@@ -76,7 +86,7 @@
         imgWrap.appendChild(img);
         var rating = document.createElement("span");
         rating.className = "home-card-rating";
-        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+';
+        rating.innerHTML = formatRatingDisplay(p);
         imgWrap.appendChild(rating);
         if (p.discount_percent && p.discount_percent > 0) {
             var badge = document.createElement("span");
@@ -130,7 +140,7 @@
         imgWrap.appendChild(img);
         var rating = document.createElement("span");
         rating.className = "home-card-rating";
-        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 2k';
+        rating.innerHTML = formatRatingDisplay(p);
         imgWrap.appendChild(rating);
         var badge = document.createElement("span");
         badge.className = "home-card-badge is-bestseller";
@@ -166,7 +176,7 @@
         imgWrap.appendChild(img);
         var rating = document.createElement("span");
         rating.className = "home-card-rating";
-        rating.innerHTML = '<span class="rating-star">★</span> 4.0 <span class="rating-sep">|</span> 120+';
+        rating.innerHTML = formatRatingDisplay(p);
         imgWrap.appendChild(rating);
         card.appendChild(imgWrap);
         var info = document.createElement("div");
@@ -332,12 +342,71 @@
         setInterval(tick, 1000);
     }
 
+    var DEAL_AUTO_SCROLL_INTERVAL_MS = 4500;
+    var DEAL_AUTO_SCROLL_PAUSE_AFTER_USER_MS = 8000;
+
+    function initDealAutoScroll() {
+        var scrollEl = document.querySelector(".deal-products-scroll");
+        if (!scrollEl) return;
+        var inner = scrollEl.querySelector(".deal-products-inner");
+        if (!inner) return;
+        var cards = inner.querySelectorAll(".featured-product-card");
+        if (cards.length <= 1) return;
+
+        var step = 0;
+        var userScrollTimeout = null;
+
+        function getScrollStep() {
+            var first = cards[0];
+            if (!first) return 0;
+            var gap = 20;
+            var style = window.getComputedStyle(inner);
+            if (style.gap) gap = parseFloat(style.gap) || 20;
+            return first.offsetWidth + gap;
+        }
+
+        function scrollToNext() {
+            var scrollStep = getScrollStep();
+            var maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            if (maxScroll <= 0) return;
+            step += 1;
+            var target = step * scrollStep;
+            if (target >= maxScroll) {
+                step = 0;
+                target = 0;
+            }
+            scrollEl.scrollTo({ left: target, behavior: "smooth" });
+            var wrapper = scrollEl.closest(".js-scroll-shadow");
+            if (wrapper) setTimeout(function () { updateScrollShadows(scrollEl); }, 350);
+        }
+
+        var autoScrollTimer = setInterval(scrollToNext, DEAL_AUTO_SCROLL_INTERVAL_MS);
+
+        function pauseAndResume() {
+            clearInterval(autoScrollTimer);
+            if (userScrollTimeout) clearTimeout(userScrollTimeout);
+            userScrollTimeout = setTimeout(function () {
+                userScrollTimeout = null;
+                var scrollStep = getScrollStep();
+                step = scrollStep > 0 ? Math.round(scrollEl.scrollLeft / scrollStep) : 0;
+                autoScrollTimer = setInterval(scrollToNext, DEAL_AUTO_SCROLL_INTERVAL_MS);
+            }, DEAL_AUTO_SCROLL_PAUSE_AFTER_USER_MS);
+        }
+
+        scrollEl.addEventListener("scroll", function () {
+            if (userScrollTimeout) return;
+            pauseAndResume();
+        }, { passive: true });
+        scrollEl.addEventListener("touchstart", pauseAndResume, { passive: true });
+    }
+
     function init() {
         document.querySelectorAll(".js-home-ajax-section").forEach(loadSection);
         // Load wishlist product IDs once and apply prefilled heart state where relevant.
         fetchWishlistIds();
         initScrollShadows();
         initDealCountdown();
+        initDealAutoScroll();
     }
 
     if (document.readyState === "loading") {
