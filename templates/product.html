@@ -3,6 +3,242 @@
 {% load color_tags %}
 {% block title %}{{ product.name }} - Queen Orange{% endblock %}
 {% block meta_description %}View product details, select size, and add to cart.{% endblock %}
+{% block extra_css %}
+<style>
+    .product-reviews {
+        margin-top: var(--space-8);
+        margin-bottom: var(--space-10);
+        padding: var(--space-6);
+        background: var(--gray-50);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    @media (max-width: 768px) {
+        .product-reviews {
+            margin-top: var(--space-6);
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+        }
+    }
+    .reviews-header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        margin-bottom: var(--space-5);
+    }
+    .reviews-header h2 {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        letter-spacing: 0.02em;
+    }
+    .reviews-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-5);
+        align-items: center;
+    }
+    .reviews-score {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+    .reviews-score-value {
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+    }
+    .reviews-score-outof {
+        font-size: 0.9rem;
+        color: var(--gray-600);
+    }
+    .reviews-score-stars {
+        font-size: 1.2rem;
+        color: #FFB300;
+        letter-spacing: 2px;
+    }
+    .reviews-count {
+        font-size: 0.9rem;
+        color: var(--gray-600);
+    }
+    .reviews-breakdown {
+        flex: 1;
+        min-width: 220px;
+        max-width: 420px;
+    }
+    .reviews-breakdown-row {
+        display: grid;
+        grid-template-columns: 56px 1fr 40px;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+        color: var(--gray-700);
+    }
+    .reviews-breakdown-bar {
+        position: relative;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--gray-200);
+        overflow: hidden;
+    }
+    .reviews-breakdown-bar-fill {
+        position: absolute;
+        inset: 0;
+        transform-origin: left center;
+        background: linear-gradient(90deg, #FFB300 0%, #FF6F00 100%);
+        transition: width var(--transition-base);
+    }
+    .reviews-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr);
+        gap: var(--space-7);
+        align-items: flex-start;
+    }
+    @media (max-width: 992px) {
+        .reviews-layout {
+            grid-template-columns: 1fr;
+            gap: var(--space-5);
+        }
+    }
+    .reviews-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+    .review-card {
+        padding: var(--space-4);
+        background: var(--white);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-xs);
+        border: 1px solid var(--gray-100);
+    }
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-bottom: var(--space-2);
+    }
+    .review-stars {
+        color: #FFB300;
+        letter-spacing: 1px;
+        font-size: 1.1rem;
+    }
+    .review-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        justify-content: flex-end;
+        font-size: 0.8rem;
+        color: var(--gray-600);
+    }
+    .review-title {
+        font-weight: 600;
+        margin-bottom: var(--space-1);
+        font-size: 0.95rem;
+    }
+    .review-comment {
+        font-size: 0.9rem;
+        color: var(--gray-700);
+    }
+    .review-form-wrapper {
+        padding: var(--space-4);
+        background: var(--white);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-xs);
+        border: 1px solid var(--gray-100);
+    }
+    .review-form-wrapper h3 {
+        font-size: 1.1rem;
+        margin-bottom: var(--space-3);
+    }
+    .review-form-wrapper .form-group {
+        margin-bottom: var(--space-3);
+    }
+    .review-form-wrapper label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: var(--gray-800);
+    }
+    .review-form-wrapper input[type="text"],
+    .review-form-wrapper textarea {
+        width: 100%;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--gray-300);
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    }
+    .review-form-wrapper input[type="text"]:focus,
+    .review-form-wrapper textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
+    }
+    .review-form-wrapper textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    .review-note {
+        margin-top: var(--space-2);
+        font-size: 0.8rem;
+        color: var(--gray-600);
+    }
+    /* Star rating row - medium-sized, premium alignment */
+    .rating-stars {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        width: 100%;
+        max-width: 100%;
+        padding: 8px 12px;
+        margin-top: 4px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-full);
+        background: linear-gradient(135deg, #ffffff 0%, #fff8fb 100%);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        user-select: none;
+    }
+    .rating-star {
+        background: transparent;
+        border: none;
+        padding: 0;
+        line-height: 1;
+        font-size: 1.6rem; /* medium size, avoids clipping on small screens */
+        color: var(--gray-400); /* visible on white background */
+        cursor: pointer;
+        transition:
+            transform var(--transition-fast),
+            color var(--transition-fast),
+            text-shadow var(--transition-fast);
+        text-shadow: 0 0 0 rgba(255, 193, 7, 0);
+    }
+    .rating-star.selected,
+    .rating-star.hovered {
+        color: #FFC107;
+        text-shadow:
+            0 0 4px rgba(255, 193, 7, 0.75),
+            0 0 10px rgba(255, 193, 7, 0.55);
+    }
+    .rating-star:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+    .rating-star:hover {
+        transform: translateY(-1px) scale(1.05);
+    }
+    @media (max-width: 480px) {
+        .review-form-wrapper {
+            padding: var(--space-3);
+        }
+        .review-card {
+            padding: var(--space-3);
+        }
+    }
+</style>
+{% endblock %}
 {% block content %}
     <section class="product-detail">
         <div class="container">
@@ -67,8 +303,26 @@
                     </div>
 
                     <div class="product-rating">
-                        <div class="stars">⭐⭐⭐⭐⭐</div>
-                        <span class="rating-count">(4.8 / 5) 256 reviews</span>
+                        {% if product.total_reviews %}
+                            <div class="stars">
+                                {# Render 5 stars based on rounded average #}
+                                {% with avg=product.average_rating|default:0 %}
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= avg|floatformat:0 %}
+                                            ★
+                                        {% else %}
+                                            ☆
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                            </div>
+                            <span class="rating-count">
+                                ({{ product.average_rating|default:"0.0" }}/5)
+                                {{ product.total_reviews }} review{{ product.total_reviews|pluralize }}
+                            </span>
+                        {% else %}
+                            <span class="rating-count">No reviews yet</span>
+                        {% endif %}
                     </div>
 
                     <div class="product-price-section">
@@ -182,6 +436,141 @@
             </div>
         </div>
 
+        <!-- Ratings & Reviews -->
+        <div class="container">
+            <section class="product-reviews">
+                <div class="reviews-header">
+                    <h2>Ratings &amp; Reviews</h2>
+                    {% if product.total_reviews %}
+                        <div class="reviews-summary">
+                            <div class="reviews-score">
+                                <span class="reviews-score-value">{{ product.average_rating|default:"0.0" }}</span>
+                                <span class="reviews-score-outof">/5</span>
+                            </div>
+                            <div class="reviews-score-stars">
+                                {% with avg=product.average_rating|default:0 %}
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= avg|floatformat:0 %}
+                                            ★
+                                        {% else %}
+                                            ☆
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                            </div>
+                            <div class="reviews-count">
+                                {{ product.total_reviews }} review{{ product.total_reviews|pluralize }}
+                            </div>
+                        </div>
+
+                        <div class="reviews-breakdown">
+                            {% for row in rating_breakdown_rows %}
+                                <div class="reviews-breakdown-row">
+                                    <span class="star-label">{{ row.star }}★</span>
+                                    <div class="reviews-breakdown-bar">
+                                        <div class="reviews-breakdown-bar-fill" style="width: {{ row.percent }}%;"></div>
+                                    </div>
+                                    <span class="count">
+                                        {{ row.count }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="reviews-empty-state">No reviews yet. Be the first to review this product.</p>
+                    {% endif %}
+                </div>
+
+                <div class="reviews-layout">
+                    <div class="reviews-list">
+                        {% if reviews %}
+                            {% for review in reviews %}
+                                <article class="review-card">
+                                    <header class="review-header">
+                                        <div class="review-stars">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= review.rating %}
+                                                    ★
+                                                {% else %}
+                                                    ☆
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        <div class="review-meta">
+                                            <span class="review-author">
+                                                {{ review.user.get_full_name|default:review.user.username|default:"Verified buyer" }}
+                                            </span>
+                                            <span class="review-date">
+                                                {{ review.created_at|date:"M j, Y" }}
+                                            </span>
+                                            {% if review.order %}
+                                                <span class="review-order">
+                                                    Order #{{ review.order.order_number }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </header>
+                                    {% if review.title %}
+                                        <h4 class="review-title">{{ review.title }}</h4>
+                                    {% endif %}
+                                    {% if review.comment %}
+                                        <p class="review-comment">{{ review.comment }}</p>
+                                    {% endif %}
+                                </article>
+                            {% endfor %}
+                        {% elif product.total_reviews %}
+                            <p class="reviews-empty-state">No reviews to display.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="review-form-wrapper">
+                        {% if can_review %}
+                            <h3>Write a Review</h3>
+                            <form id="reviewForm"
+                                  method="post"
+                                  action="{% url 'store:product_review_create' product.id %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label>Rating<span class="required">*</span></label>
+                                    <div class="rating-stars" id="ratingStars" role="radiogroup" aria-label="Rating">
+                                        {% for i in "12345" %}
+                                            {% with v=forloop.counter %}
+                                            <button type="button"
+                                                    class="rating-star"
+                                                    data-value="{{ v }}"
+                                                    aria-label="{{ v }} star{% if v > 1 %}s{% endif %}"
+                                                    aria-checked="false"
+                                                    role="radio">
+                                                ★
+                                            </button>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </div>
+                                    <input type="hidden" name="rating" id="ratingValue" value="">
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_title">Title (optional)</label>
+                                    {{ review_form.title }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_comment">Comment (optional)</label>
+                                    {{ review_form.comment }}
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="reviewSubmitBtn">
+                                    Submit Review
+                                </button>
+                                <p class="review-note">
+                                    Only verified buyers with delivered orders can post reviews.
+                                </p>
+                            </form>
+                        {% else %}
+                            {# No review form when user is not eligible (either not verified buyer or already reviewed) #}
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        </div>
+
         <!-- Product image viewer modal: zoom, pan, pinch -->
         <div id="productImageModal" class="product-image-modal" role="dialog" aria-modal="true" aria-label="Product image zoom" hidden>
             <div class="product-image-modal__backdrop" id="productImageModalBackdrop"></div>
@@ -269,5 +658,7 @@
     window.productColorImagesUrl = "{% url 'store:product_color_images' %}";
 </script>
 <script src="{% static 'js/product-detail.js' %}"></script>
+<script src="{% static 'js/reviews.js' %}"></script>
 {% endblock %}
+
 

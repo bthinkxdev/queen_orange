@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch, Q, F, Sum
+from django.db import IntegrityError, transaction
+from django.db.models import Prefetch, Q, F, Sum, Count
 from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -17,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .auth_decorators import LoginRequiredForActionMixin
-from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
+from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm, ReviewForm
 from .models import (
     Banner,
     CartItem,
@@ -27,6 +28,7 @@ from .models import (
     OrderItem,
     Product,
     ProductVariant,
+    Review,
     SizeVariant,
     Payment,
     Cart,
@@ -274,6 +276,7 @@ class ProductDetailView(DetailView):
                 context["color_sizes_stock_json"] = json.dumps({})
                 context["use_color_variants"] = False
 
+            # Related products
             context["related_products"] = (
                 Product.objects.active()
                 .filter(category=product.category)
@@ -288,10 +291,172 @@ class ProductDetailView(DetailView):
                 if self.request.user.is_authenticated
                 else False
             )
+
+            # ----- Ratings & Reviews (verified buyers only) -----
+            reviews_qs = (
+                Review.objects.filter(
+                    product=product,
+                    is_approved=True,
+                    is_deleted=False,
+                )
+                .select_related("user", "order")
+                .order_by("-created_at")
+            )
+
+            # Star breakdown (5★..1★)
+            breakdown_raw = reviews_qs.values("rating").annotate(count=Count("id"))
+            rating_breakdown = {i: 0 for i in range(5, 0, -1)}
+            for row in breakdown_raw:
+                r = int(row["rating"])
+                if 1 <= r <= 5:
+                    rating_breakdown[r] = row["count"]
+            # Precomputed rows for template (star, count, percent)
+            breakdown_rows = []
+            total = product.total_reviews or 0
+            for star in range(5, 0, -1):
+                count = rating_breakdown.get(star, 0)
+                percent = int((count / total) * 100) if total else 0
+                breakdown_rows.append(
+                    {
+                        "star": star,
+                        "count": count,
+                        "percent": percent,
+                    }
+                )
+
+            # Can current user write a review?
+            can_review = False
+            user_review = None
+            if self.request.user.is_authenticated:
+                user_review = Review.objects.filter(
+                    product=product,
+                    user=self.request.user,
+                ).first()
+                if not user_review:
+                    has_delivered_order = OrderItem.objects.filter(
+                        order__user=self.request.user,
+                        order__status=Order.Status.DELIVERED,
+                        product=product,
+                    ).exists()
+                    can_review = has_delivered_order
+
+            context["reviews"] = list(reviews_qs)
+            context["rating_breakdown"] = rating_breakdown
+            context["rating_breakdown_rows"] = breakdown_rows
+            context["can_review"] = can_review
+            context["user_review"] = user_review
+            context["review_form"] = ReviewForm()
+
             return context
         except Exception as e:
             logger.error(f"Error in ProductDetailView.get_context_data: {str(e)}", exc_info=True)
             raise
+
+
+class ProductReviewCreateView(LoginRequiredForActionMixin, View):
+    """
+    AJAX-only endpoint to create a product review from a verified buyer.
+
+    Business rules:
+    - Only logged-in users.
+    - User must have at least one delivered order for the product.
+    - One review per (product, user).
+    - Rating 1–5.
+    - Uses transaction.atomic to avoid race conditions with uniqueness.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request, product_id: int, *args, **kwargs):
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        if not request.user.is_authenticated:
+            login_url = f"{reverse('auth:login')}?next={request.build_absolute_uri()}"
+            if is_ajax:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "login_required": True,
+                        "login_url": login_url,
+                        "error": "Login required to write a review.",
+                    },
+                    status=403,
+                )
+            return redirect(login_url)
+
+        product = get_object_or_404(Product, pk=product_id, is_active=True)
+
+        form = ReviewForm(request.POST)
+        if not form.is_valid():
+            if is_ajax:
+                # Flatten errors
+                error_text = "; ".join(
+                    [f"{field}: {', '.join(errors)}" for field, errors in form.errors.items()]
+                ) or "Invalid review data."
+                return JsonResponse(
+                    {"success": False, "error": error_text},
+                    status=400,
+                )
+            messages.error(request, "Invalid review data.")
+            return redirect("store:product_detail", slug=product.slug)
+
+        # Verify delivered order for this user and product
+        delivered_qs = (
+            OrderItem.objects.select_related("order")
+            .filter(
+                order__user=request.user,
+                order__status=Order.Status.DELIVERED,
+                product=product,
+            )
+            .order_by("-order__created_at")
+        )
+        delivered_item = delivered_qs.first()
+        if not delivered_item:
+            msg = "You can only review products you have received (delivered orders only)."
+            if is_ajax:
+                return JsonResponse({"success": False, "error": msg}, status=403)
+            messages.error(request, msg)
+            return redirect("store:product_detail", slug=product.slug)
+
+        # Prevent duplicate review
+        if Review.objects.filter(product=product, user=request.user).exists():
+            msg = "You have already reviewed this product."
+            if is_ajax:
+                return JsonResponse({"success": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("store:product_detail", slug=product.slug)
+
+        try:
+            with transaction.atomic():
+                Review.objects.create(
+                    product=product,
+                    user=request.user,
+                    order=delivered_item.order,
+                    rating=form.cleaned_data["rating"],
+                    title=form.cleaned_data.get("title", "").strip(),
+                    comment=form.cleaned_data.get("comment", "").strip(),
+                    # is_approved default is used; admin can later moderate
+                )
+        except IntegrityError:
+            # Handles race conditions on unique (product, user)
+            msg = "You have already reviewed this product."
+            if is_ajax:
+                return JsonResponse({"success": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("store:product_detail", slug=product.slug)
+        except Exception as exc:
+            logger.error("Error creating review: %s", exc, exc_info=True)
+            msg = "Could not submit your review. Please try again."
+            if is_ajax:
+                return JsonResponse({"success": False, "error": msg}, status=500)
+            messages.error(request, msg)
+            return redirect("store:product_detail", slug=product.slug)
+
+        success_msg = "Thank you for your review!"
+        if is_ajax:
+            return JsonResponse({"success": True, "message": success_msg})
+
+        messages.success(request, success_msg)
+        return redirect("store:product_detail", slug=product.slug)
 
 
 def _normalize_image_url(url):

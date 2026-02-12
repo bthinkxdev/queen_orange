@@ -57,5 +57,8 @@ urlpatterns = [
     
     # File Upload (S3)
     path("upload/s3/", admin_views.S3FileUploadView.as_view(), name="s3_upload"),
+
+    # Reviews
+    path("reviews/", admin_views.ReviewListView.as_view(), name="review_list"),
 ]
 

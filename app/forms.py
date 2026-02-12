@@ -2,7 +2,7 @@ from django import forms
 from django.core.validators import EmailValidator, RegexValidator
 from django.contrib.auth.models import User
 
-from .models import Address, ContactMessage, NewsletterSubscription
+from .models import Address, ContactMessage, NewsletterSubscription, Review
 
 
 class CartAddForm(forms.Form):
@@ -378,4 +378,42 @@ class AddressForm(forms.ModelForm):
             raise forms.ValidationError('PIN code cannot start with 0.')
         
         return pincode
+
+
+class ReviewForm(forms.ModelForm):
+    """
+    User-facing review form.
+
+    Business rules enforced here:
+    - Rating is required and must be between 1–5.
+    - Title and comment are optional.
+    """
+
+    class Meta:
+        model = Review
+        fields = ["rating", "title", "comment"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Basic styling hooks for frontend
+        self.fields["rating"].widget = forms.RadioSelect(
+            choices=[(i, f"{i} Star" if i == 1 else f"{i} Stars") for i in range(1, 6)]
+        )
+        self.fields["title"].required = False
+        self.fields["comment"].required = False
+        for name, field in self.fields.items():
+            existing = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{existing} form-input".strip()
+
+    def clean_rating(self):
+        rating = self.cleaned_data.get("rating")
+        if rating is None:
+            raise forms.ValidationError("Please select a rating.")
+        try:
+            rating_int = int(rating)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("Invalid rating value.")
+        if rating_int < 1 or rating_int > 5:
+            raise forms.ValidationError("Rating must be between 1 and 5 stars.")
+        return rating_int
 

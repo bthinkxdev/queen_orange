@@ -31,6 +31,7 @@ from .models import (
     OrderItem,
     Product,
     ProductVariant,
+    Review,
     SizeVariant,
 )
 from .admin_forms import (
@@ -1104,4 +1105,157 @@ class DealOfDayListView(StaffRequiredMixin, TemplateView):
             messages.info(request, "No changes were made.")
 
         return redirect("admin_panel:deal_list")
+
+
+class ReviewListView(StaffRequiredMixin, TemplateView):
+    """
+    Professional admin moderation panel for Ratings & Reviews.
+
+    Features:
+    - Filters: product, rating, date range, approval status.
+    - Search: by user (username/email) and product name.
+    - Bulk actions: approve, unapprove, delete (soft delete).
+    - Pagination.
+    """
+
+    template_name = "admin/review_list.html"
+    paginate_by = 25
+
+    def get_queryset(self):
+        qs = Review.objects.select_related("product", "user", "order").filter(
+            is_deleted=False
+        )
+
+        request = self.request
+        q = (request.GET.get("q") or "").strip()
+        product_id = request.GET.get("product")
+        rating = request.GET.get("rating")
+        status = request.GET.get("status")
+        date_from = request.GET.get("date_from")
+        date_to = request.GET.get("date_to")
+
+        if q:
+            qs = qs.filter(
+                Q(product__name__icontains=q)
+                | Q(user__username__icontains=q)
+                | Q(user__email__icontains=q)
+            )
+        if product_id:
+            try:
+                qs = qs.filter(product_id=int(product_id))
+            except (TypeError, ValueError):
+                pass
+        if rating:
+            try:
+                qs = qs.filter(rating=int(rating))
+            except (TypeError, ValueError):
+                pass
+        if status == "approved":
+            qs = qs.filter(is_approved=True)
+        elif status == "unapproved":
+            qs = qs.filter(is_approved=False)
+
+        if date_from:
+            try:
+                df = parse_date(date_from)
+                if df:
+                    qs = qs.filter(created_at__date__gte=df)
+            except Exception:
+                pass
+        if date_to:
+            try:
+                dt = parse_date(date_to)
+                if dt:
+                    qs = qs.filter(created_at__date__lte=dt)
+            except Exception:
+                pass
+
+        return qs.order_by("-created_at")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
+        paginator = Paginator(qs, self.paginate_by)
+        page_number = self.request.GET.get("page")
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        context["active_menu"] = "reviews"
+        context["reviews"] = page_obj.object_list
+        context["page_obj"] = page_obj
+        context["paginator"] = paginator
+        context["is_paginated"] = paginator.num_pages > 1
+
+        context["products"] = Product.objects.order_by("name").only("id", "name")
+        context["filter_q"] = (self.request.GET.get("q") or "").strip()
+        context["filter_product"] = self.request.GET.get("product") or ""
+        context["filter_rating"] = self.request.GET.get("rating") or ""
+        context["filter_status"] = self.request.GET.get("status") or ""
+        context["filter_date_from"] = self.request.GET.get("date_from") or ""
+        context["filter_date_to"] = self.request.GET.get("date_to") or ""
+
+        return context
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        """
+        Handle bulk moderation actions:
+        - approve
+        - unapprove
+        - delete (soft delete)
+        """
+        action = request.POST.get("action")
+        ids = request.POST.getlist("selected")
+        if not action or not ids:
+            messages.warning(request, "Please select at least one review and an action.")
+            return redirect("admin_panel:review_list")
+
+        try:
+            ids_int = [int(x) for x in ids]
+        except (TypeError, ValueError):
+            messages.error(request, "Invalid review selection.")
+            return redirect("admin_panel:review_list")
+
+        reviews = list(
+            Review.objects.select_for_update()
+            .select_related("product")
+            .filter(id__in=ids_int)
+        )
+        if not reviews:
+            messages.info(request, "No reviews found for the selected IDs.")
+            return redirect("admin_panel:review_list")
+
+        updated_products = set()
+
+        if action == "approve":
+            for r in reviews:
+                if not r.is_approved and not r.is_deleted:
+                    r.is_approved = True
+                    r.save(update_fields=["is_approved"])
+                    updated_products.add(r.product_id)
+            messages.success(request, "Selected reviews have been approved.")
+        elif action == "unapprove":
+            for r in reviews:
+                if r.is_approved and not r.is_deleted:
+                    r.is_approved = False
+                    r.save(update_fields=["is_approved"])
+                    updated_products.add(r.product_id)
+            messages.success(request, "Selected reviews have been unapproved.")
+        elif action == "delete":
+            for r in reviews:
+                if not r.is_deleted:
+                    r.is_deleted = True
+                    r.save(update_fields=["is_deleted"])
+                    updated_products.add(r.product_id)
+            messages.success(request, "Selected reviews have been deleted.")
+        else:
+            messages.error(request, "Unknown action.")
+            return redirect("admin_panel:review_list")
+
+        # Product aggregates are kept in sync by Review model signals
+        return redirect("admin_panel:review_list")
 

@@ -1,7 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Avg, Count
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.text import slugify
 import hashlib
@@ -81,6 +84,18 @@ class Product(TimeStampedModel):
     deal_of_day_start = models.DateField(blank=True, null=True, db_index=True)
     deal_of_day_end = models.DateField(blank=True, null=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+
+    # Aggregated ratings (from approved, non-deleted reviews only)
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0,
+        help_text="Average star rating from verified reviews (1-5).",
+    )
+    total_reviews = models.PositiveIntegerField(
+        default=0,
+        help_text="Total number of approved, non-deleted reviews.",
+    )
 
     objects = ProductQuerySet.as_manager()
 
@@ -597,3 +612,119 @@ class OTPRequest(TimeStampedModel):
     def generate_otp(cls):
         """Generate a secure 4-digit OTP"""
         return str(secrets.randbelow(10000)).zfill(4)
+
+
+class Review(TimeStampedModel):
+    """
+    Product review from a verified buyer.
+
+    Business rules:
+    - Only logged-in users can create reviews (enforced in views).
+    - User must have at least one delivered order for the product.
+    - One review per (product, user).
+    - Rating is 1–5 stars.
+    - Reviews can be moderated via is_approved.
+    - Reviews are soft-deleted via is_deleted flag.
+    """
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        related_name="reviews",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="reviews",
+        null=True,
+        blank=True,
+    )
+    order = models.ForeignKey(
+        "Order",
+        on_delete=models.SET_NULL,
+        related_name="reviews",
+        null=True,
+        blank=True,
+        help_text="The delivered order that verified this review.",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    title = models.CharField(max_length=200, blank=True)
+    comment = models.TextField(blank=True)
+    is_approved = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Only approved reviews are shown on the storefront.",
+    )
+    is_deleted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Soft delete flag; deleted reviews are hidden but kept for history.",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "user"],
+                name="unique_product_user_review",
+            ),
+            # Use `condition=` for compatibility with the project's Django version
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1) & models.Q(rating__lte=5),
+                name="review_rating_between_1_and_5",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["product"]),
+            models.Index(fields=["rating"]),
+            models.Index(fields=["is_approved"]),
+            models.Index(fields=["product", "is_approved"]),
+        ]
+
+    def __str__(self):
+        uname = getattr(self.user, "username", "Anonymous")
+        return f"Review for {self.product} by {uname} ({self.rating}★)"
+
+
+def _recompute_product_rating(product_id: int):
+    """
+    Efficiently recompute average rating and total reviews for a single product.
+    Only considers approved, non-deleted reviews.
+    """
+    if not product_id:
+        return
+    qs = Review.objects.filter(
+        product_id=product_id,
+        is_approved=True,
+        is_deleted=False,
+    )
+    agg = qs.aggregate(
+        avg=Avg("rating"),
+        cnt=Count("id"),
+    )
+    avg = agg["avg"] or 0
+    cnt = agg["cnt"] or 0
+    # Update only the two fields for this product
+    Product.objects.filter(pk=product_id).update(
+        average_rating=avg,
+        total_reviews=cnt,
+    )
+
+
+@receiver(post_save, sender=Review)
+def review_post_save(sender, instance: Review, **kwargs):
+    """
+    Recompute product aggregates whenever a review is created or updated
+    (e.g. approval status changed, soft-deleted).
+    """
+    _recompute_product_rating(instance.product_id)
+
+
+@receiver(post_delete, sender=Review)
+def review_post_delete(sender, instance: Review, **kwargs):
+    """
+    Support physical deletions as well (e.g. if ever used).
+    """
+    _recompute_product_rating(instance.product_id)

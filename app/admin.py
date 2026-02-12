@@ -91,5 +91,6 @@ class WishlistAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
-from .models import ColorVariantImage
+from .models import ColorVariantImage, Review
 admin.site.register(ColorVariantImage)
+admin.site.register(Review)
