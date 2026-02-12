@@ -117,7 +117,7 @@
         </div>
     </section>
 
-    <!-- New Arrivals (AJAX) - Tall portrait cards -->
+    <!-- New Arrivals (AJAX) - Variant-first small cards, two-row layout -->
     <section class="section section-new-arrivals js-home-ajax-section" data-api-url="{% url 'store:api_new_arrivals' %}" data-section-type="new-arrivals">
         <div class="container">
             <div class="section-header">
@@ -132,7 +132,7 @@
         </div>
     </section>
 
-    <!-- Top Selling (AJAX) - Compact cards with Popular badge -->
+    <!-- Top Selling (AJAX) - Compact cards with Popular badge (kept as-is, product-level rankings) -->
     <section class="section section-top-selling js-home-ajax-section" data-api-url="{% url 'store:api_top_selling' %}" data-section-type="top-selling">
         <div class="container">
             <div class="section-header">
@@ -147,7 +147,7 @@
         </div>
     </section>
 
-    <!-- Recently Viewed (AJAX) - Minimal cards, auto-hide if empty -->
+    <!-- Recently Viewed (AJAX) - Variant-first, two-row layout, auto-hide if empty -->
     <section class="section section-recently-viewed js-home-ajax-section is-empty" data-api-url="{% url 'store:api_recently_viewed' %}" data-section-type="recently-viewed">
         <div class="container">
             <div class="section-header">
@@ -161,6 +161,114 @@
             </div>
         </div>
     </section>
+
+    <!-- You May Like (AJAX) - Variant-first recommendations -->
+    <section class="section section-you-may-like js-home-ajax-section is-empty" data-api-url="{% url 'store:api_you_may_like' %}" data-section-type="you-may-like">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">You May Like</h2>
+                <p class="section-subtitle">More colors from what you viewed</p>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow">
+                <div class="scroll-section">
+                    <div class="scroll-section-inner js-home-ajax-products" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cart preview on home -->
+    {% if home_cart_items %}
+    <section class="section section-cart-preview">
+        <div class="container">
+            <div class="cart-preview-card">
+                <div class="cart-preview-header">
+                    <h2 class="section-title">In Your Cart</h2>
+                </div>
+                <div class="cart-preview-list">
+                    {% for item in home_cart_items %}
+                        {% with sv=item.size_variant %}
+                        <a href="{% url 'store:product_detail' item.product.slug %}{% if sv %}?variant={{ sv.color_variant.id }}{% endif %}" class="cart-preview-item">
+                            <div class="cart-preview-thumb">
+                                {% if sv and sv.color_variant.images.first %}
+                                    <img src="{{ sv.color_variant.images.first.image.url }}" alt="{{ item.product.name }} - {{ sv.color_variant.name }}" loading="lazy" decoding="async">
+                                {% else %}
+                                    <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}" loading="lazy" decoding="async">
+                                {% endif %}
+                            </div>
+                            <div class="cart-preview-info">
+                                <p class="cart-preview-name">{{ item.product.name }}</p>
+                                {% if sv %}
+                                    <p class="cart-preview-variant">{{ sv.color_variant.name }}{% if sv.size %} · {{ sv.size }}{% endif %}</p>
+                                {% elif item.variant %}
+                                    <p class="cart-preview-variant">{{ item.variant.color }} · {{ item.variant.size }}</p>
+                                {% endif %}
+                                <p class="cart-preview-qty">Qty: {{ item.quantity }}</p>
+                            </div>
+                            <div class="cart-preview-price">
+                                <span>₹{{ item.line_total|floatformat:0 }}</span>
+                            </div>
+                        </a>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+                {% if home_cart_totals %}
+                <div class="cart-preview-footer">
+                    <div class="cart-preview-total">
+                        <span>Total</span>
+                        <strong>₹{{ home_cart_totals.total|floatformat:0 }}</strong>
+                    </div>
+                    <a href="{% url 'store:checkout' %}" class="btn btn-primary cart-preview-checkout-btn">
+                        Checkout Now
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Wishlist section - Your Favorites -->
+    {% if home_wishlist_variants and user.is_authenticated %}
+    <section class="section section-home-wishlist">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Your Favorites</h2>
+                <p class="section-subtitle">Quick access to saved items</p>
+            </div>
+            <div class="scroll-section-wrapper js-scroll-shadow">
+                <div class="scroll-section">
+                    <div class="scroll-section-inner">
+                        {% for cv in home_wishlist_variants %}
+                            <a href="{% url 'store:product_detail' cv.product.slug %}?variant={{ cv.id }}" class="product-card-mini home-ref-card">
+                                <div class="home-ref-image card-image">
+                                    {% with img=cv.images.first %}
+                                        {% if img %}
+                                            <img src="{{ img.image.url }}" alt="{{ cv.product.name }} - {{ cv.name }}" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <img src="{% static 'images/banner.png' %}" alt="{{ cv.product.name }}" loading="lazy" decoding="async">
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div class="home-ref-info card-info">
+                                    <p class="home-card-brand">{{ cv.product.category.name|default:"Queen Orange" }}</p>
+                                    <h3 class="home-card-name card-title">{{ cv.product.name }}</h3>
+                                    <p class="home-card-variant">{{ cv.name }}</p>
+                                    <div class="home-ref-prices card-price">
+                                        <span class="current-price">₹{{ cv.product.price|floatformat:0 }}</span>
+                                        {% if cv.product.original_price and cv.product.original_price > cv.product.price %}
+                                            <span class="original-price">₹{{ cv.product.original_price|floatformat:0 }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <!-- Deal Of The Day - Full-width highlight, countdown timer -->
     {% if deal_products %}

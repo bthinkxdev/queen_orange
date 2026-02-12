@@ -203,6 +203,43 @@ class HomeView(TemplateView):
             )
             context["banners"] = [b for b in active_banners if b.image]
             context["active_page"] = "home"
+
+            # --- Cart preview (home page) ---
+            try:
+                cart = CartService.get_or_create_cart(self.request)
+                items_qs = cart.items.select_related(
+                    "product",
+                    "size_variant__color_variant__product",
+                ).prefetch_related(
+                    "size_variant__color_variant__images",
+                )
+                home_cart_items = list(items_qs)
+                if home_cart_items:
+                    totals = CartService.compute_totals(cart)
+                    context["home_cart"] = cart
+                    context["home_cart_items"] = home_cart_items
+                    context["home_cart_totals"] = totals
+                else:
+                    context["home_cart_items"] = []
+            except Exception as cart_exc:
+                logger.error(f"Error building home cart preview: {cart_exc}", exc_info=True)
+                context["home_cart_items"] = []
+
+            # --- Wishlist variants (home page) ---
+            home_wishlist_variants = []
+            user = getattr(self.request, "user", None)
+            if user and user.is_authenticated:
+                try:
+                    home_wishlist_variants = list(
+                        _active_color_variant_qs()
+                        .filter(product__wishlisted_by__user=user)
+                        .order_by("-product__created_at", "display_order", "id")[:12]
+                    )
+                except Exception as wl_exc:
+                    logger.error(f"Error building home wishlist variants: {wl_exc}", exc_info=True)
+                    home_wishlist_variants = []
+            context["home_wishlist_variants"] = home_wishlist_variants
+
             return context
         except Exception as e:
             logger.error(f"Error in HomeView.get_context_data: {str(e)}", exc_info=True)
@@ -216,6 +253,7 @@ class HomeView(TemplateView):
 
 
 RECENTLY_VIEWED_MAX = 20
+RECENTLY_VIEWED_VARIANTS_MAX = 20
 
 
 def _update_recently_viewed(session, product_id):
@@ -235,6 +273,26 @@ def _update_recently_viewed(session, product_id):
     session.modified = True
 
 
+def _update_recently_viewed_variant(session, color_variant_id):
+    """
+    Update session with ColorVariant ID: FIFO queue, max RECENTLY_VIEWED_VARIANTS_MAX, no duplicates.
+    Used for variant-first recently viewed & recommendations on home page.
+    """
+    if not color_variant_id:
+        return
+    ids = list(session.get("recently_viewed_variant_ids", []))
+    try:
+        vid = int(color_variant_id)
+    except (TypeError, ValueError):
+        return
+    if vid in ids:
+        ids.remove(vid)
+    ids.append(vid)
+    ids = ids[-RECENTLY_VIEWED_VARIANTS_MAX:]
+    session["recently_viewed_variant_ids"] = ids
+    session.modified = True
+
+
 class ProductDetailView(DetailView):
     template_name = "product.html"
     context_object_name = "product"
@@ -243,6 +301,14 @@ class ProductDetailView(DetailView):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         _update_recently_viewed(request.session, self.object.pk)
+        # Also track the selected ColorVariant for variant-first personalization on home.
+        try:
+            color_variants = list(self.object.color_variants.all()) if hasattr(self.object, "color_variants") else []
+            selected_cv = self._select_color_variant(color_variants) if color_variants else None
+            if selected_cv:
+                _update_recently_viewed_variant(request.session, selected_cv.pk)
+        except Exception as e:
+            logger.error(f"Error updating recently viewed variants: {str(e)}", exc_info=True)
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -261,6 +327,46 @@ class ProductDetailView(DetailView):
             )
         )
 
+    def _select_color_variant(self, color_variants):
+        """
+        Shared helper to choose which ColorVariant should be considered selected / focused.
+
+        Priority:
+        1) ?variant=<ColorVariant.id> that belongs to this product
+        2) First color with any in‑stock SizeVariant
+        3) Fallback to the first color variant
+        """
+        if not color_variants:
+            return None
+
+        selected_cv = None
+        variant_param = self.request.GET.get("variant")
+        if variant_param:
+            try:
+                vid = int(variant_param)
+            except (TypeError, ValueError):
+                vid = None
+            if vid:
+                for cv in color_variants:
+                    if cv.id == vid:
+                        selected_cv = cv
+                        break
+
+        if not selected_cv:
+            # First color with any in‑stock size
+            for cv in color_variants:
+                for sv in cv.size_variants.all():
+                    if getattr(sv, "is_active", True) and (sv.stock_quantity or 0) > 0:
+                        selected_cv = cv
+                        break
+                if selected_cv:
+                    break
+
+        if not selected_cv and color_variants:
+            selected_cv = color_variants[0]
+
+        return selected_cv
+
     def get_context_data(self, **kwargs):
         try:
             context = super().get_context_data(**kwargs)
@@ -268,36 +374,7 @@ class ProductDetailView(DetailView):
             color_variants = list(product.color_variants.all()) if hasattr(product, "color_variants") else []
 
             if color_variants:
-                # Determine which color variant should be selected by default.
-                # Priority:
-                # 1) ?variant=<ColorVariant.id> that belongs to this product
-                # 2) First color with in‑stock SizeVariant
-                # 3) Fallback to the first color variant
-                selected_cv = None
-                variant_param = self.request.GET.get("variant")
-                if variant_param:
-                    try:
-                        vid = int(variant_param)
-                    except (TypeError, ValueError):
-                        vid = None
-                    if vid:
-                        for cv in color_variants:
-                            if cv.id == vid:
-                                selected_cv = cv
-                                break
-
-                if not selected_cv:
-                    # First color with any in‑stock size
-                    for cv in color_variants:
-                        for sv in cv.size_variants.all():
-                            if getattr(sv, "is_active", True) and (sv.stock_quantity or 0) > 0:
-                                selected_cv = cv
-                                break
-                        if selected_cv:
-                            break
-
-                if not selected_cv and color_variants:
-                    selected_cv = color_variants[0]
+                selected_cv = self._select_color_variant(color_variants)
 
                 if selected_cv:
                     # Reorder color_variants so the selected one is first. This ensures:
@@ -669,11 +746,15 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
 
     # Stock > 0 rule at variant level
     has_stock = False
+    is_low_stock = False
     size_variants = getattr(color_variant, "size_variants", None)
     if size_variants is not None:
         for sv in size_variants.all():
-            if getattr(sv, "is_active", True) and (sv.stock_quantity or 0) > 0:
+            qty = sv.stock_quantity or 0
+            if getattr(sv, "is_active", True) and qty > 0:
                 has_stock = True
+                if qty <= 5:
+                    is_low_stock = True
                 break
 
     discount = 0
@@ -699,6 +780,7 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
         "id": product.id,
         "name": product.name or "",
         "slug": product.slug or "",
+        "color_name": getattr(color_variant, "name", "") or "",
         "price": str(product.price),
         "original_price": str(product.original_price) if product.original_price else None,
         "discount_percent": discount,
@@ -707,6 +789,7 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
         "card_images": card_images,
         "category_name": category_name,
         "has_stock": has_stock,
+        "is_low_stock": is_low_stock,
         "average_rating": avg_rating,
         "total_reviews": total_reviews,
     }
@@ -779,42 +862,93 @@ class TopSellingView(View):
 
 
 class RecentlyViewedView(View):
-    """JSON API: products from session recently_viewed_ids (FIFO, max 20)."""
+    """JSON API: ColorVariants from session recently_viewed_variant_ids (FIFO, max 20)."""
 
     def get(self, request):
         try:
-            ids = list(request.session.get("recently_viewed_ids", []))
-            if not ids:
+            raw_ids = list(request.session.get("recently_viewed_variant_ids", []))
+            if not raw_ids:
                 return JsonResponse({"products": []})
             seen = set()
             unique_ids = []
-            for pk in ids:
+            for pk in raw_ids:
                 try:
-                    pk = int(pk)
+                    pk_int = int(pk)
                 except (TypeError, ValueError):
                     continue
-                if pk in seen:
+                if pk_int in seen:
                     continue
-                seen.add(pk)
-                unique_ids.append(pk)
-            ids = unique_ids[-20:]
+                seen.add(pk_int)
+                unique_ids.append(pk_int)
+            ids = unique_ids[-RECENTLY_VIEWED_VARIANTS_MAX:]
             if not ids:
                 return JsonResponse({"products": []})
             preserved_order = dict((pk, i) for i, pk in enumerate(ids))
-
-            qs = _active_color_variant_qs().filter(product_id__in=ids)
-            variants = sorted(
-                list(qs),
-                key=lambda cv: (
-                    preserved_order.get(getattr(cv.product, "pk", None), 999),
-                    getattr(cv, "display_order", 0),
-                    cv.id,
-                ),
-            )
+            qs = _active_color_variant_qs().filter(pk__in=ids)
+            variants = sorted(list(qs), key=lambda cv: preserved_order.get(cv.pk, 999))
             payload = [_serialize_color_variant_for_json(cv) for cv in variants]
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("RecentlyViewedView: %s", e)
+            return JsonResponse({"products": []})
+
+
+class YouMayLikeView(View):
+    """JSON API: ColorVariant recommendations based on recently viewed variants.
+
+    For each recently viewed variant:
+    - Recommend other ColorVariants of the same parent Product
+    - Exclude the variants that were actually viewed
+    """
+
+    def get(self, request):
+        try:
+            raw_ids = list(request.session.get("recently_viewed_variant_ids", []))
+            if not raw_ids:
+                return JsonResponse({"products": []})
+
+            seen = set()
+            variant_ids = []
+            for val in raw_ids:
+                try:
+                    vid = int(val)
+                except (TypeError, ValueError):
+                    continue
+                if vid in seen:
+                    continue
+                seen.add(vid)
+                variant_ids.append(vid)
+
+            if not variant_ids:
+                return JsonResponse({"products": []})
+
+            viewed_variants = list(_active_color_variant_qs().filter(pk__in=variant_ids))
+            if not viewed_variants:
+                return JsonResponse({"products": []})
+
+            viewed_variant_ids = {cv.pk for cv in viewed_variants}
+            product_ids = {getattr(cv, "product_id", None) for cv in viewed_variants}
+            product_ids.discard(None)
+            if not product_ids:
+                return JsonResponse({"products": []})
+
+            base_qs = (
+                _active_color_variant_qs()
+                .filter(product_id__in=product_ids)
+                .exclude(pk__in=viewed_variant_ids)
+            )
+
+            limit = 16
+            candidates = list(
+                base_qs.order_by("product__name", "display_order", "id")[:limit]
+            )
+            if not candidates:
+                return JsonResponse({"products": []})
+
+            payload = [_serialize_color_variant_for_json(cv) for cv in candidates]
+            return JsonResponse({"products": payload})
+        except Exception as e:
+            logger.exception("YouMayLikeView: %s", e)
             return JsonResponse({"products": []})
 
 

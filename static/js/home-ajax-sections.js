@@ -107,11 +107,6 @@
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.insertBefore(wishlist, card.firstChild);
-        var cta = document.createElement("a");
-        cta.href = p.url || "#";
-        cta.className = "featured-add-to-cart";
-        cta.textContent = "View Details";
-        card.appendChild(cta);
         return card;
     }
 
@@ -152,11 +147,6 @@
         buildRefCardContent(p, imgWrap, info);
         link.appendChild(info);
         card.appendChild(link);
-        var cta = document.createElement("a");
-        cta.href = p.url || "#";
-        cta.className = "featured-add-to-cart";
-        cta.textContent = "View Details";
-        card.appendChild(cta);
         return card;
     }
 
@@ -263,15 +253,47 @@
             })
             .then(function (data) {
                 if (!data || !Array.isArray(data.products)) {
-                    if (sectionType === "recently-viewed") section.classList.add("is-empty");
+                    if (sectionType === "recently-viewed" || sectionType === "you-may-like") {
+                        section.classList.add("is-empty");
+                    }
                     return;
                 }
-                if (sectionType === "recently-viewed") section.classList.remove("is-empty");
+                if (sectionType === "recently-viewed" || sectionType === "you-may-like") {
+                    section.classList.remove("is-empty");
+                }
                 var builder = getCardBuilder(sectionType);
-                data.products.forEach(function (p) {
-                    var node = builder(p);
-                    if (node) container.appendChild(node);
-                });
+                var products = data.products || [];
+
+                // Two-row layouts for variant-first sections
+                if (sectionType === "new-arrivals" || sectionType === "recently-viewed" || sectionType === "you-may-like") {
+                    container.innerHTML = "";
+                    var rowSize = 10;
+                    if (sectionType === "you-may-like") {
+                        rowSize = 8;
+                    }
+                    var row1 = document.createElement("div");
+                    row1.className = "variant-row";
+                    products.slice(0, rowSize).forEach(function (p) {
+                        var node = builder(p);
+                        if (node) row1.appendChild(node);
+                    });
+                    if (row1.children.length) container.appendChild(row1);
+                    var row2Products = products.slice(rowSize, rowSize * 2);
+                    if (row2Products.length) {
+                        var row2 = document.createElement("div");
+                        row2.className = "variant-row";
+                        row2Products.forEach(function (p) {
+                            var node2 = builder(p);
+                            if (node2) row2.appendChild(node2);
+                        });
+                        if (row2.children.length) container.appendChild(row2);
+                    }
+                } else {
+                    products.forEach(function (p) {
+                        var node = builder(p);
+                        if (node) container.appendChild(node);
+                    });
+                }
                 // Ensure wishlist heart state is applied to any newly-added cards.
                 applyWishlistState();
                 if (typeof window.ProductCardSliderInit === "function") {
