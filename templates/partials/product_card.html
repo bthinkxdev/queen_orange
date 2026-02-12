@@ -48,12 +48,8 @@
                         data-color="{{ variant.color|default:'' }}">
                     <span>Add to Cart</span>
                 </button>
-            {% else %}
-                <a href="{% url 'store:product_detail' product.slug %}" class="featured-add-to-cart">View Details</a>
             {% endif %}
         {% endwith %}
-    {% else %}
-        <a href="{% url 'store:product_detail' product.slug %}" class="featured-add-to-cart">View Details</a>
     {% endif %}
 </div>
 {% endwith %}
