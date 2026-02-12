@@ -5,76 +5,147 @@
  */
 
 /* ============================================
-   FLIPKART-STYLE DENSE LAYOUT
+   PREMIUM DENSE LAYOUT – Optimized space, editorial feel
    ============================================ */
 
-/* Compact hero - more content above fold */
+/* Hero: compact, premium block with subtle separation */
 .hero-text-section {
-    padding: var(--space-5) 0 !important;
+    padding: var(--space-4) 0 !important;
+    background: var(--white) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 @media (min-width: 768px) {
     .hero-text-section {
-        padding: var(--space-7) 0 !important;
+        padding: var(--space-5) 0 !important;
     }
 }
 
+.hero-content {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .hero-title {
-    margin-bottom: var(--space-3) !important;
+    margin-bottom: var(--space-2) !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
 }
 
 .hero-description {
-    margin-bottom: var(--space-5) !important;
+    margin-bottom: var(--space-4) !important;
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+    color: var(--gray-600, #4b5563) !important;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: var(--space-3) !important;
+    justify-content: center;
+    align-items: center;
 }
 
 @media (max-width: 640px) {
     .hero-title {
-        font-size: clamp(28px, 6vw, 36px) !important;
+        font-size: clamp(22px, 5vw, 30px) !important;
+        margin-bottom: var(--space-2) !important;
+        line-height: 1.2 !important;
     }
 
     .hero-description {
         font-size: 14px !important;
+        margin-bottom: var(--space-3) !important;
+    }
+
+    .hero-actions {
+        flex-wrap: nowrap !important;
+    }
+
+    .hero-actions .btn {
+        padding: 10px 16px;
+        font-size: 13px;
+        min-width: 0;
     }
 }
 
-/* Compact banner section */
-.banner-section {
-    padding: var(--space-3) 0 !important;
+@media (min-width: 768px) {
+    .hero-title {
+        font-size: clamp(32px, 4vw, 44px) !important;
+    }
+
+    .hero-description {
+        font-size: 16px !important;
+    }
 }
 
-/* Tighter section padding */
+/* Banner: minimal vertical footprint */
+.banner-section {
+    padding: var(--space-2) 0 !important;
+}
+
+@media (min-width: 768px) {
+    .banner-section {
+        padding: var(--space-3) 0 !important;
+    }
+}
+
+.banner-section .container {
+    max-width: 100%;
+}
+
+/* Tighter section padding – better flow between blocks */
 .section {
-    padding: var(--space-6) 0 !important;
+    padding: var(--space-5) 0 !important;
 }
 
 @media (min-width: 768px) {
     .section {
-        padding: var(--space-8) 0 !important;
+        padding: var(--space-6) 0 !important;
     }
 }
 
 .section-features {
-    padding: var(--space-5) 0 !important;
+    padding: var(--space-4) 0 !important;
+    background: var(--gray-50, #f9fafb);
 }
 
-/* Compact features strip */
+@media (min-width: 768px) {
+    .section-features {
+        padding: var(--space-5) 0 !important;
+    }
+}
+
 .section-features .features-grid {
-    gap: var(--space-4);
+    gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+    .section-features .features-grid {
+        gap: var(--space-4);
+    }
 }
 
 .section-features .feature-card {
-    padding: var(--space-4);
+    padding: var(--space-3);
     background: var(--white);
     border-radius: var(--radius-md);
-    border: 1px solid var(--gray-200);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-100, #f3f4f6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+@media (min-width: 768px) {
+    .section-features .feature-card {
+        padding: var(--space-4);
+    }
 }
 
 @media (max-width: 768px) {
-    .section-features .feature-card {
-        padding: var(--space-3);
-    }
-
     .section-features .feature-title {
         font-size: 13px;
     }
@@ -89,26 +160,26 @@
    ============================================ */
 
 .section-header {
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
 }
 
 @media (min-width: 768px) {
     .section-header {
-        margin-bottom: var(--space-5);
+        margin-bottom: var(--space-4);
     }
 }
 
 .section-title {
     font-family: var(--font-display);
-    font-size: clamp(20px, 4vw, 28px);
+    font-size: clamp(20px, 4vw, 26px);
     font-weight: 700;
     color: var(--black);
     margin-bottom: var(--space-1);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
 }
 
 .section-subtitle {
-    font-size: clamp(13px, 2vw, 15px);
+    font-size: clamp(13px, 2vw, 14px);
     color: var(--gray-500);
     font-weight: 400;
 }
@@ -207,11 +278,15 @@
     position: relative;
     background: var(--white);
     overflow: hidden;
+    padding-top: var(--space-4) !important;
+    padding-bottom: var(--space-5) !important;
 }
 
 @media (min-width: 768px) {
     .section-categories {
         background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
+        padding-top: var(--space-5) !important;
+        padding-bottom: var(--space-6) !important;
     }
 
     .section-categories::before {
@@ -226,7 +301,11 @@
     }
 }
 
-/* Grid: 4 cols on mobile to fit all categories in 1–2 rows; 6 cols tablet, 8 cols desktop */
+.section-categories .section-header {
+    margin-bottom: var(--space-3);
+}
+
+/* Grid: 4 cols mobile; 6 tablet; 8 desktop – consistent gaps */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -236,14 +315,14 @@
 
 @media (min-width: 480px) {
     .categories-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--space-4);
+        gap: var(--space-3);
     }
 }
 
 @media (min-width: 768px) {
     .categories-grid {
         grid-template-columns: repeat(6, 1fr);
+        gap: var(--space-4);
     }
 }
 
@@ -254,24 +333,24 @@
     }
 }
 
-/* Category card - crisp edges, professional look */
+/* Category card – premium, minimal shadow, clear hover */
 .category-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2);
+    padding: var(--space-3);
     background: var(--white);
     border-radius: var(--radius-md);
-    border: 1px solid var(--gray-200);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-100, #f3f4f6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 .category-card:hover {
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-md);
+    border-color: var(--gray-200, #e5e7eb);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-2px);
 }
 
