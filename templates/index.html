@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}{% load color_tags %}
+{% load static %}{% load color_tags %}{% load product_filters %}
 {% block title %}Queen Orange - Premium Women & Babies Clothing{% endblock %}
 {% block meta_description %}Shop the latest collection of women's nightwear, loungewear, and babies dresses at Queen Orange.{% endblock %}
 {% block content %}
@@ -163,7 +163,10 @@
                 <div class="scroll-section deal-products-scroll">
                     <div class="featured-products-grid deal-products-inner">
                 {% for product in deal_products %}
-                    <div class="featured-product-card home-ref-card">
+                    <div class="featured-product-card home-ref-card storefront-card">
+                        {% if product.is_featured and product.is_active %}
+                            <span class="card-badge-featured">Featured</span>
+                        {% endif %}
                         {% with first_cv=product.color_variants.first %}
                         {% if first_cv %}
                         <button type="button" class="product-card-wishlist js-wishlist-toggle {% if first_cv.id in wishlist_variant_ids %}in-wishlist{% endif %}"
@@ -175,7 +178,7 @@
                         {% endif %}
                         <a href="{% url 'store:product_detail' product.slug %}" class="featured-product-link">
                             {% with card_images=product.get_card_image_urls %}
-                            <div class="home-ref-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                            <div class="home-ref-image storefront-card-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
                                 {% if card_images %}
                                     <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% else %}
@@ -187,21 +190,22 @@
                                 {% endif %}
                             </div>
                             {% endwith %}
-                            <div class="home-ref-info">
-                                <p class="home-card-brand">{{ product.category.name|default:"Queen Orange" }}</p>
-                                <h3 class="home-card-name">{{ product.name }}</h3>
-                                {% if product.original_price and product.original_price > product.price %}
-                                    <span class="home-card-discount">↓{{ product.discount_percent }}%</span>
+                            <div class="home-ref-info storefront-card-info">
+                                <h3 class="home-card-name storefront-card-name">{{ product.name }}</h3>
+                                <p class="home-card-brand storefront-card-variant">{{ product.category.name|default:"Queen Orange" }}{% if first_cv %} · {{ first_cv.name }}{% endif %}</p>
+                                {% if product.description %}
+                                    <p class="storefront-card-description">{{ product.description|truncatewords:12 }}</p>
                                 {% endif %}
-                                <div class="home-ref-prices">
-                                    <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
+                                <span class="storefront-card-rating"><span class="rating-star">★</span> {{ product.average_rating|floatformat:1|default:"0.0" }} <span class="rating-sep">|</span> {{ product.total_reviews|default:0 }}{% if product.total_reviews >= 1000 %}+{% endif %}</span>
+                                {% if product.original_price and product.original_price > product.price %}
+                                    <span class="storefront-card-discount-pct">{{ product.discount_percent }}% off</span>
+                                {% endif %}
+                                <div class="home-ref-prices storefront-card-prices">
+                                    <span class="current-price">{{ product.price|price_inr }}</span>
                                     {% if product.original_price and product.original_price > product.price %}
-                                        <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
+                                        <span class="original-price">{{ product.original_price|price_inr }}</span>
                                     {% endif %}
                                 </div>
-                                {% if product.discount_percent and product.discount_percent >= 50 %}
-                                    <span class="home-card-tag">Hot Deal</span>
-                                {% endif %}
                             </div>
                         </a>
                         {% with variant=product.variants.first %}
@@ -215,15 +219,8 @@
                                     </svg>
                                     Add to Cart
                                 </button>
-                            {% elif product.product_type == 'jewellery' and product.has_any_sellable_stock %}
-                                <button class="featured-add-to-cart js-add-to-cart"
-                                        data-product-id="{{ product.id }}"
-                                        data-is-jewellery="true">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M9 2L7.17 4M16.84 4L15 2M12 10V14M8 14H16"/>
-                                    </svg>
-                                    Add to Cart
-                                </button>
+                            {% elif product.product_type == 'jewellery' %}
+                                {% comment %}Jewellery: no add-to-cart on card; user clicks through to product page{% endcomment %}
                             {% elif product.has_any_sellable_stock %}
                                 {% comment %}Clothing with color variants - link to detail{% endcomment %}
                             {% else %}
@@ -274,7 +271,10 @@
                 <div class="bestsellers-grid">
                     {% for product in bestseller_products %}
                         {% with first_cv=product.color_variants.first %}
-                        <div class="bestseller-card home-ref-card">
+                        <div class="bestseller-card home-ref-card storefront-card">
+                            {% if product.is_featured and product.is_active %}
+                                <span class="card-badge-featured">Featured</span>
+                            {% endif %}
                             {% if first_cv %}
                             <button type="button" class="product-card-wishlist js-wishlist-toggle {% if first_cv.id in wishlist_variant_ids %}in-wishlist{% endif %}"
                                     data-variant-id="{{ first_cv.id }}" aria-label="Add to wishlist" title="Add to wishlist">
@@ -285,7 +285,7 @@
                             {% endif %}
                             <a href="{% url 'store:product_detail' product.slug %}" class="bestseller-link">
                                 {% with card_images=product.get_card_image_urls %}
-                                <div class="home-ref-image bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                                <div class="home-ref-image storefront-card-image bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
                                     {% if card_images %}
                                         <img src="{{ card_images.0 }}" alt="{{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                     {% else %}
@@ -295,19 +295,22 @@
                                     <span class="home-card-badge is-bestseller">BESTSELLER</span>
                                 </div>
                                 {% endwith %}
-                                <div class="home-ref-info bestseller-info">
-                                    <p class="home-card-brand">{{ product.category.name|default:"Queen Orange" }}</p>
-                                    <h3 class="home-card-name bestseller-name">{{ product.name }}</h3>
-                                    {% if product.original_price and product.original_price > product.price %}
-                                        <span class="home-card-discount">↓{{ product.discount_percent }}%</span>
+                                <div class="home-ref-info storefront-card-info bestseller-info">
+                                    <h3 class="home-card-name storefront-card-name bestseller-name">{{ product.name }}</h3>
+                                    <p class="home-card-brand storefront-card-variant">{{ product.category.name|default:"Queen Orange" }}{% if first_cv %} · {{ first_cv.name }}{% endif %}</p>
+                                    {% if product.description %}
+                                        <p class="storefront-card-description">{{ product.description|truncatewords:12 }}</p>
                                     {% endif %}
-                                    <div class="home-ref-prices bestseller-price">
-                                        <span class="current-price">₹{{ product.price|floatformat:0 }}</span>
+                                    <span class="storefront-card-rating"><span class="rating-star">★</span> {{ product.average_rating|floatformat:1|default:"0.0" }} <span class="rating-sep">|</span> {{ product.total_reviews|default:0 }}{% if product.total_reviews >= 1000 %}+{% endif %}</span>
+                                    {% if product.original_price and product.original_price > product.price %}
+                                        <span class="storefront-card-discount-pct">{{ product.discount_percent }}% off</span>
+                                    {% endif %}
+                                    <div class="home-ref-prices storefront-card-prices bestseller-price">
+                                        <span class="current-price">{{ product.price|price_inr }}</span>
                                         {% if product.original_price and product.original_price > product.price %}
-                                            <span class="original-price">₹{{ product.original_price|floatformat:0 }}</span>
+                                            <span class="original-price">{{ product.original_price|price_inr }}</span>
                                         {% endif %}
                                     </div>
-                                    <span class="home-card-tag">Hot Deal</span>
                                 </div>
                             </a>
                             {% with variant=product.variants.first %}
@@ -318,12 +321,8 @@
                                             data-color="{{ variant.color|default:'' }}">
                                         Add to Cart
                                     </button>
-                                {% elif product.product_type == 'jewellery' and product.has_any_sellable_stock %}
-                                    <button class="bestseller-add-to-cart js-add-to-cart"
-                                            data-product-id="{{ product.id }}"
-                                            data-is-jewellery="true">
-                                        Add to Cart
-                                    </button>
+                                {% elif product.product_type == 'jewellery' %}
+                                    {% comment %}Jewellery: no add-to-cart on card; user clicks through to product page{% endcomment %}
                                 {% elif product.has_any_sellable_stock %}
                                     {% comment %}Clothing with color variants - link to detail{% endcomment %}
                                 {% else %}
@@ -446,9 +445,9 @@
                                     <h3 class="home-card-name card-title">{{ cv.product.name }}</h3>
                                     <p class="home-card-variant">{{ cv.name }}</p>
                                     <div class="home-ref-prices card-price">
-                                        <span class="current-price">₹{{ cv.product.price|floatformat:0 }}</span>
+                                        <span class="current-price">{{ cv.product.price|price_inr }}</span>
                                         {% if cv.product.original_price and cv.product.original_price > cv.product.price %}
-                                            <span class="original-price">₹{{ cv.product.original_price|floatformat:0 }}</span>
+                                            <span class="original-price">{{ cv.product.original_price|price_inr }}</span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -470,9 +469,9 @@
                                     <h3 class="home-card-name card-title">{{ p.name }}</h3>
                                     <p class="home-card-variant">Jewellery</p>
                                     <div class="home-ref-prices card-price">
-                                        <span class="current-price">₹{{ p.price|floatformat:0 }}</span>
+                                        <span class="current-price">{{ p.price|price_inr }}</span>
                                         {% if p.original_price and p.original_price > p.price %}
-                                            <span class="original-price">₹{{ p.original_price|floatformat:0 }}</span>
+                                            <span class="original-price">{{ p.original_price|price_inr }}</span>
                                         {% endif %}
                                     </div>
                                 </div>

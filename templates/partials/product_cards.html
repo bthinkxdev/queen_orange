@@ -1,13 +1,19 @@
-{% load static %}{% load color_tags %}
+{% load static %}{% load color_tags %}{% load product_filters %}
 {# Fragment for collection page: used for initial render and AJAX load-more. products = list of (item, is_jewellery). #}
 <div class="js-collection-fragment" data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}" data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}">
     {% for card in products %}
         {% with item=card.0 is_jewellery=card.1 %}
         <article class="collection-product-card">
             {% if is_jewellery %}
+                {% if item.is_featured and item.is_active %}
+                    <span class="collection-card-badge-featured">Featured</span>
+                {% endif %}
             <button type="button" class="product-card-wishlist js-wishlist-toggle {% if item.id in wishlist_product_ids %}in-wishlist{% endif %}"
                     data-product-id="{{ item.id }}" aria-label="Add to wishlist" title="Add to wishlist">
             {% else %}
+                {% if item.product.is_featured and item.product.is_active %}
+                    <span class="collection-card-badge-featured">Featured</span>
+                {% endif %}
             <button type="button" class="product-card-wishlist js-wishlist-toggle {% if item.id in wishlist_variant_ids %}in-wishlist{% endif %}"
                     data-variant-id="{{ item.id }}" aria-label="Add to wishlist" title="Add to wishlist">
             {% endif %}
@@ -48,18 +54,22 @@
                 {% endwith %}
                 {% endif %}
                 <div class="collection-card-info">
-                    <p class="collection-card-category">{% if is_jewellery %}{{ item.category.name|default:"" }}{% else %}{{ item.product.category.name|default:"" }}{% endif %}</p>
                     <h3 class="collection-card-name">{% if is_jewellery %}{{ item.name }}{% else %}{{ item.product.name }}{% endif %}</h3>
-                    <p class="collection-card-variant-color">{% if is_jewellery %}Jewellery{% else %}{{ item.name }}{% endif %}</p>
+                    <p class="collection-card-variant-color">{% if is_jewellery %}Jewellery{% else %}{{ item.product.category.name|default:"" }} · {{ item.name }}{% endif %}</p>
+                    {% if is_jewellery and item.description %}
+                        <p class="storefront-card-description">{{ item.description|truncatewords:12 }}</p>
+                    {% elif not is_jewellery and item.product.description %}
+                        <p class="storefront-card-description">{{ item.product.description|truncatewords:12 }}</p>
+                    {% endif %}
                     <div class="collection-card-price-block">
                         {% if is_jewellery %}
                             {% if item.original_price and item.original_price > item.price %}
                                 <span class="collection-card-discount-pct">{{ item.discount_percent }}% off</span>
                             {% endif %}
                             <div class="collection-card-prices">
-                                <span class="current-price">₹{{ item.price|floatformat:0 }}</span>
+                                <span class="current-price">{{ item.price|price_inr }}</span>
                                 {% if item.original_price and item.original_price > item.price %}
-                                    <span class="original-price">₹{{ item.original_price|floatformat:0 }}</span>
+                                    <span class="original-price">{{ item.original_price|price_inr }}</span>
                                 {% endif %}
                             </div>
                         {% else %}
@@ -67,9 +77,9 @@
                                 <span class="collection-card-discount-pct">{{ item.product.discount_percent }}% off</span>
                             {% endif %}
                             <div class="collection-card-prices">
-                                <span class="current-price">₹{{ item.product.price|floatformat:0 }}</span>
+                                <span class="current-price">{{ item.product.price|price_inr }}</span>
                                 {% if item.product.original_price and item.product.original_price > item.product.price %}
-                                    <span class="original-price">₹{{ item.product.original_price|floatformat:0 }}</span>
+                                    <span class="original-price">{{ item.product.original_price|price_inr }}</span>
                                 {% endif %}
                             </div>
                         {% endif %}

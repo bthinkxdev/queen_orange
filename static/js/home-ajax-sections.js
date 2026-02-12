@@ -19,6 +19,19 @@
         return String(Math.round(n));
     }
 
+    function formatPriceInr(val) {
+        var s = formatPriceNoDecimals(val);
+        if (s.length > 3) {
+            var parts = [];
+            while (s.length > 0) {
+                parts.unshift(s.slice(-3));
+                s = s.slice(0, -3);
+            }
+            s = parts.join(",");
+        }
+        return "₹ " + s;
+    }
+
     function formatRatingDisplay(p) {
         var avg = p && (p.average_rating != null) ? Number(p.average_rating) : 0;
         var total = p && (p.total_reviews != null) ? parseInt(p.total_reviews, 10) : 0;
@@ -30,53 +43,64 @@
     }
 
     function buildRefCardContent(p, imgWrap, info) {
-        if (p.category_name) {
-            var brand = document.createElement("p");
-            brand.className = "home-card-brand";
-            brand.textContent = p.category_name;
-            info.appendChild(brand);
-        }
         var nameEl = document.createElement("h3");
-        nameEl.className = "home-card-name card-title";
+        nameEl.className = "home-card-name storefront-card-name card-title";
         nameEl.textContent = p.name || "";
         info.appendChild(nameEl);
+        var variantLine = (p.category_name || "") + (p.color_name ? " · " + p.color_name : "");
+        if (variantLine) {
+            var variantEl = document.createElement("p");
+            variantEl.className = "home-card-brand storefront-card-variant";
+            variantEl.textContent = variantLine;
+            info.appendChild(variantEl);
+        }
+        if (p.description && String(p.description).trim()) {
+            var descEl = document.createElement("p");
+            descEl.className = "storefront-card-description";
+            descEl.textContent = String(p.description).trim().split(/\s+/).slice(0, 12).join(" ");
+            info.appendChild(descEl);
+        }
+        var rating = document.createElement("span");
+        rating.className = "storefront-card-rating";
+        rating.innerHTML = formatRatingDisplay(p);
+        info.appendChild(rating);
         if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
             var disc = document.createElement("span");
-            disc.className = "home-card-discount";
-            disc.textContent = "↓" + (p.discount_percent || 0) + "%";
+            disc.className = "storefront-card-discount-pct";
+            disc.textContent = (p.discount_percent || 0) + "% off";
             info.appendChild(disc);
         }
         var priceWrap = document.createElement("div");
-        priceWrap.className = "home-ref-prices card-price";
+        priceWrap.className = "home-ref-prices storefront-card-prices card-price";
         var curr = document.createElement("span");
         curr.className = "current-price";
-        curr.textContent = "₹" + formatPriceNoDecimals(p.price);
+        curr.textContent = formatPriceInr(p.price);
         priceWrap.appendChild(curr);
         if (p.original_price && parseFloat(p.original_price) > parseFloat(p.price || 0)) {
             var orig = document.createElement("span");
             orig.className = "original-price";
-            orig.textContent = "₹" + formatPriceNoDecimals(p.original_price);
+            orig.textContent = formatPriceInr(p.original_price);
             priceWrap.appendChild(orig);
         }
         info.appendChild(priceWrap);
-        if (p.discount_percent && p.discount_percent >= 50) {
-            var tag = document.createElement("span");
-            tag.className = "home-card-tag";
-            tag.textContent = "Hot Deal";
-            info.appendChild(tag);
-        }
     }
 
     function buildCardTall(p) {
         if (!p || typeof p !== "object") return null;
         var card = document.createElement("div");
-        card.className = "product-card-tall featured-product-card home-ref-card";
+        card.className = "product-card-tall featured-product-card home-ref-card storefront-card";
+        if (p.is_featured && p.is_active !== false) {
+            var featBadge = document.createElement("span");
+            featBadge.className = "card-badge-featured";
+            featBadge.textContent = "Featured";
+            card.appendChild(featBadge);
+        }
         var imgSrc = (Array.isArray(p.card_images) ? p.card_images[0] : null) || p.image_url || "";
         var link = document.createElement("a");
         link.href = p.url || "#";
         link.className = "featured-product-link";
         var imgWrap = document.createElement("div");
-        imgWrap.className = "home-ref-image card-image product-card-image-slider" + ((p.card_images && p.card_images.length > 1) ? " js-product-card-slider" : "");
+        imgWrap.className = "home-ref-image storefront-card-image card-image product-card-image-slider" + ((p.card_images && p.card_images.length > 1) ? " js-product-card-slider" : "");
         if (p.card_images && p.card_images.length > 1) imgWrap.setAttribute("data-card-images", JSON.stringify(p.card_images));
         var img = document.createElement("img");
         img.src = imgSrc.trim() || "/static/images/banner.png";
@@ -97,7 +121,7 @@
         }
         link.appendChild(imgWrap);
         var info = document.createElement("div");
-        info.className = "home-ref-info card-info featured-product-info";
+        info.className = "home-ref-info storefront-card-info card-info featured-product-info";
         buildRefCardContent(p, imgWrap, info);
         link.appendChild(info);
         card.appendChild(link);
@@ -118,7 +142,13 @@
     function buildCardCompact(p) {
         if (!p || typeof p !== "object") return null;
         var card = document.createElement("div");
-        card.className = "product-card-compact featured-product-card home-ref-card";
+        card.className = "product-card-compact featured-product-card home-ref-card storefront-card";
+        if (p.is_featured && p.is_active !== false) {
+            var featBadge = document.createElement("span");
+            featBadge.className = "card-badge-featured";
+            featBadge.textContent = "Featured";
+            card.appendChild(featBadge);
+        }
         var imgSrc = (Array.isArray(p.card_images) ? p.card_images[0] : null) || p.image_url || "";
         var wishlist = document.createElement("button");
         wishlist.type = "button";
@@ -135,7 +165,7 @@
         link.href = p.url || "#";
         link.className = "featured-product-link";
         var imgWrap = document.createElement("div");
-        imgWrap.className = "home-ref-image card-image featured-product-image";
+        imgWrap.className = "home-ref-image storefront-card-image card-image featured-product-image";
         var img = document.createElement("img");
         img.src = imgSrc.trim() || "/static/images/banner.png";
         img.alt = p.name || "";
@@ -152,7 +182,7 @@
         imgWrap.appendChild(badge);
         link.appendChild(imgWrap);
         var info = document.createElement("div");
-        info.className = "home-ref-info card-info";
+        info.className = "home-ref-info storefront-card-info card-info";
         buildRefCardContent(p, imgWrap, info);
         link.appendChild(info);
         card.appendChild(link);
@@ -173,6 +203,12 @@
         img.loading = "lazy";
         img.setAttribute("decoding", "async");
         imgWrap.appendChild(img);
+        if (p.is_featured && p.is_active !== false) {
+            var featBadge = document.createElement("span");
+            featBadge.className = "card-badge-featured";
+            featBadge.textContent = "Featured";
+            imgWrap.appendChild(featBadge);
+        }
         var rating = document.createElement("span");
         rating.className = "home-card-rating";
         rating.innerHTML = formatRatingDisplay(p);
@@ -182,19 +218,19 @@
         info.className = "home-ref-info card-info";
         if (p.category_name) {
             var brand = document.createElement("p");
-            brand.className = "home-card-brand";
-            brand.textContent = p.category_name;
+            brand.className = "home-card-brand storefront-card-variant";
+            brand.textContent = p.category_name + (p.color_name ? " · " + p.color_name : "");
             info.appendChild(brand);
         }
         var nameEl = document.createElement("h3");
-        nameEl.className = "home-card-name card-title";
+        nameEl.className = "home-card-name storefront-card-name card-title";
         nameEl.textContent = p.name || "";
         info.appendChild(nameEl);
         var priceWrap = document.createElement("div");
-        priceWrap.className = "home-ref-prices card-price";
+        priceWrap.className = "home-ref-prices storefront-card-prices card-price";
         var curr = document.createElement("span");
         curr.className = "current-price";
-        curr.textContent = "₹" + formatPriceNoDecimals(p.price);
+        curr.textContent = formatPriceInr(p.price);
         priceWrap.appendChild(curr);
         info.appendChild(priceWrap);
         card.appendChild(info);

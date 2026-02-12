@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load color_tags %}
+{% load product_filters %}
 {% block title %}{{ product.name }} - Queen Orange{% endblock %}
 {% block meta_description %}View product details, select size, and add to cart.{% endblock %}
 {% block extra_css %}
@@ -393,6 +394,9 @@
                 <div class="product-details-content">
                     <div class="product-name-with-badge">
                         <h1>{{ product.name }}</h1>
+                        {% if product.is_featured and product.is_active %}
+                            <span class="product-detail-featured-badge">Featured Product</span>
+                        {% endif %}
                         {% if selected_color_variant %}
                         <button type="button" class="wishlist-toggle-btn js-wishlist-toggle {% if in_wishlist %}in-wishlist{% endif %}"
                                 data-variant-id="{{ selected_color_variant.id }}" aria-label="Add to wishlist" title="{% if in_wishlist %}Remove from wishlist{% else %}Add to wishlist{% endif %}">

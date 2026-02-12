@@ -844,6 +844,9 @@ def _serialize_product_for_json(product, detail_url=None):
         "average_rating": avg_rating,
         "total_reviews": total_reviews,
         "is_jewellery": True,
+        "is_featured": getattr(product, "is_featured", False),
+        "is_active": getattr(product, "is_active", True),
+        "description": getattr(product, "description", "") or "",
     }
 
 
@@ -927,6 +930,9 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
         "is_low_stock": is_low_stock,
         "average_rating": avg_rating,
         "total_reviews": total_reviews,
+        "is_featured": getattr(product, "is_featured", False),
+        "is_active": getattr(product, "is_active", True),
+        "description": getattr(product, "description", "") or "",
     }
 
 
