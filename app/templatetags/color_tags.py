@@ -18,6 +18,23 @@ def to_json(value):
     except (TypeError, ValueError):
         return "[]"
 
+
+@register.filter
+def image_urls_json(queryset_or_list):
+    """For ColorVariantImage (or similar) iterable: return JSON array of image URLs for data-card-images."""
+    if not queryset_or_list:
+        return "[]"
+    try:
+        urls = []
+        for item in queryset_or_list:
+            if hasattr(item, "image") and getattr(item.image, "url", None):
+                urls.append(item.image.url)
+            elif hasattr(item, "url"):
+                urls.append(item.url)
+        return json.dumps(urls)
+    except (TypeError, ValueError):
+        return "[]"
+
 # Extended custom color names not found in webcolors library
 EXTENDED_COLORS = {
     'olive green': '#6B8E23',
