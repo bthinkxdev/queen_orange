@@ -6,6 +6,8 @@ from .models import (
     CartItem,
     Category,
     ContactMessage,
+    JewelleryDetail,
+    JewelleryImage,
     NewsletterSubscription,
     Order,
     OrderItem,
@@ -30,11 +32,21 @@ class ProductVariantInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price", "is_featured", "is_bestseller", "is_active")
+    list_display = ("name", "product_type", "category", "price", "is_featured", "is_bestseller", "is_active")
     list_filter = ("category", "is_featured", "is_bestseller", "is_active")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
     inlines = [ProductVariantInline]
+
+
+@admin.register(JewelleryDetail)
+class JewelleryDetailAdmin(admin.ModelAdmin):
+    list_display = ("product", "metal_type", "purity", "weight", "stock_quantity")
+
+
+@admin.register(JewelleryImage)
+class JewelleryImageAdmin(admin.ModelAdmin):
+    list_display = ("jewellery_detail", "image", "is_primary", "display_order")
 
 
 @admin.register(Cart)

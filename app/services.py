@@ -8,7 +8,18 @@ from django.db.models import F
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 
-from .models import Address, Cart, CartItem, Order, OrderItem, Payment, ProductVariant, SizeVariant
+from .models import (
+    Address,
+    Cart,
+    CartItem,
+    JewelleryDetail,
+    Order,
+    OrderItem,
+    Payment,
+    Product,
+    ProductVariant,
+    SizeVariant,
+)
 
 
 def send_order_notification_email_async(order, request=None):
@@ -116,10 +127,12 @@ class CartService:
         except Cart.DoesNotExist:
             return
         user_cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
-        for item in session_cart.items.select_related("variant", "size_variant").all():
+        for item in session_cart.items.select_related("product", "variant", "size_variant").all():
             sellable = item.get_sellable()
             if sellable:
                 cls.add_item(user_cart, sellable, item.quantity)
+            elif item.product_id and item.product.product_type == "jewellery":
+                cls.add_item(user_cart, item.product, item.quantity)
         session_cart.status = Cart.Status.ABANDONED
         session_cart.save(update_fields=["status"])
 
@@ -136,10 +149,40 @@ class CartService:
             return CartTotals(subtotal=0, shipping=0, total=0)
 
     @staticmethod
-    def add_item(cart, variant_or_size_variant, quantity):
-        """Add to cart. Accepts either ProductVariant or SizeVariant."""
+    def add_item(cart, variant_or_size_variant_or_product, quantity):
+        """Add to cart. Accepts ProductVariant, SizeVariant, or Product (for jewellery)."""
         try:
-            v = variant_or_size_variant
+            v = variant_or_size_variant_or_product
+            if isinstance(v, Product):
+                product = v
+                jd = getattr(product, "jewellery_detail", None)
+                if not jd or product.product_type != "jewellery":
+                    raise CartError("Product is not a jewellery item.")
+                stock = jd.stock_quantity or 0
+                if stock <= 0:
+                    raise StockError("This item is out of stock.")
+                max_qty = getattr(settings, "MAX_CART_QTY", 10)
+                quantity = max(1, min(quantity, max_qty))
+                if quantity > stock:
+                    raise StockError("Requested quantity exceeds available stock.")
+                item = CartItem.objects.filter(
+                    cart=cart, product=product, variant__isnull=True, size_variant__isnull=True
+                ).first()
+                if item:
+                    new_quantity = min(item.quantity + quantity, max_qty)
+                    if new_quantity > stock:
+                        raise StockError("Requested quantity exceeds available stock.")
+                    item.quantity = new_quantity
+                    item.unit_price = product.price
+                    item.save(update_fields=["quantity", "unit_price", "updated_at"])
+                    return item
+                return CartItem.objects.create(
+                    cart=cart,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=product.price,
+                )
+
             product = v.product
             if not getattr(v, "is_active", True) or (v.stock_quantity or 0) <= 0:
                 raise StockError("This item is out of stock.")
@@ -177,6 +220,8 @@ class CartService:
             )
         except StockError:
             raise
+        except CartError:
+            raise
         except Exception as e:
             raise CartError(f"Failed to add item to cart: {str(e)}")
 
@@ -187,16 +232,28 @@ class CartService:
                 item.delete()
                 return
             sellable = item.get_sellable()
-            if not sellable:
-                raise CartError("Invalid cart item.")
+            if sellable:
+                stock = sellable.stock_quantity
+                product = sellable.product
+            else:
+                if not item.product_id:
+                    raise CartError("Invalid cart item.")
+                product = item.product
+                if product.product_type == "jewellery":
+                    jd = getattr(product, "jewellery_detail", None)
+                    stock = (jd.stock_quantity or 0) if jd else 0
+                else:
+                    raise CartError("Invalid cart item.")
             max_qty = getattr(settings, "MAX_CART_QTY", 10)
             quantity = min(quantity, max_qty)
-            if quantity > sellable.stock_quantity:
+            if quantity > stock:
                 raise StockError("Requested quantity exceeds available stock.")
             item.quantity = quantity
-            item.unit_price = sellable.product.price
+            item.unit_price = product.price
             item.save(update_fields=["quantity", "unit_price", "updated_at"])
         except StockError:
+            raise
+        except CartError:
             raise
         except Exception as e:
             raise CartError(f"Failed to update cart item: {str(e)}")
@@ -223,10 +280,16 @@ class OrderService:
 
         for item in items:
             sellable = item.get_sellable()
-            if not sellable:
-                raise CartError("Invalid cart item.")
-            if item.quantity > sellable.stock_quantity:
-                raise StockError(f"{item.product.name} is out of stock.")
+            if sellable:
+                if item.quantity > sellable.stock_quantity:
+                    raise StockError(f"{item.product.name} is out of stock.")
+            else:
+                if item.product.product_type == "jewellery":
+                    jd = getattr(item.product, "jewellery_detail", None)
+                    if not jd or item.quantity > (jd.stock_quantity or 0):
+                        raise StockError(f"{item.product.name} is out of stock.")
+                else:
+                    raise CartError("Invalid cart item.")
 
         # Handle address - either use existing or create snapshot
         selected_address_id = form_data.get('selected_address')
@@ -276,10 +339,22 @@ class OrderService:
 
         for item in items:
             sellable = item.get_sellable()
-            if hasattr(sellable, "color_variant"):
-                snapshot = f"{sellable.size} {sellable.color_variant.name}".strip()
+            if sellable:
+                if hasattr(sellable, "color_variant"):
+                    snapshot = f"{sellable.size} {sellable.color_variant.name}".strip()
+                else:
+                    snapshot = f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip()
             else:
-                snapshot = f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip()
+                if item.product.product_type == "jewellery":
+                    jd = getattr(item.product, "jewellery_detail", None)
+                    if jd:
+                        purity = (jd.purity or "").strip()
+                        snapshot = f"{jd.metal_type} {purity}".strip() if purity else jd.metal_type
+                    else:
+                        snapshot = item.product.name
+                else:
+                    snapshot = item.product.name
+
             OrderItem.objects.create(
                 order=order,
                 product=item.product,
@@ -299,6 +374,11 @@ class OrderService:
                     )
                 elif item.variant_id:
                     ProductVariant.objects.filter(pk=item.variant_id).update(
+                        stock_quantity=F("stock_quantity") - item.quantity
+                    )
+                elif item.product.product_type == "jewellery":
+                    from .models import JewelleryDetail
+                    JewelleryDetail.objects.filter(product=item.product).update(
                         stock_quantity=F("stock_quantity") - item.quantity
                     )
 

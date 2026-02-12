@@ -674,6 +674,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var cartForm = document.querySelector('form[action*="cart_add"]');
     if (cartForm) {
         cartForm.addEventListener('submit', function(e) {
+            if (window.isJewellery) {
+                return true;
+            }
             if (useColorVariants) {
                 var sizeVariantIdEl = document.getElementById('selectedSizeVariantId');
                 var val = sizeVariantIdEl ? sizeVariantIdEl.value : '';

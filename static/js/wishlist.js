@@ -41,7 +41,8 @@
             e.stopPropagation();
 
             var variantId = btn.getAttribute("data-variant-id");
-            if (!variantId) return;
+            var productId = btn.getAttribute("data-product-id");
+            if (!variantId && !productId) return;
 
             if (!config.isAuthenticated) {
                 var next = encodeURIComponent(window.location.href);
@@ -59,10 +60,13 @@
             };
             if (csrf) headers["X-CSRFToken"] = csrf;
 
+            var body = variantId
+                ? { color_variant_id: parseInt(variantId, 10) }
+                : { product_id: parseInt(productId, 10) };
             fetch(toggleUrl, {
                 method: "POST",
                 headers: headers,
-                body: JSON.stringify({ color_variant_id: parseInt(variantId, 10) })
+                body: JSON.stringify(body)
             })
                 .then(function(res) {
                     if (res.status === 403) {
@@ -83,7 +87,9 @@
                         btn.classList.toggle("in-wishlist", data.added);
                         if (typeof data.count === "number") updateHeaderCount(data.count);
                         // If on wishlist page and we removed, remove the row
-                        var row = document.querySelector(".wishlist-item[data-variant-id=\"" + variantId + "\"]");
+                        var row = variantId
+                            ? document.querySelector(".wishlist-item[data-variant-id=\"" + variantId + "\"]")
+                            : document.querySelector(".wishlist-item[data-product-id=\"" + productId + "\"]");
                         if (row && !data.added) row.remove();
                     }
                 })

@@ -16,18 +16,29 @@ def cart_context(request):
 def wishlist_context(request):
     wishlist_count = 0
     wishlist_variant_ids = []
+    wishlist_product_ids = []
     if getattr(request, "user", None) and request.user.is_authenticated:
         wishlist_variant_ids = list(
             Wishlist.objects.filter(
                 user=request.user,
+                color_variant__isnull=False,
                 color_variant__is_active=True,
                 color_variant__product__is_active=True,
             ).values_list("color_variant_id", flat=True)
         )
-        wishlist_count = len(wishlist_variant_ids)
+        wishlist_product_ids = list(
+            Wishlist.objects.filter(
+                user=request.user,
+                product__isnull=False,
+                product__is_active=True,
+                product__product_type="jewellery",
+            ).values_list("product_id", flat=True)
+        )
+        wishlist_count = len(wishlist_variant_ids) + len(wishlist_product_ids)
     return {
         "wishlist_count": wishlist_count,
         "wishlist_variant_ids": wishlist_variant_ids,
+        "wishlist_product_ids": wishlist_product_ids,
     }
 
 

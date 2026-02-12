@@ -62,13 +62,29 @@ class ProductQuerySet(models.QuerySet):
                 color_variants__size_variants__is_active=True,
                 color_variants__size_variants__stock_quantity__gt=0,
             )
+            | Q(product_type=PRODUCT_TYPE_JEWELLERY, jewellery_detail__stock_quantity__gt=0)
         ).distinct()
 
 
+PRODUCT_TYPE_CLOTHING = "clothing"
+PRODUCT_TYPE_JEWELLERY = "jewellery"
+PRODUCT_TYPE_CHOICES = [
+    (PRODUCT_TYPE_CLOTHING, "Clothing"),
+    (PRODUCT_TYPE_JEWELLERY, "Jewellery"),
+]
+
+
 class Product(TimeStampedModel):
-    """Product has no direct image field. Images live on ColorVariant (ColorVariantImage).
+    """Product has no direct image field for clothing. Images live on ColorVariant (ColorVariantImage).
+    For jewellery, images come from JewelleryDetail.
     Use product.get_card_image_urls() or color_variant.images for display; never product.images.
     """
+    product_type = models.CharField(
+        max_length=20,
+        choices=PRODUCT_TYPE_CHOICES,
+        default=PRODUCT_TYPE_CLOTHING,
+        db_index=True,
+    )
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=220, unique=True)
@@ -146,12 +162,21 @@ class Product(TimeStampedModel):
         return "https://" + url.lstrip("/")
     def has_any_sellable_stock(self):
         """
-        True if product has in-stock ProductVariant OR in-stock SizeVariant (via color_variants).
-        Use for displaying Add to Cart vs View Details vs Out of Stock on product cards.
-        Uses prefetched data when available (e.g. from HomeView) to avoid N+1 queries.
+        True if product has in-stock ProductVariant OR in-stock SizeVariant (via color_variants)
+        OR is jewellery with JewelleryDetail.stock_quantity > 0.
         """
         if getattr(self, "_has_sellable_stock", None) is not None:
             return self._has_sellable_stock
+        if getattr(self, "product_type", None) == PRODUCT_TYPE_JEWELLERY:
+            try:
+                jd = getattr(self, "jewellery_detail", None)
+                if jd and (getattr(jd, "stock_quantity", 0) or 0) > 0:
+                    self._has_sellable_stock = True
+                    return True
+            except Exception:
+                pass
+            self._has_sellable_stock = False
+            return False
         # ProductVariant: use prefetch (HomeView prefetches in-stock variants only)
         pv_list = list(self.variants.all())
         if any(v for v in pv_list if getattr(v, "is_active", True) and (getattr(v, "stock_quantity", 0) or 0) > 0):
@@ -171,12 +196,29 @@ class Product(TimeStampedModel):
     def get_card_image_urls(self, limit=20):
         """
         Ordered list of image URLs for product cards (hover/touch slider on home and collections).
-        One image per color variant (first image of each), up to `limit` (default 20 for N colors).
-        Safe if no images (returns empty list). Normalizes external URLs so they load (e.g. https).
+        Clothing: one image per color variant.
+        Jewellery: main image from JewelleryDetail.
         """
         urls = []
         seen = set()
         try:
+            if getattr(self, "product_type", None) == PRODUCT_TYPE_JEWELLERY:
+                try:
+                    jd = getattr(self, "jewellery_detail", None)
+                    if jd:
+                        urls = []
+                        for img in jd.images.order_by("display_order", "id")[:3]:
+                            if img.image:
+                                url = img.image.url
+                                if url:
+                                    url = self._normalize_card_image_url(url)
+                                if url:
+                                    urls.append(url)
+                        return urls[:3]
+                except Exception:
+                    pass
+                return []
+
             for cv in self.color_variants.filter(is_active=True).order_by("display_order", "name"):
                 if len(urls) >= limit:
                     break
@@ -300,6 +342,59 @@ class ProductVariant(TimeStampedModel):
         return f"{self.product.name} - {self.size}{color}"
 
 
+class JewelleryDetail(TimeStampedModel):
+    """Details specific to jewellery products. No color/size variants.
+    Images: use JewelleryImage (max 3 per product)."""
+    product = models.OneToOneField(
+        Product, on_delete=models.CASCADE, related_name="jewellery_detail"
+    )
+    metal_type = models.CharField(max_length=80)
+    purity = models.CharField(max_length=40, blank=True, null=True, help_text="e.g. 18K, 22K, 92.5% (optional)")
+    weight = models.DecimalField(
+        max_digits=10, decimal_places=3,
+        help_text="Weight in grams (optional)",
+        validators=[MinValueValidator(0)],
+        blank=True,
+        null=True,
+    )
+    gemstone = models.CharField(max_length=120, blank=True)
+    making_charge = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(0)],
+        blank=True,
+        null=True,
+        help_text="Optional",
+    )
+    is_adjustable = models.BooleanField(default=False)
+    stock_quantity = models.PositiveIntegerField(
+        default=1,
+        help_text="Available quantity; jewellery is typically one per SKU",
+    )
+
+    class Meta:
+        verbose_name = "Jewellery detail"
+        verbose_name_plural = "Jewellery details"
+
+    def __str__(self):
+        return f"{self.product.name} (Jewellery)"
+
+
+class JewelleryImage(TimeStampedModel):
+    """Image for jewellery product. Maximum 3 per JewelleryDetail."""
+    jewellery_detail = models.ForeignKey(
+        JewelleryDetail, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to="products/jewellery/")
+    is_primary = models.BooleanField(default=False, db_index=True)
+    display_order = models.PositiveIntegerField(default=0, db_index=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.jewellery_detail.product.name} image"
+
+
 class Cart(TimeStampedModel):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -350,31 +445,44 @@ class CartItem(TimeStampedModel):
                 name="unique_cart_size_variant",
                 condition=models.Q(size_variant__isnull=False),
             ),
-            models.CheckConstraint(condition=models.Q(quantity__gte=1), name="cartitem_qty_positive"),
-            models.CheckConstraint(
-                condition=models.Q(variant__isnull=False) | models.Q(size_variant__isnull=False),
-                name="cartitem_variant_or_size_variant",
+            models.UniqueConstraint(
+                fields=["cart", "product"],
+                name="unique_cart_product_jewellery",
+                condition=models.Q(variant__isnull=True, size_variant__isnull=True),
             ),
+            models.CheckConstraint(condition=models.Q(quantity__gte=1), name="cartitem_qty_positive"),
+            # Either variant, size_variant, or product-only (jewellery). Jewellery enforced in Python.
         ]
         indexes = [
             models.Index(fields=["cart", "product"]),
         ]
 
     def get_sellable(self):
-        """Return the sellable unit (SizeVariant or ProductVariant) for stock/display."""
+        """Return the sellable unit (SizeVariant, ProductVariant, or None for product-only jewellery)."""
         if self.size_variant_id:
             return self.size_variant
-        return self.variant
+        if self.variant_id:
+            return self.variant
+        return None
 
     @property
     def variant_display(self):
-        """Human-readable variant (size / color) for display."""
+        """Human-readable variant (size / color) or jewellery info for display."""
         sellable = self.get_sellable()
-        if not sellable:
-            return ""
-        if hasattr(sellable, "color_variant"):
-            return f"{sellable.size} / {sellable.color_variant.name}"
-        return f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip() or sellable.size
+        if sellable:
+            if hasattr(sellable, "color_variant"):
+                return f"{sellable.size} / {sellable.color_variant.name}"
+            return f"{sellable.size} {getattr(sellable, 'color', '') or ''}".strip() or sellable.size
+        # Product-only (jewellery)
+        if self.product_id and getattr(self.product, "product_type", None) == PRODUCT_TYPE_JEWELLERY:
+            try:
+                jd = getattr(self.product, "jewellery_detail", None)
+                if jd:
+                    purity = (jd.purity or "").strip()
+                    return f"{jd.metal_type} {purity}".strip() if purity else jd.metal_type
+            except Exception:
+                pass
+        return ""
 
     @property
     def line_total(self):
@@ -504,7 +612,7 @@ class NewsletterSubscription(TimeStampedModel):
 
 
 class Wishlist(TimeStampedModel):
-    """User wishlist: one color variant per user (variant-focused)."""
+    """User wishlist: ColorVariant for clothing, Product for jewellery."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -514,19 +622,46 @@ class Wishlist(TimeStampedModel):
         "ColorVariant",
         on_delete=models.CASCADE,
         related_name="wishlisted_by",
+        null=True,
+        blank=True,
+    )
+    product = models.ForeignKey(
+        "Product",
+        on_delete=models.CASCADE,
+        related_name="wishlisted_by",
+        null=True,
+        blank=True,
     )
 
     class Meta:
         ordering = ["-created_at"]
         constraints = [
-            models.UniqueConstraint(fields=["user", "color_variant"], name="unique_user_color_variant_wishlist"),
+            models.UniqueConstraint(
+                fields=["user", "color_variant"],
+                condition=models.Q(color_variant__isnull=False),
+                name="unique_user_color_variant_wishlist",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "product"],
+                condition=models.Q(product__isnull=False),
+                name="unique_user_product_wishlist",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(product__isnull=False, color_variant__isnull=True)
+                    | models.Q(product__isnull=True, color_variant__isnull=False)
+                ),
+                name="wishlist_product_or_variant",
+            ),
         ]
         indexes = [
             models.Index(fields=["user"]),
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.color_variant}"
+        if self.color_variant_id:
+            return f"{self.user} - {self.color_variant}"
+        return f"{self.user} - {self.product}"
 
 
 class UserProfile(TimeStampedModel):

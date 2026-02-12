@@ -1,7 +1,17 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Banner, Category, ColorVariant, ColorVariantImage, Product, ProductVariant, SizeVariant
+from .models import (
+    Banner,
+    Category,
+    ColorVariant,
+    ColorVariantImage,
+    JewelleryDetail,
+    JewelleryImage,
+    Product,
+    ProductVariant,
+    SizeVariant,
+)
 
 # Standard apparel sizes (from size chart) for dropdown
 STANDARD_SIZES = [
@@ -139,10 +149,88 @@ class BannerForm(forms.ModelForm):
         return url
 
 
+class JewelleryDetailForm(forms.ModelForm):
+    class Meta:
+        model = JewelleryDetail
+        fields = [
+            "metal_type",
+            "purity",
+            "weight",
+            "gemstone",
+            "making_charge",
+            "is_adjustable",
+            "stock_quantity",
+        ]
+        widgets = {
+            "metal_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Gold, Silver"}),
+            "purity": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 18K, 22K, 92.5%"}),
+            "weight": forms.NumberInput(attrs={"class": "form-control", "step": "0.001", "placeholder": "grams"}),
+            "gemstone": forms.TextInput(attrs={"class": "form-control", "placeholder": "Optional"}),
+            "making_charge": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "is_adjustable": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "stock_quantity": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["gemstone"].required = False
+        self.fields["purity"].required = False
+        self.fields["weight"].required = False
+        self.fields["making_charge"].required = False
+
+    def clean_weight(self):
+        val = self.cleaned_data.get("weight")
+        if val in (None, ""):
+            return None
+        return val
+
+    def clean_making_charge(self):
+        val = self.cleaned_data.get("making_charge")
+        if val in (None, ""):
+            return None
+        return val
+
+
+class JewelleryImageForm(forms.ModelForm):
+    class Meta:
+        model = JewelleryImage
+        fields = ["image", "is_primary", "display_order"]
+        widgets = {
+            "image": forms.FileInput(attrs={"class": "form-control", "accept": "image/*"}),
+            "is_primary": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "display_order": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["display_order"].required = False
+
+    def clean_image(self):
+        # Image optional per form so formset can have empty slots (user adds 0–3 images)
+        return _validate_image_file(self.cleaned_data.get("image"), required=False)
+
+    def clean_display_order(self):
+        val = self.cleaned_data.get("display_order")
+        if val in (None, ""):
+            return 0
+        return val
+
+
+JewelleryImageFormSet = inlineformset_factory(
+    JewelleryDetail,
+    JewelleryImage,
+    form=JewelleryImageForm,
+    extra=3,
+    can_delete=True,
+    max_num=3,
+)
+
+
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
+            "product_type",
             "category",
             "name",
             "slug",
@@ -158,6 +246,7 @@ class ProductForm(forms.ModelForm):
             "is_active",
         ]
         widgets = {
+            "product_type": forms.Select(attrs={"class": "form-control", "id": "id_product_type"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Product Name"}),
             "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "product-slug"}),
@@ -214,8 +303,34 @@ class ProductForm(forms.ModelForm):
                 raise forms.ValidationError(
                     "Original price must be greater than the selling price."
                 )
-        
+
         return cleaned_data
+
+
+def validate_product_type_requirements(form, product, color_formset, jewellery_form=None):
+    """Validate clothing has ColorVariants, jewellery has JewelleryDetail. Call from view."""
+    from django import forms as django_forms
+    product_type = form.cleaned_data.get("product_type", "clothing")
+    if product_type == "clothing":
+        non_deleted = [
+            cf for cf in color_formset.forms
+            if cf.cleaned_data and not cf.cleaned_data.get("DELETE")
+        ]
+        if not non_deleted:
+            raise django_forms.ValidationError(
+                "Clothing products must have at least one color variant."
+            )
+    elif product_type == "jewellery":
+        if jewellery_form and not jewellery_form.is_valid():
+            raise django_forms.ValidationError(
+                "Jewellery products require jewellery details (at least metal type)."
+            )
+        if jewellery_form and jewellery_form.cleaned_data:
+            pass
+        elif not (product and hasattr(product, "jewellery_detail") and product.jewellery_detail):
+            raise django_forms.ValidationError(
+                "Jewellery products must have jewellery details (at least metal type)."
+            )
 
 
 class ProductVariantForm(forms.ModelForm):

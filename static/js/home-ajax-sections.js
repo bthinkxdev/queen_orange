@@ -8,8 +8,9 @@
 
     var WISHLIST_SVG = '<svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
-    // Cached wishlist variant IDs for the current user (used to prefill heart state)
+    // Cached wishlist IDs for the current user (variant for clothing, product for jewellery)
     var wishlistVariantIds = [];
+    var wishlistProductIds = [];
 
     function formatPriceNoDecimals(val) {
         if (val == null || val === "") return "0";
@@ -103,7 +104,11 @@
         var wishlist = document.createElement("button");
         wishlist.type = "button";
         wishlist.className = "product-card-wishlist js-wishlist-toggle";
-        wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
+        if (p.is_jewellery) {
+            wishlist.setAttribute("data-product-id", p.id);
+        } else {
+            wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
+        }
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.insertBefore(wishlist, card.firstChild);
@@ -118,7 +123,11 @@
         var wishlist = document.createElement("button");
         wishlist.type = "button";
         wishlist.className = "product-card-wishlist js-wishlist-toggle";
-        wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
+        if (p.is_jewellery) {
+            wishlist.setAttribute("data-product-id", p.id);
+        } else {
+            wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
+        }
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.appendChild(wishlist);
@@ -199,22 +208,29 @@
         return buildCardTall;
     }
 
-    // Apply "in-wishlist" class to any wishlist toggle buttons whose variant IDs
-    // are present in wishlistVariantIds.
+    // Apply "in-wishlist" class to wishlist toggle buttons (variant IDs or product IDs for jewellery).
     function applyWishlistState() {
-        if (!wishlistVariantIds || !wishlistVariantIds.length) return;
-        var idSet = new Set();
-        wishlistVariantIds.forEach(function (id) {
-            var num = parseInt(id, 10);
-            if (!isNaN(num)) idSet.add(num);
-        });
-        if (!idSet.size) return;
-        var buttons = document.querySelectorAll(".js-wishlist-toggle[data-variant-id]");
-        buttons.forEach(function (btn) {
+        var variantSet = new Set();
+        if (wishlistVariantIds && wishlistVariantIds.length) {
+            wishlistVariantIds.forEach(function (id) {
+                var num = parseInt(id, 10);
+                if (!isNaN(num)) variantSet.add(num);
+            });
+        }
+        var productSet = new Set();
+        if (wishlistProductIds && wishlistProductIds.length) {
+            wishlistProductIds.forEach(function (id) {
+                var num = parseInt(id, 10);
+                if (!isNaN(num)) productSet.add(num);
+            });
+        }
+        document.querySelectorAll(".js-wishlist-toggle[data-variant-id]").forEach(function (btn) {
             var vid = parseInt(btn.getAttribute("data-variant-id") || "", 10);
-            if (!isNaN(vid) && idSet.has(vid)) {
-                btn.classList.add("in-wishlist");
-            }
+            if (!isNaN(vid) && variantSet.has(vid)) btn.classList.add("in-wishlist");
+        });
+        document.querySelectorAll(".js-wishlist-toggle[data-product-id]").forEach(function (btn) {
+            var pid = parseInt(btn.getAttribute("data-product-id") || "", 10);
+            if (!isNaN(pid) && productSet.has(pid)) btn.classList.add("in-wishlist");
         });
     }
 
@@ -228,8 +244,9 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    if (!data || !Array.isArray(data.variant_ids)) return;
-                    wishlistVariantIds = data.variant_ids;
+                    if (!data) return;
+                    wishlistVariantIds = Array.isArray(data.variant_ids) ? data.variant_ids : [];
+                    wishlistProductIds = Array.isArray(data.product_ids) ? data.product_ids : [];
                     applyWishlistState();
                 })
                 .catch(function () {

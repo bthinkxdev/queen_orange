@@ -14,11 +14,19 @@ class CartAddForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        product_id = cleaned.get("product_id")
         size_variant_id = cleaned.get("size_variant_id")
         size = (cleaned.get("size") or "").strip()
-        if not size_variant_id and not size:
-            raise forms.ValidationError("Please select a size or variant.")
-        return cleaned
+        if size_variant_id or size:
+            return cleaned
+        from .models import Product
+        try:
+            product = Product.objects.get(pk=product_id)
+            if product.product_type == "jewellery":
+                return cleaned
+        except (Product.DoesNotExist, TypeError):
+            pass
+        raise forms.ValidationError("Please select a size or variant.")
 
 
 class CartUpdateForm(forms.Form):

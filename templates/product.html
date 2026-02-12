@@ -335,7 +335,15 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
                         </button>
                         <div class="main-image js-product-image-open-modal" tabindex="0" role="button" aria-label="View full size">
-                            {% if use_color_variants and color_variants %}
+                            {% if is_jewellery %}
+                                {% with first_jimg=jewellery_detail.images.first %}
+                                {% if first_jimg %}
+                                    <img src="{{ first_jimg.image.url }}" alt="{{ product.name }}" id="mainImage">
+                                {% else %}
+                                    <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" id="mainImage">
+                                {% endif %}
+                                {% endwith %}
+                            {% elif use_color_variants and color_variants %}
                                 {% with first_cv=color_variants.0 first_img=first_cv.images.first %}
                                     {% if first_img %}
                                         <img src="{{ first_img.image.url }}" alt="{{ product.name }}" id="mainImage">
@@ -352,7 +360,17 @@
                         </button>
                     </div>
                     <div class="image-thumbnails" id="imageThumbnails">
-                        {% if use_color_variants and color_variants %}
+                        {% if is_jewellery %}
+                            {% for jimg in jewellery_detail.images.all %}
+                                <div class="image-thumbnail {% if forloop.first %}active{% endif %}" data-src="{{ jimg.image.url }}">
+                                    <img src="{{ jimg.image.url }}" alt="{{ product.name }}">
+                                </div>
+                            {% empty %}
+                                <div class="image-thumbnail active" data-src="{% static 'images/banner.png' %}">
+                                    <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}">
+                                </div>
+                            {% endfor %}
+                        {% elif use_color_variants and color_variants %}
                             {% with first_cv=color_variants.0 %}
                                 {% for image in first_cv.images.all %}
                                     <div class="image-thumbnail {% if forloop.first %}active{% endif %}" data-src="{{ image.image.url }}">
@@ -382,8 +400,15 @@
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                         </button>
+                        {% elif is_jewellery and jewellery_in_stock %}
+                        <button type="button" class="wishlist-toggle-btn js-wishlist-toggle {% if in_wishlist %}in-wishlist{% endif %}"
+                                data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="{% if in_wishlist %}Remove from wishlist{% else %}Add to wishlist{% endif %}">
+                            <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
                         {% endif %}
-                        {% if not sizes %}
+                        {% if not sizes and not jewellery_in_stock %}
                             <span class="out-of-stock-badge">
                                 Out of Stock
                             </span>
@@ -425,7 +450,7 @@
                         {% endif %}
                     </div>
 
-                    {% if sizes or use_color_variants %}
+                    {% if sizes or use_color_variants or jewellery_in_stock %}
                     <form method="post" action="{% url 'store:cart_add' %}" id="productForm">
                         {% csrf_token %}
                         <input type="hidden" name="product_id" value="{{ product.id }}">
@@ -433,7 +458,29 @@
                         <input type="hidden" name="size" id="selectedSize" value="{% if sizes %}{{ sizes.0 }}{% endif %}">
                         <input type="hidden" name="size_variant_id" id="selectedSizeVariantId" value="">
 
-                        {% if use_color_variants %}
+                        {% if is_jewellery and jewellery_detail %}
+                        <div class="jewellery-details" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                            <h4 style="margin: 0 0 0.75rem 0;">Jewellery Details</h4>
+                            <ul style="margin: 0; padding-left: 1.25rem; color: var(--gray-700);">
+                                <li><strong>Metal:</strong> {{ jewellery_detail.metal_type }}</li>
+                                {% if jewellery_detail.purity %}
+                                <li><strong>Purity:</strong> {{ jewellery_detail.purity }}</li>
+                                {% endif %}
+                                {% if jewellery_detail.weight is not None %}
+                                <li><strong>Weight:</strong> {{ jewellery_detail.weight }}g</li>
+                                {% endif %}
+                                {% if jewellery_detail.gemstone %}
+                                <li><strong>Gemstone:</strong> {{ jewellery_detail.gemstone }}</li>
+                                {% endif %}
+                                {% if jewellery_detail.making_charge %}
+                                <li><strong>Making charge:</strong> ₹{{ jewellery_detail.making_charge }}</li>
+                                {% endif %}
+                                {% if jewellery_detail.is_adjustable %}
+                                <li>Adjustable</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% elif use_color_variants %}
                         <div class="color-selector">
                             <label>Color</label>
                             <div class="color-options" id="colorOptions">
@@ -450,7 +497,9 @@
                             <div id="sizeMessage" class="size-message" style="display: none; color: #FF9800; margin: 10px 0; font-weight: 500; padding: 10px; background: #FFF3E0; border-radius: 4px;">Select a color first</div>
                             <div class="size-options" id="sizeOptionsContainer"></div>
                         </div>
-                        {% else %}
+                        {% endif %}
+                        {% if not is_jewellery %}
+                        {% if not use_color_variants %}
                         <div class="size-selector">
                             <label>Select Size</label>
                             <div class="size-options">
@@ -472,6 +521,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
+                        {% endif %}
                         {% endif %}
                         {% endif %}
 
@@ -748,10 +798,15 @@
 <script>
     window.sizeColorStock = {{ size_color_stock_json|safe }};
     window.useColorVariants = {{ use_color_variants|yesno:"true,false" }};
+    window.isJewellery = {{ is_jewellery|yesno:"true,false" }};
     window.colorSizesStock = {{ color_sizes_stock_json|safe }};
     window.productId = {{ product.id }};
     window.colorImagesFallback = [
-        {% if use_color_variants and color_variants %}
+        {% if is_jewellery and jewellery_detail %}
+            {% for jimg in jewellery_detail.images.all %}
+                {"url": "{{ jimg.image.url }}", "is_primary": {{ jimg.is_primary|yesno:"true,false" }}}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        {% elif use_color_variants and color_variants %}
             {% with first_cv=color_variants.0 %}
                 {% for image in first_cv.images.all %}
                     {"url": "{{ image.image.url }}", "is_primary": {{ image.is_primary|yesno:"true,false" }}}{% if not forloop.last %},{% endif %}

@@ -24,6 +24,7 @@ from .models import (
     CartItem,
     Category,
     ColorVariant,
+    JewelleryDetail,
     Order,
     OrderItem,
     Product,
@@ -66,68 +67,122 @@ def _active_color_variant_qs():
         return ColorVariant.objects.none()
 
 
+def _collection_card_items(request, paginate_by=12):
+    """
+    Return combined list of (item, is_jewellery) for collection.
+    item is ColorVariant for clothing, Product for jewellery.
+    """
+    from django.core.paginator import Paginator
+    category = request.GET.get("category")
+    min_price = request.GET.get("min_price")
+    max_price = request.GET.get("max_price")
+    size = request.GET.get("size")
+    material = request.GET.get("material")
+    query = request.GET.get("q")
+    sort = (request.GET.get("sort") or "").strip().lower()
+
+    cards = []
+    # Clothing: ColorVariants
+    cv_qs = _active_color_variant_qs()
+    if category and category != "all":
+        cv_qs = cv_qs.filter(product__category__slug=category)
+    if min_price:
+        cv_qs = cv_qs.filter(product__price__gte=min_price)
+    if max_price:
+        cv_qs = cv_qs.filter(product__price__lte=max_price)
+    if size:
+        cv_qs = cv_qs.filter(
+            size_variants__size=size,
+            size_variants__is_active=True,
+            size_variants__stock_quantity__gt=0,
+        )
+    if material:
+        cv_qs = cv_qs.filter(product__material__iexact=material.strip())
+    if query:
+        cv_qs = cv_qs.filter(
+            Q(product__name__icontains=query)
+            | Q(product__description__icontains=query)
+            | Q(product__category__name__icontains=query)
+        )
+    if sort == "price_asc":
+        cv_qs = cv_qs.order_by("product__price", "product__created_at")
+    elif sort == "price_desc":
+        cv_qs = cv_qs.order_by("-product__price", "-product__created_at")
+    else:
+        cv_qs = cv_qs.order_by("-product__created_at", "display_order", "id")
+    for cv in cv_qs.distinct():
+        cards.append((cv, False))
+
+    # Jewellery: Products with jewellery_detail and stock
+    jewellery_qs = (
+        Product.objects.active()
+        .filter(product_type="jewellery")
+        .filter(jewellery_detail__stock_quantity__gt=0)
+        .select_related("category", "jewellery_detail")
+        .prefetch_related("jewellery_detail__images")
+    )
+    if category and category != "all":
+        jewellery_qs = jewellery_qs.filter(category__slug=category)
+    if min_price:
+        jewellery_qs = jewellery_qs.filter(price__gte=min_price)
+    if max_price:
+        jewellery_qs = jewellery_qs.filter(price__lte=max_price)
+    if material:
+        jewellery_qs = jewellery_qs.filter(material__iexact=material.strip())
+    if query:
+        jewellery_qs = jewellery_qs.filter(
+            Q(name__icontains=query)
+            | Q(description__icontains=query)
+            | Q(category__name__icontains=query)
+        )
+    if sort == "price_asc":
+        jewellery_qs = jewellery_qs.order_by("price", "created_at")
+    elif sort == "price_desc":
+        jewellery_qs = jewellery_qs.order_by("-price", "-created_at")
+    else:
+        jewellery_qs = jewellery_qs.order_by("-created_at")
+    for p in jewellery_qs:
+        cards.append((p, True))
+
+    # Sort combined list
+    if sort == "price_asc":
+        def price_key(c):
+            item, is_j = c
+            return (float(item.product.price if not is_j else item.price), item.created_at)
+        cards.sort(key=price_key)
+    elif sort == "price_desc":
+        def price_key_desc(c):
+            item, is_j = c
+            return (-float(item.product.price if not is_j else item.price), item.created_at)
+        cards.sort(key=price_key_desc)
+    else:
+        cards.sort(key=lambda x: x[0].created_at, reverse=True)
+
+    return cards
+
+
 class ProductListView(ListView):
     """
     Collection page.
 
-    NOTE: This now lists ColorVariant rows instead of Products, treating each
-    color as a standalone card while still using Product as the parent entity
-    for name, price, rating, etc.
+    Lists both ColorVariant (clothing) and Product (jewellery) in the same grid.
     """
 
     template_name = "category.html"
-    context_object_name = "products"  # actually ColorVariant instances
+    context_object_name = "card_items"
     paginate_by = 12
 
     def get_queryset(self):
         try:
-            qs = _active_color_variant_qs()
-
-            category = self.request.GET.get("category")
-            min_price = self.request.GET.get("min_price")
-            max_price = self.request.GET.get("max_price")
-            size = self.request.GET.get("size")
-            material = self.request.GET.get("material")
-            query = self.request.GET.get("q")
-
-            if category and category != "all":
-                qs = qs.filter(product__category__slug=category)
-            if min_price:
-                qs = qs.filter(product__price__gte=min_price)
-            if max_price:
-                qs = qs.filter(product__price__lte=max_price)
-            if size:
-                # Only variants that have this size in stock
-                qs = qs.filter(
-                    size_variants__size=size,
-                    size_variants__is_active=True,
-                    size_variants__stock_quantity__gt=0,
-                )
-            if material:
-                qs = qs.filter(product__material__iexact=material.strip())
-            if query:
-                qs = qs.filter(
-                    Q(product__name__icontains=query)
-                    | Q(product__description__icontains=query)
-                    | Q(product__category__name__icontains=query)
-                )
-            sort = (self.request.GET.get("sort") or "").strip().lower()
-            if sort == "price_asc":
-                qs = qs.order_by("product__price", "product__created_at")
-            elif sort == "price_desc":
-                qs = qs.order_by("-product__price", "-product__created_at")
-            elif sort == "newest":
-                qs = qs.order_by("-product__created_at", "display_order", "id")
-            else:
-                qs = qs.order_by("-product__created_at", "display_order", "id")
-            return qs
+            return _collection_card_items(self.request, self.paginate_by)
         except Exception as e:
             logger.error(f"Error in ProductListView.get_queryset: {str(e)}", exc_info=True)
-            return ColorVariant.objects.none()
+            return []
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True)
+        context["products"] = context.get("card_items", [])
         context["page_title"] = "Shop All Products"
         context["active_page"] = "collection"
         category_slug = self.request.GET.get("category")
@@ -183,8 +238,8 @@ class HomeView(TemplateView):
             deal_qs = (
                 Product.objects.active()
                 .filter(is_deal_of_day=True)
-                .select_related("category")
-                .prefetch_related(
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images",
                     Prefetch("variants", queryset=variant_qs),
                     "color_variants__images",
                     "color_variants__size_variants",
@@ -198,8 +253,8 @@ class HomeView(TemplateView):
             context["bestseller_products"] = (
                 Product.objects.active()
                 .filter(is_bestseller=True)
-                .select_related("category")
-                .prefetch_related(
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images",
                     Prefetch("variants", queryset=variant_qs),
                     "color_variants__images",
                     "color_variants__size_variants",
@@ -232,13 +287,14 @@ class HomeView(TemplateView):
                 logger.error(f"Error building home cart preview: {cart_exc}", exc_info=True)
                 context["home_cart_items"] = []
 
-            # --- Wishlist variants (home page): variant-focused ---
+            # --- Wishlist: variants (clothing) + products (jewellery) for Your Favorites ---
             home_wishlist_variants = []
+            home_wishlist_products = []
             user = getattr(self.request, "user", None)
             if user and user.is_authenticated:
                 try:
                     wishlist_cv_ids = list(
-                        Wishlist.objects.filter(user=user)
+                        Wishlist.objects.filter(user=user, color_variant__isnull=False)
                         .filter(
                             color_variant__is_active=True,
                             color_variant__product__is_active=True,
@@ -251,13 +307,20 @@ class HomeView(TemplateView):
                             .filter(pk__in=wishlist_cv_ids)
                             .order_by("display_order", "id")
                         )
-                        # Preserve order from wishlist (most recent first)
                         order = {vid: i for i, vid in enumerate(wishlist_cv_ids)}
                         home_wishlist_variants.sort(key=lambda cv: order.get(cv.pk, 999))
+                    wishlist_product_items = list(
+                        Wishlist.objects.filter(user=user, product__isnull=False)
+                        .filter(product__is_active=True, product__product_type="jewellery")
+                        .select_related("product", "product__category", "product__jewellery_detail")
+                        .prefetch_related("product__jewellery_detail__images")
+                        .order_by("-created_at")[:12]
+                    )
+                    home_wishlist_products = [wl.product for wl in wishlist_product_items]
                 except Exception as wl_exc:
-                    logger.error(f"Error building home wishlist variants: {wl_exc}", exc_info=True)
-                    home_wishlist_variants = []
+                    logger.error(f"Error building home wishlist: {wl_exc}", exc_info=True)
             context["home_wishlist_variants"] = home_wishlist_variants
+            context["home_wishlist_products"] = home_wishlist_products
 
             return context
         except Exception as e:
@@ -268,6 +331,8 @@ class HomeView(TemplateView):
             context["bestseller_products"] = []
             context["categories"] = []
             context["banners"] = []
+            context["home_wishlist_variants"] = []
+            context["home_wishlist_products"] = []
             return context
 
 
@@ -333,8 +398,9 @@ class ProductDetailView(DetailView):
     def get_queryset(self):
         return (
             Product.objects.active()
-            .select_related("category")
+            .select_related("category", "jewellery_detail")
             .prefetch_related(
+                "jewellery_detail__images",
                 Prefetch("variants", queryset=ProductVariant.objects.filter(is_active=True, stock_quantity__gt=0)),
                 Prefetch(
                     "color_variants",
@@ -392,7 +458,25 @@ class ProductDetailView(DetailView):
             product = context["product"]
             color_variants = list(product.color_variants.all()) if hasattr(product, "color_variants") else []
 
-            if color_variants:
+            if getattr(product, "product_type", None) == "jewellery":
+                jd = getattr(product, "jewellery_detail", None)
+                context["is_jewellery"] = True
+                context["jewellery_detail"] = jd
+                context["jewellery_in_stock"] = jd and (getattr(jd, "stock_quantity", 0) or 0) > 0
+                context["color_variants"] = []
+                context["sizes"] = []
+                context["colors"] = []
+                context["use_color_variants"] = False
+                context["size_color_stock_json"] = "{}"
+                context["color_sizes_stock_json"] = "{}"
+                context["selected_color_variant"] = None
+                context["in_wishlist"] = (
+                    Wishlist.objects.filter(user=self.request.user, product=product).exists()
+                    if self.request.user.is_authenticated
+                    else False
+                )
+                context["similar_variants"] = []
+            elif color_variants:
                 selected_cv = self._select_color_variant(color_variants)
 
                 if selected_cv:
@@ -428,6 +512,8 @@ class ProductDetailView(DetailView):
                 except (TypeError, ValueError):
                     context["size_color_stock_json"] = json.dumps({})
                 context["use_color_variants"] = True
+                context["is_jewellery"] = False
+                context["jewellery_in_stock"] = False
             else:
                 # Legacy flow: ProductVariant
                 variants = list(product.variants.all())
@@ -447,14 +533,16 @@ class ProductDetailView(DetailView):
                     context["size_color_stock_json"] = json.dumps({})
                 context["color_sizes_stock_json"] = json.dumps({})
                 context["use_color_variants"] = False
+                context["is_jewellery"] = False
+                context["jewellery_in_stock"] = False
 
             # Related products
             context["related_products"] = (
                 Product.objects.active()
                 .filter(category=product.category)
                 .exclude(pk=product.pk)
-                .select_related("category")
-                .prefetch_related("color_variants__images")[:4]
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images", "color_variants__images")[:4]
             )
             # Similar products: other color variants of the same product (exclude current)
             color_variants_list = context.get("color_variants") or []
@@ -477,16 +565,15 @@ class ProductDetailView(DetailView):
             )
             context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
             context["active_page"] = "collection"
-            # Wishlist is variant-focused: check if selected color variant is in wishlist
-            selected_cv = context.get("color_variants") and context["color_variants"][0]
-            context["in_wishlist"] = (
-                Wishlist.objects.filter(
-                    user=self.request.user, color_variant=selected_cv
-                ).exists()
-                if (self.request.user.is_authenticated and selected_cv)
-                else False
-            )
-            context["selected_color_variant"] = selected_cv
+            # Wishlist: variant for clothing, product for jewellery (jewellery in_wishlist already set above)
+            if not context.get("is_jewellery"):
+                selected_cv = (context.get("color_variants") or [None])[0] if context.get("color_variants") else None
+                context["in_wishlist"] = (
+                    Wishlist.objects.filter(user=self.request.user, color_variant=selected_cv).exists()
+                    if (self.request.user.is_authenticated and selected_cv)
+                    else False
+                )
+                context["selected_color_variant"] = selected_cv
 
             # ----- Ratings & Reviews (verified buyers only) -----
             reviews_qs = (
@@ -728,6 +815,10 @@ def _serialize_product_for_json(product, detail_url=None):
                     break
             if has_stock:
                 break
+    if not has_stock and getattr(product, "product_type", None) == "jewellery":
+        jd = getattr(product, "jewellery_detail", None)
+        if jd and (getattr(jd, "stock_quantity", 0) or 0) > 0:
+            has_stock = True
     discount = 0
     if getattr(product, "original_price", None) and product.original_price and product.price:
         if product.original_price > product.price:
@@ -752,6 +843,7 @@ def _serialize_product_for_json(product, detail_url=None):
         "has_stock": has_stock,
         "average_rating": avg_rating,
         "total_reviews": total_reviews,
+        "is_jewellery": True,
     }
 
 
@@ -839,22 +931,48 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
 
 
 class NewArrivalsView(View):
-    """JSON API: latest active products. ?limit=20 default (capped at 20)."""
+    """JSON API: latest active products (clothing + jewellery). ?limit=30 default (capped at 30)."""
 
     def get(self, request):
         try:
-            limit = request.GET.get("limit", "20")
+            limit = request.GET.get("limit", "30")
             try:
-                limit = min(max(int(limit), 1), 20)
+                limit = min(max(int(limit), 1), 30)
             except (TypeError, ValueError):
-                limit = 20
+                limit = 30
 
-            qs = (
+            # Clothing: ColorVariants
+            cv_qs = (
                 _active_color_variant_qs()
-                .order_by("-product__created_at", "display_order", "id")[:limit]
+                .order_by("-product__created_at", "display_order", "id")
             )
-            variants = list(qs)
-            payload = [_serialize_color_variant_for_json(cv) for cv in variants]
+            cv_list = [(cv, False) for cv in cv_qs]
+
+            # Jewellery: Products with stock
+            jewellery_qs = (
+                Product.objects.active()
+                .filter(product_type="jewellery")
+                .filter(jewellery_detail__stock_quantity__gt=0)
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images")
+                .order_by("-created_at")
+            )
+            jewellery_list = [(p, True) for p in jewellery_qs]
+
+            # Combine and sort by created_at (newest first)
+            combined = cv_list + jewellery_list
+            def created_at_key(x):
+                item, is_j = x
+                return item.product.created_at if not is_j else item.created_at
+            combined.sort(key=created_at_key, reverse=True)
+            combined = combined[:limit]
+
+            payload = []
+            for item, is_jewellery in combined:
+                if is_jewellery:
+                    payload.append(_serialize_product_for_json(item))
+                else:
+                    payload.append(_serialize_color_variant_for_json(item))
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("NewArrivalsView: %s", e)
@@ -862,8 +980,7 @@ class NewArrivalsView(View):
 
 
 class TopSellingView(View):
-    """JSON API: top selling products from non-cancelled orders (placed/confirmed/shipped/delivered/paid).
-    Includes COD and other methods; not limited to payment.status=PAID."""
+    """JSON API: top selling products (clothing + jewellery) from non-cancelled orders."""
 
     def get(self, request):
         try:
@@ -872,32 +989,56 @@ class TopSellingView(View):
                 limit = min(max(int(limit), 1), 24)
             except (TypeError, ValueError):
                 limit = 8
-            # Non-cancelled orders only (so COD, WhatsApp, and paid all count)
             order_filter = ~Q(order__status=Order.Status.CANCELLED)
             product_ids_with_qty = (
                 OrderItem.objects.filter(order_filter)
                 .values("product_id")
                 .annotate(total_sold=Sum("quantity"))
                 .filter(total_sold__gt=0, product__is_active=True)
-                .order_by("-total_sold")[:limit]
+                .order_by("-total_sold")[:limit * 2]
             )
             ids_ordered = [x["product_id"] for x in product_ids_with_qty]
             if not ids_ordered:
                 return JsonResponse({"products": []})
             preserved_order = dict((pk, i) for i, pk in enumerate(ids_ordered))
 
-            # Start from all active color variants for these products, then
-            # sort by product popularity + display order and trim to `limit`.
-            qs = _active_color_variant_qs().filter(product_id__in=ids_ordered)
+            # Clothing: ColorVariants for these products
+            cv_qs = _active_color_variant_qs().filter(product_id__in=ids_ordered)
             variants = sorted(
-                list(qs),
+                list(cv_qs),
                 key=lambda cv: (
                     preserved_order.get(getattr(cv.product, "pk", None), 999),
                     getattr(cv, "display_order", 0),
                     cv.id,
                 ),
-            )[:limit]
-            payload = [_serialize_color_variant_for_json(cv) for cv in variants]
+            )
+            # Jewellery: Products from ids_ordered that are jewellery
+            jewellery_qs = (
+                Product.objects.active()
+                .filter(pk__in=ids_ordered, product_type="jewellery")
+                .filter(jewellery_detail__stock_quantity__gt=0)
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images")
+            )
+            jewellery_list = sorted(
+                list(jewellery_qs),
+                key=lambda p: preserved_order.get(p.pk, 999),
+            )
+            # Build combined payload: (item, is_jewellery), sort by popularity, take limit
+            combined = [(cv, False) for cv in variants] + [(p, True) for p in jewellery_list]
+            combined.sort(key=lambda x: preserved_order.get(
+                x[0].product.pk if not x[1] else x[0].pk, 999
+            ))
+            payload = []
+            seen_product_ids = set()
+            for item, is_jewellery in combined:
+                pid = item.product_id if not is_jewellery else item.pk
+                if pid in seen_product_ids:
+                    continue
+                seen_product_ids.add(pid)
+                payload.append(_serialize_product_for_json(item) if is_jewellery else _serialize_color_variant_for_json(item))
+                if len(payload) >= limit:
+                    break
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("TopSellingView: %s", e)
@@ -937,58 +1078,58 @@ class RecentlyViewedView(View):
 
 
 class YouMayLikeView(View):
-    """JSON API: ColorVariant recommendations based on recently viewed variants.
-
-    For each recently viewed variant:
-    - Recommend other ColorVariants of the same parent Product
-    - Exclude the variants that were actually viewed
-    """
+    """JSON API: Recommendations - ColorVariants from recently viewed + jewellery."""
 
     def get(self, request):
         try:
-            raw_ids = list(request.session.get("recently_viewed_variant_ids", []))
-            if not raw_ids:
-                return JsonResponse({"products": []})
-
-            seen = set()
-            variant_ids = []
-            for val in raw_ids:
-                try:
-                    vid = int(val)
-                except (TypeError, ValueError):
-                    continue
-                if vid in seen:
-                    continue
-                seen.add(vid)
-                variant_ids.append(vid)
-
-            if not variant_ids:
-                return JsonResponse({"products": []})
-
-            viewed_variants = list(_active_color_variant_qs().filter(pk__in=variant_ids))
-            if not viewed_variants:
-                return JsonResponse({"products": []})
-
-            viewed_variant_ids = {cv.pk for cv in viewed_variants}
-            product_ids = {getattr(cv, "product_id", None) for cv in viewed_variants}
-            product_ids.discard(None)
-            if not product_ids:
-                return JsonResponse({"products": []})
-
-            base_qs = (
-                _active_color_variant_qs()
-                .filter(product_id__in=product_ids)
-                .exclude(pk__in=viewed_variant_ids)
-            )
-
             limit = 16
-            candidates = list(
-                base_qs.order_by("product__name", "display_order", "id")[:limit]
-            )
-            if not candidates:
-                return JsonResponse({"products": []})
+            payload = []
+            raw_ids = list(request.session.get("recently_viewed_variant_ids", []))
+            viewed_product_ids = set()
 
-            payload = [_serialize_color_variant_for_json(cv) for cv in candidates]
+            if raw_ids:
+                seen = set()
+                variant_ids = []
+                for val in raw_ids:
+                    try:
+                        vid = int(val)
+                    except (TypeError, ValueError):
+                        continue
+                    if vid in seen:
+                        continue
+                    seen.add(vid)
+                    variant_ids.append(vid)
+
+                viewed_variants = list(_active_color_variant_qs().filter(pk__in=variant_ids))
+                viewed_variant_ids = {cv.pk for cv in viewed_variants}
+                viewed_product_ids = {getattr(cv, "product_id", None) for cv in viewed_variants}
+                viewed_product_ids.discard(None)
+
+                if viewed_product_ids:
+                    base_qs = (
+                        _active_color_variant_qs()
+                        .filter(product_id__in=viewed_product_ids)
+                        .exclude(pk__in=viewed_variant_ids)
+                    )
+                    candidates = list(base_qs.order_by("product__name", "display_order", "id")[:limit])
+                    payload = [_serialize_color_variant_for_json(cv) for cv in candidates]
+
+            # Fill with jewellery if we have room
+            if len(payload) < limit:
+                jewellery_qs = (
+                    Product.objects.active()
+                    .filter(product_type="jewellery")
+                    .filter(jewellery_detail__stock_quantity__gt=0)
+                    .exclude(pk__in=viewed_product_ids)
+                    .select_related("category", "jewellery_detail")
+                    .prefetch_related("jewellery_detail__images")
+                    .order_by("-created_at")[:limit - len(payload)]
+                )
+                for p in jewellery_qs:
+                    payload.append(_serialize_product_for_json(p))
+                    if len(payload) >= limit:
+                        break
+
             return JsonResponse({"products": payload})
         except Exception as e:
             logger.exception("YouMayLikeView: %s", e)
@@ -996,7 +1137,7 @@ class YouMayLikeView(View):
 
 
 class WishlistToggleView(View):
-    """POST: toggle color variant in wishlist. Login required; returns JSON. Guest → login_required + login_url."""
+    """POST: toggle color variant or jewellery product in wishlist. Login required; returns JSON."""
 
     def post(self, request):
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -1011,14 +1152,49 @@ class WishlistToggleView(View):
             return redirect(f"{reverse('auth:login')}?next={request.build_absolute_uri()}")
 
         color_variant_id = None
+        product_id = None
         if request.content_type and "application/json" in request.content_type:
             try:
                 data = json.loads(request.body)
                 color_variant_id = data.get("color_variant_id")
+                product_id = data.get("product_id")
             except (json.JSONDecodeError, TypeError):
                 pass
-        if color_variant_id is None:
+        if color_variant_id is None and product_id is None:
             color_variant_id = request.POST.get("color_variant_id")
+            product_id = request.POST.get("product_id")
+
+        # Jewellery: product_id
+        if product_id is not None:
+            try:
+                product_id = int(product_id)
+            except (TypeError, ValueError):
+                return JsonResponse({"success": False, "error": "Invalid product"}, status=400)
+            product = (
+                Product.objects.filter(
+                    pk=product_id,
+                    is_active=True,
+                    product_type="jewellery",
+                )
+                .filter(jewellery_detail__stock_quantity__gt=0)
+                .select_related("category", "jewellery_detail")
+                .prefetch_related("jewellery_detail__images")
+                .first()
+            )
+            if not product:
+                return JsonResponse({"success": False, "error": "Product not found"}, status=404)
+            wishlist, created = Wishlist.objects.get_or_create(
+                user=request.user, product=product, defaults={"color_variant": None}
+            )
+            if not created:
+                wishlist.delete()
+                added = False
+            else:
+                added = True
+            count = Wishlist.objects.filter(user=request.user).count()
+            return JsonResponse({"success": True, "added": added, "count": count})
+
+        # Clothing: color_variant_id
         try:
             color_variant_id = int(color_variant_id)
         except (TypeError, ValueError):
@@ -1037,7 +1213,7 @@ class WishlistToggleView(View):
             return JsonResponse({"success": False, "error": "Variant not found"}, status=404)
 
         wishlist, created = Wishlist.objects.get_or_create(
-            user=request.user, color_variant=color_variant
+            user=request.user, color_variant=color_variant, defaults={"product": None}
         )
         if not created:
             wishlist.delete()
@@ -1049,25 +1225,32 @@ class WishlistToggleView(View):
 
 
 class WishlistIdsView(View):
-    """GET: return list of wishlist color variant IDs for current user (for marking hearts)."""
+    """GET: return wishlist variant IDs and product IDs for marking hearts."""
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return JsonResponse({"variant_ids": []})
+            return JsonResponse({"variant_ids": [], "product_ids": []})
         try:
-            ids = list(
+            variant_ids = list(
                 Wishlist.objects.filter(user=request.user)
+                .filter(color_variant__isnull=False)
                 .filter(color_variant__is_active=True, color_variant__product__is_active=True)
                 .values_list("color_variant_id", flat=True)
             )
-            return JsonResponse({"variant_ids": ids})
+            product_ids = list(
+                Wishlist.objects.filter(user=request.user)
+                .filter(product__isnull=False)
+                .filter(product__is_active=True, product__product_type="jewellery")
+                .values_list("product_id", flat=True)
+            )
+            return JsonResponse({"variant_ids": variant_ids, "product_ids": product_ids})
         except Exception as e:
             logger.exception("WishlistIdsView: %s", e)
-            return JsonResponse({"variant_ids": []})
+            return JsonResponse({"variant_ids": [], "product_ids": []})
 
 
 class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
-    """Wishlist page: list of saved color variants. Invalid/deleted excluded."""
+    """Wishlist page: color variants (clothing) and products (jewellery)."""
 
     template_name = "wishlist.html"
 
@@ -1075,10 +1258,12 @@ class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         if not self.request.user.is_authenticated:
             context["wishlist_items"] = []
+            context["wishlist_products"] = []
             return context
-        items = (
+        variant_items = (
             Wishlist.objects.filter(
                 user=self.request.user,
+                color_variant__isnull=False,
                 color_variant__is_active=True,
                 color_variant__product__is_active=True,
             )
@@ -1086,7 +1271,19 @@ class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
             .prefetch_related("color_variant__images")
             .order_by("-created_at")
         )
-        context["wishlist_items"] = list(items)
+        product_items = (
+            Wishlist.objects.filter(
+                user=self.request.user,
+                product__isnull=False,
+                product__is_active=True,
+                product__product_type="jewellery",
+            )
+            .select_related("product", "product__category", "product__jewellery_detail")
+            .prefetch_related("product__jewellery_detail__images")
+            .order_by("-created_at")
+        )
+        context["wishlist_items"] = list(variant_items)
+        context["wishlist_products"] = list(product_items)
         context["active_page"] = "wishlist"
         return context
 
@@ -1162,6 +1359,8 @@ class AddToCartView(LoginRequiredForActionMixin, View):
                 if is_ajax:
                     return JsonResponse({"success": False, "error": "Selected variant is unavailable."}, status=400)
                 return redirect("store:product_detail", slug=product.slug)
+        elif product.product_type == "jewellery":
+            sellable = product
         else:
             size = data.get("size") or ""
             if not size:

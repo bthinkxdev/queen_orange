@@ -240,15 +240,22 @@ function initQuickAddToCart() {
             const productId = button.dataset.productId;
             const size = button.dataset.size;
             const color = button.dataset.color || "";
-            if (!productId || !size) {
+            const isJewellery = button.dataset.isJewellery === "true";
+            if (!productId) {
+                showNotification("Invalid product.", "error");
+                return;
+            }
+            if (!isJewellery && !size) {
                 showNotification("Please select a size on the product page.", "error");
                 return;
             }
             try {
                 const formData = new FormData();
                 formData.append("product_id", productId);
-                formData.append("size", size);
-                formData.append("color", color);
+                if (!isJewellery) {
+                    formData.append("size", size);
+                    formData.append("color", color);
+                }
                 formData.append("quantity", "1");
                 const response = await fetch("/cart/add/", {
                     method: "POST",
