@@ -665,85 +665,79 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
 class ProductDeleteView(StaffRequiredMixin, DeleteView):
     model = Product
     success_url = reverse_lazy("admin_panel:product_list")
-    
-    def delete(self, request, *args, **kwargs):
-        """Override delete to handle S3 image deletion and order checks properly"""
+
+    def post(self, request, *args, **kwargs):
+        """Override post to handle deletion with proper error handling."""
         self.object = self.get_object()
-        
-        # Check if product has any orders at all
-        all_orders = Order.objects.filter(
-            items__product=self.object
-        ).distinct()
-        
-        # Check if product has any active orders (not delivered or cancelled)
-        active_orders = all_orders.exclude(
-            status__in=["delivered", "cancelled"]
-        ).distinct()
-        
-        if active_orders.exists():
-            # Cannot delete - has active orders
-            order_count = active_orders.count()
-            order_numbers = ", ".join([order.order_number for order in active_orders[:5]])
-            if order_count > 5:
-                order_numbers += f", and {order_count - 5} more"
-            
+        product_name = self.object.name
+        success_url = self.get_success_url()
+
+        # Check if product itself is used in any order
+        if OrderItem.objects.filter(product=self.object).exists():
             messages.error(
                 request,
-                f"Cannot delete product '{self.object.name}' because it has {order_count} active order(s) "
-                f"({order_numbers}). This product can only be inactive once all associated orders are "
-                f"delivered or cancelled."
+                f"Cannot delete product \"{product_name}\". It is linked to existing orders.",
             )
-            return redirect("admin_panel:product_list")
-        
-        # If there are no orders at all, completely delete
-        if not all_orders.exists():
-            product_name = self.object.name
-            success_url = self.get_success_url()
-            
-            # Delete all color variant images from S3 before deleting the product
-            from .models import ColorVariant, ColorVariantImage
-            color_variants = ColorVariant.objects.filter(product=self.object)
-            
-            for variant in color_variants:
-                for img in variant.images.all():
-                    if img.image:
-                        try:
-                            # Store the image name for deletion
-                            image_name = img.image.name
-                            storage = img.image.storage
-                            
-                            # Update DB to NULL the image field
-                            ColorVariantImage.objects.filter(pk=img.pk).update(image=None)
-                            
-                            # Delete the file from S3
-                            try:
-                                storage.delete(image_name)
-                            except Exception:
-                                pass  # Ignore if file doesn't exist
-                                
-                        except Exception as e:
-                            import logging
-                            logger = logging.getLogger(__name__)
-                            logger.warning(f"Failed to delete color variant image: {str(e)}")
-            
-            # Delete the product and all related objects
-            try:
-                Product.objects.filter(pk=self.object.pk).delete()
-                messages.success(request, f"Product '{product_name}' deleted successfully!")
-            except Exception as e:
-                messages.error(request, f"Error deleting product: {str(e)}")
-                
             return redirect(success_url)
-        
-        # If all orders are delivered/cancelled, set to inactive instead of deleting
-        if all_orders.exists():
-            self.object.is_active = False
-            self.object.save()
-            messages.success(
+
+        # Check if any ProductVariant (legacy) of this product is used in orders
+        if OrderItem.objects.filter(variant__product=self.object).exists():
+            messages.error(
                 request,
-                f"Product '{self.object.name}' has been set to inactive."
+                f"Cannot delete product \"{product_name}\". One or more of its variants are linked to existing orders.",
             )
-            return redirect("admin_panel:product_list")
+            return redirect(success_url)
+
+        # Check if any SizeVariant (via ColorVariant) of this product is used in orders
+        if OrderItem.objects.filter(size_variant__color_variant__product=self.object).exists():
+            messages.error(
+                request,
+                f"Cannot delete product \"{product_name}\". One or more of its color/size variants are linked to existing orders.",
+            )
+            return redirect(success_url)
+
+        # Check if any CartItem references this product's variants (additional safety check)
+        if CartItem.objects.filter(Q(variant__product=self.object) | Q(size_variant__color_variant__product=self.object)).exists():
+            # Remove these cart items before deletion
+            CartItem.objects.filter(Q(variant__product=self.object) | Q(size_variant__color_variant__product=self.object)).delete()
+
+        # All checks passed - safe to delete
+        # Remove from any active carts first
+        CartItem.objects.filter(product=self.object).delete()
+
+        # Delete all images from storage (S3 or local)
+        from .models import ColorVariant, ColorVariantImage
+        color_variants = ColorVariant.objects.filter(product=self.object)
+        for variant in color_variants:
+            for img in variant.images.all():
+                if img.image:
+                    try:
+                        image_name = img.image.name
+                        storage = img.image.storage
+                        ColorVariantImage.objects.filter(pk=img.pk).update(image=None)
+                        try:
+                            storage.delete(image_name)
+                        except Exception:
+                            pass
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Failed to delete color variant image: {str(e)}")
+
+        # Delete the product and all related data
+        try:
+            self.object.delete()
+            messages.success(request, f"Product \"{product_name}\" has been deleted successfully.")
+        except ProtectedError as e:
+            # This should not happen if our checks are correct, but handle it anyway
+            messages.error(
+                request,
+                f"Cannot delete product \"{product_name}\". It is protected by existing order data.",
+            )
+        except Exception as e:
+            messages.error(request, f"Could not delete product: {str(e)}")
+
+        return redirect(success_url)
 
 
 class ProductDeleteCheckView(StaffRequiredMixin, View):

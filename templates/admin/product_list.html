@@ -126,11 +126,9 @@
                             <a href="{% url 'admin_panel:product_edit' product.pk %}" class="btn btn-primary">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
-                            {% if product.is_active %}
-                                <button type="button" class="btn btn-danger delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            {% endif %}
+                            <button type="button" class="btn btn-danger delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" data-delete-url="{% url 'admin_panel:product_delete' product.pk %}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 {% endfor %}
@@ -199,10 +197,8 @@
                             <a href="{% url 'admin_panel:product_edit' product.pk %}" class="product-action-link">Edit</a>
                             <span class="product-action-divider">|</span>
                             <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="product-action-link">View</a>
-                            {% if product.is_active %}
                             <span class="product-action-divider">|</span>
-                            <button type="button" class="product-action-link product-action-delete delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" title="Delete">Delete</button>
-                            {% endif %}
+                            <button type="button" class="product-action-link product-action-delete delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" data-delete-url="{% url 'admin_panel:product_delete' product.pk %}" title="Delete">Delete</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -238,6 +234,23 @@
     </div>
 </div>
 
+<!-- Delete confirmation modal -->
+<div id="product-delete-modal" class="admin-modal" role="dialog" aria-labelledby="product-delete-title" aria-modal="true" style="display: none;">
+    <div class="admin-modal-backdrop" id="product-delete-backdrop"></div>
+    <div class="admin-modal-content">
+        <h3 id="product-delete-title" class="admin-modal-title">Delete product</h3>
+        <p id="product-delete-message" class="admin-modal-message"></p>
+        <form id="product-delete-form" method="post" action="">
+            {% csrf_token %}
+            <div class="admin-modal-actions">
+                <button type="button" class="btn btn-secondary" id="product-delete-cancel">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="{% static 'js/product_list.js' %}"></script>
+<script src="{% static 'js/admin_product_delete.js' %}"></script>
 {% endblock %}
 
