@@ -5,7 +5,7 @@ from .models import Banner, Category, ColorVariant, ColorVariantImage, Product, 
 
 # Standard apparel sizes (from size chart) for dropdown
 STANDARD_SIZES = [
-    "XS", "S", "M", "L", "XL",
+    "Free Size","XS", "S", "M", "L", "XL",
     "2XL", "3XL", "4XL", "5XL", "6XL",
     "7XL", "8XL", "9XL", "10XL",
 ]
