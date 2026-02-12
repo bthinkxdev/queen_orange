@@ -83,10 +83,10 @@ class NewsletterSubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
-    list_display = ("user", "product", "created_at")
+    list_display = ("user", "color_variant", "created_at")
     list_filter = ("created_at",)
-    search_fields = ("user__email", "user__username", "product__name")
-    readonly_fields = ("user", "product", "created_at", "updated_at")
+    search_fields = ("user__email", "user__username", "color_variant__product__name", "color_variant__name")
+    readonly_fields = ("user", "color_variant", "created_at", "updated_at")
     ordering = ("-created_at",)
 
     def has_add_permission(self, request):

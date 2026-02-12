@@ -53,19 +53,21 @@
         <p class="collection-product-count">Showing <strong>{{ page_obj.paginator.count }}</strong> products</p>
 
         {% if products %}
-            <div class="collection-product-grid">
+            <div id="product-container" class="collection-product-grid"
+                 data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
+                 data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}">
                 {% for product in products %}
                     <article class="collection-product-card">
-                        {# `products` is a ColorVariant queryset; wishlist remains product-scoped #}
-                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.product.id in wishlist_product_ids %}in-wishlist{% endif %}"
-                                data-product-id="{{ product.product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                        {# `products` is ColorVariant; wishlist is variant-focused #}
+                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_variant_ids %}in-wishlist{% endif %}"
+                                data-variant-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                             <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                         </button>
                         <a href="{% url 'store:product_detail' product.product.slug %}?variant={{ product.id }}" class="collection-card-link">
                             {% with images=product.images.all %}
-                            <div class="collection-card-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
+                            <div class="collection-card-image product-card-image-slider{% if images|length > 1 %} js-product-card-slider{% endif %}"{% if images|length > 1 %} data-card-images="{{ images|image_urls_json }}"{% endif %}>
                                 {% if images %}
                                     <img src="{{ images.0.image.url }}" alt="{{ product.product.name }} - {{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
                                 {% else %}
@@ -100,6 +102,14 @@
                 {% endfor %}
             </div>
 
+            <div id="scroll-sentinel" class="collection-scroll-sentinel" aria-hidden="true"></div>
+            <div id="collection-loading" class="collection-loading-spinner" style="display: none;" aria-live="polite">
+                <span class="collection-loading-spinner-dot"></span>
+                <span class="collection-loading-spinner-dot"></span>
+                <span class="collection-loading-spinner-dot"></span>
+            </div>
+
+            <noscript>
             {% if page_obj.has_previous or page_obj.has_next %}
             <nav class="collection-pagination" aria-label="Products pagination">
                 {% if page_obj.has_previous %}
@@ -111,6 +121,7 @@
                 {% endif %}
             </nav>
             {% endif %}
+            </noscript>
         {% else %}
             <div class="collection-empty">
                 <div class="collection-empty-icon">🔍</div>
@@ -180,4 +191,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/product_list.js' %}"></script>
+<script src="{% static 'js/collection-infinite.js' %}"></script>
 {% endblock %}

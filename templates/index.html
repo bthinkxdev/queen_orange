@@ -117,23 +117,24 @@
         </div>
     </section>
 
-    <!-- New Arrivals (AJAX) - Variant-first small cards, two-row layout -->
-    <section class="section section-new-arrivals js-home-ajax-section" data-api-url="{% url 'store:api_new_arrivals' %}" data-section-type="new-arrivals">
+    <!-- New Arrivals (AJAX) - Vertical grid, up to 30 products -->
+    <section class="section section-new-arrivals js-home-ajax-section is-empty" data-api-url="{% url 'store:api_new_arrivals' %}" data-section-type="new-arrivals">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">New Arrivals</h2>
                 <p class="section-subtitle">Fresh picks for you</p>
             </div>
-            <div class="scroll-section-wrapper js-scroll-shadow">
-                <div class="scroll-section">
-                    <div class="scroll-section-inner js-home-ajax-products" aria-live="polite"></div>
-                </div>
+            <div class="new-arrivals-grid js-home-ajax-products" aria-live="polite"></div>
+            <div class="new-arrivals-cta-row">
+                <a href="{% url 'store:product_list' %}?sort=newest" class="btn btn-secondary new-arrivals-see-more">
+                    See more
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Top Selling (AJAX) - Compact cards with Popular badge (kept as-is, product-level rankings) -->
-    <section class="section section-top-selling js-home-ajax-section" data-api-url="{% url 'store:api_top_selling' %}" data-section-type="top-selling">
+    <!-- Top Selling (AJAX) - Compact cards with Popular badge; hidden until data loads -->
+    <section class="section section-top-selling js-home-ajax-section is-empty" data-api-url="{% url 'store:api_top_selling' %}" data-section-type="top-selling">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Top Selling</h2>
@@ -290,12 +291,15 @@
                     <div class="featured-products-grid deal-products-inner">
                 {% for product in deal_products %}
                     <div class="featured-product-card home-ref-card">
-                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
-                                data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                        {% with first_cv=product.color_variants.first %}
+                        {% if first_cv %}
+                        <button type="button" class="product-card-wishlist js-wishlist-toggle {% if first_cv.id in wishlist_variant_ids %}in-wishlist{% endif %}"
+                                data-variant-id="{{ first_cv.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                             <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                         </button>
+                        {% endif %}
                         <a href="{% url 'store:product_detail' product.slug %}" class="featured-product-link">
                             {% with card_images=product.get_card_image_urls %}
                             <div class="home-ref-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
@@ -344,6 +348,7 @@
                                 <span class="featured-add-to-cart" style="opacity: 0.6; cursor: not-allowed;">Out of Stock</span>
                             {% endif %}
                         {% endwith %}
+                        {% endwith %}
                     </div>
                 {% endfor %}
                     </div>
@@ -361,7 +366,8 @@
     </section>
     {% endif %}
 
-    <!-- Bestsellers -->
+    <!-- Bestsellers (only when we have bestseller products) -->
+    {% if bestseller_products %}
     <section class="section section-bestsellers">
         <div class="container">
             <div class="bestsellers-header">
@@ -385,13 +391,16 @@
             <div class="bestsellers-scroll-container">
                 <div class="bestsellers-grid">
                     {% for product in bestseller_products %}
+                        {% with first_cv=product.color_variants.first %}
                         <div class="bestseller-card home-ref-card">
-                            <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_product_ids %}in-wishlist{% endif %}"
-                                    data-product-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                            {% if first_cv %}
+                            <button type="button" class="product-card-wishlist js-wishlist-toggle {% if first_cv.id in wishlist_variant_ids %}in-wishlist{% endif %}"
+                                    data-variant-id="{{ first_cv.id }}" aria-label="Add to wishlist" title="Add to wishlist">
                                 <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                 </svg>
                             </button>
+                            {% endif %}
                             <a href="{% url 'store:product_detail' product.slug %}" class="bestseller-link">
                                 {% with card_images=product.get_card_image_urls %}
                                 <div class="home-ref-image bestseller-image product-card-image-slider{% if card_images|length > 1 %} js-product-card-slider{% endif %}"{% if card_images|length > 1 %} data-card-images="{{ card_images|to_json }}"{% endif %}>
@@ -434,11 +443,13 @@
                                 {% endif %}
                             {% endwith %}
                         </div>
+                        {% endwith %}
                     {% endfor %}
                 </div>
             </div>
         </div>
     </section>
+    {% endif %}
 
     <!-- Customer Stories Section -->
     <section class="section section-stories">

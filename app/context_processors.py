@@ -15,15 +15,19 @@ def cart_context(request):
 
 def wishlist_context(request):
     wishlist_count = 0
-    wishlist_product_ids = []
+    wishlist_variant_ids = []
     if getattr(request, "user", None) and request.user.is_authenticated:
-        wishlist_product_ids = list(
-            Wishlist.objects.filter(user=request.user, product__is_active=True).values_list("product_id", flat=True)
+        wishlist_variant_ids = list(
+            Wishlist.objects.filter(
+                user=request.user,
+                color_variant__is_active=True,
+                color_variant__product__is_active=True,
+            ).values_list("color_variant_id", flat=True)
         )
-        wishlist_count = len(wishlist_product_ids)
+        wishlist_count = len(wishlist_variant_ids)
     return {
         "wishlist_count": wishlist_count,
-        "wishlist_product_ids": wishlist_product_ids,
+        "wishlist_variant_ids": wishlist_variant_ids,
     }
 
 

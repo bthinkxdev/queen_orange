@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch, Q, F, Sum, Count
 from django.http import Http404, HttpResponseForbidden, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
 from django.utils import timezone
@@ -77,7 +77,7 @@ class ProductListView(ListView):
 
     template_name = "category.html"
     context_object_name = "products"  # actually ColorVariant instances
-    paginate_by = 24
+    paginate_by = 12
 
     def get_queryset(self):
         try:
@@ -162,6 +162,13 @@ class ProductListView(ListView):
         ]
         return context
 
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        context = self.get_context_data()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return render(request, "partials/product_cards.html", context)
+        return self.render_to_response(context)
+
 
 class HomeView(TemplateView):
     template_name = "index.html"
@@ -225,16 +232,28 @@ class HomeView(TemplateView):
                 logger.error(f"Error building home cart preview: {cart_exc}", exc_info=True)
                 context["home_cart_items"] = []
 
-            # --- Wishlist variants (home page) ---
+            # --- Wishlist variants (home page): variant-focused ---
             home_wishlist_variants = []
             user = getattr(self.request, "user", None)
             if user and user.is_authenticated:
                 try:
-                    home_wishlist_variants = list(
-                        _active_color_variant_qs()
-                        .filter(product__wishlisted_by__user=user)
-                        .order_by("-product__created_at", "display_order", "id")[:12]
+                    wishlist_cv_ids = list(
+                        Wishlist.objects.filter(user=user)
+                        .filter(
+                            color_variant__is_active=True,
+                            color_variant__product__is_active=True,
+                        )
+                        .values_list("color_variant_id", flat=True)[:12]
                     )
+                    if wishlist_cv_ids:
+                        home_wishlist_variants = list(
+                            _active_color_variant_qs()
+                            .filter(pk__in=wishlist_cv_ids)
+                            .order_by("display_order", "id")
+                        )
+                        # Preserve order from wishlist (most recent first)
+                        order = {vid: i for i, vid in enumerate(wishlist_cv_ids)}
+                        home_wishlist_variants.sort(key=lambda cv: order.get(cv.pk, 999))
                 except Exception as wl_exc:
                     logger.error(f"Error building home wishlist variants: {wl_exc}", exc_info=True)
                     home_wishlist_variants = []
@@ -439,11 +458,16 @@ class ProductDetailView(DetailView):
             )
             context["add_form"] = CartAddForm(initial={"product_id": product.id, "quantity": 1})
             context["active_page"] = "collection"
+            # Wishlist is variant-focused: check if selected color variant is in wishlist
+            selected_cv = context.get("color_variants") and context["color_variants"][0]
             context["in_wishlist"] = (
-                Wishlist.objects.filter(user=self.request.user, product=product).exists()
-                if self.request.user.is_authenticated
+                Wishlist.objects.filter(
+                    user=self.request.user, color_variant=selected_cv
+                ).exists()
+                if (self.request.user.is_authenticated and selected_cv)
                 else False
             )
+            context["selected_color_variant"] = selected_cv
 
             # ----- Ratings & Reviews (verified buyers only) -----
             reviews_qs = (
@@ -776,8 +800,8 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
         category_name = product.category.name or ""
 
     return {
-        # Keep id as product.id so wishlist buttons remain product-scoped
         "id": product.id,
+        "variant_id": color_variant.id,
         "name": product.name or "",
         "slug": product.slug or "",
         "color_name": getattr(color_variant, "name", "") or "",
@@ -796,15 +820,15 @@ def _serialize_color_variant_for_json(color_variant, detail_url=None):
 
 
 class NewArrivalsView(View):
-    """JSON API: latest active products. ?limit=8 default."""
+    """JSON API: latest active products. ?limit=30 default (capped at 30)."""
 
     def get(self, request):
         try:
-            limit = request.GET.get("limit", "8")
+            limit = request.GET.get("limit", "30")
             try:
-                limit = min(max(int(limit), 1), 24)
+                limit = min(max(int(limit), 1), 30)
             except (TypeError, ValueError):
-                limit = 8
+                limit = 30
 
             qs = (
                 _active_color_variant_qs()
@@ -953,7 +977,7 @@ class YouMayLikeView(View):
 
 
 class WishlistToggleView(View):
-    """POST: toggle product in wishlist. Login required; returns JSON. Guest → login_required + login_url."""
+    """POST: toggle color variant in wishlist. Login required; returns JSON. Guest → login_required + login_url."""
 
     def post(self, request):
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -967,25 +991,35 @@ class WishlistToggleView(View):
                 )
             return redirect(f"{reverse('auth:login')}?next={request.build_absolute_uri()}")
 
-        product_id = None
+        color_variant_id = None
         if request.content_type and "application/json" in request.content_type:
             try:
                 data = json.loads(request.body)
-                product_id = data.get("product_id")
+                color_variant_id = data.get("color_variant_id")
             except (json.JSONDecodeError, TypeError):
                 pass
-        if product_id is None:
-            product_id = request.POST.get("product_id")
+        if color_variant_id is None:
+            color_variant_id = request.POST.get("color_variant_id")
         try:
-            product_id = int(product_id)
+            color_variant_id = int(color_variant_id)
         except (TypeError, ValueError):
-            return JsonResponse({"success": False, "error": "Invalid product"}, status=400)
+            return JsonResponse({"success": False, "error": "Invalid variant"}, status=400)
 
-        product = Product.objects.filter(pk=product_id, is_active=True).first()
-        if not product:
-            return JsonResponse({"success": False, "error": "Product not found"}, status=404)
+        color_variant = (
+            ColorVariant.objects.filter(
+                pk=color_variant_id,
+                is_active=True,
+                product__is_active=True,
+            )
+            .select_related("product")
+            .first()
+        )
+        if not color_variant:
+            return JsonResponse({"success": False, "error": "Variant not found"}, status=404)
 
-        wishlist, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+        wishlist, created = Wishlist.objects.get_or_create(
+            user=request.user, color_variant=color_variant
+        )
         if not created:
             wishlist.delete()
             added = False
@@ -996,25 +1030,25 @@ class WishlistToggleView(View):
 
 
 class WishlistIdsView(View):
-    """GET: return list of wishlist product IDs for current user (for marking icons)."""
+    """GET: return list of wishlist color variant IDs for current user (for marking hearts)."""
 
     def get(self, request):
         if not request.user.is_authenticated:
-            return JsonResponse({"product_ids": []})
+            return JsonResponse({"variant_ids": []})
         try:
             ids = list(
                 Wishlist.objects.filter(user=request.user)
-                .filter(product__is_active=True)
-                .values_list("product_id", flat=True)
+                .filter(color_variant__is_active=True, color_variant__product__is_active=True)
+                .values_list("color_variant_id", flat=True)
             )
-            return JsonResponse({"product_ids": ids})
+            return JsonResponse({"variant_ids": ids})
         except Exception as e:
             logger.exception("WishlistIdsView: %s", e)
-            return JsonResponse({"product_ids": []})
+            return JsonResponse({"variant_ids": []})
 
 
 class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
-    """Wishlist page: list of saved products. Invalid/deleted entries excluded."""
+    """Wishlist page: list of saved color variants. Invalid/deleted excluded."""
 
     template_name = "wishlist.html"
 
@@ -1024,9 +1058,13 @@ class WishlistPageView(LoginRequiredForActionMixin, TemplateView):
             context["wishlist_items"] = []
             return context
         items = (
-            Wishlist.objects.filter(user=self.request.user, product__is_active=True)
-            .select_related("product__category")
-            .prefetch_related("product__color_variants__images")
+            Wishlist.objects.filter(
+                user=self.request.user,
+                color_variant__is_active=True,
+                color_variant__product__is_active=True,
+            )
+            .select_related("color_variant__product", "color_variant__product__category")
+            .prefetch_related("color_variant__images")
             .order_by("-created_at")
         )
         context["wishlist_items"] = list(items)

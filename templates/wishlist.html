@@ -1,38 +1,38 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}My Wishlist - Queen Orange{% endblock %}
-{% block meta_description %}Your saved products.{% endblock %}
+{% block meta_description %}Your saved items by color.{% endblock %}
 {% block content %}
     <section class="wishlist-page">
         <div class="container">
             <div class="section-header" style="margin-bottom: var(--space-8);">
                 <h1 class="section-title">My Wishlist</h1>
-                <p class="section-subtitle">Products you've saved for later</p>
+                <p class="section-subtitle">Variants you've saved for later</p>
             </div>
 
             {% if wishlist_items %}
                 <div class="wishlist-grid">
                     {% for item in wishlist_items %}
-                        <div class="wishlist-item" data-product-id="{{ item.product.id }}">
-                            <a href="{% url 'store:product_detail' item.product.slug %}" class="wishlist-item-link">
+                        {% with cv=item.color_variant %}
+                        <div class="wishlist-item" data-variant-id="{{ cv.id }}">
+                            <a href="{% url 'store:product_detail' cv.product.slug %}?variant={{ cv.id }}" class="wishlist-item-link">
                                 <div class="wishlist-item-image">
-                                    {% with card_images=item.product.get_card_image_urls %}
-                                            {% if card_images %}
-                                            <img src="{{ card_images.0 }}" alt="{{ item.product.name }}" loading="lazy">
-                                            {% else %}
-                                            <img src="{% static 'images/banner.png' %}" alt="{{ item.product.name }}" loading="lazy">
-                                            {% endif %}
-                                    {% endwith %}
+                                    {% if cv.images.first %}
+                                        <img src="{{ cv.images.first.image.url }}" alt="{{ cv.product.name }} - {{ cv.name }}" loading="lazy">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ cv.product.name }}" loading="lazy">
+                                    {% endif %}
                                 </div>
                                 <div class="wishlist-item-info">
-                                    <span class="wishlist-item-category">{{ item.product.category.name|default:"" }}</span>
-                                    <h3 class="wishlist-item-name">{{ item.product.name }}</h3>
-                                    <p class="wishlist-item-price">₹{{ item.product.price }}</p>
+                                    <span class="wishlist-item-category">{{ cv.product.category.name|default:"" }}</span>
+                                    <h3 class="wishlist-item-name">{{ cv.product.name }}</h3>
+                                    <p class="wishlist-item-color">{{ cv.name }}</p>
+                                    <p class="wishlist-item-price">₹{{ cv.product.price }}</p>
                                 </div>
                             </a>
                             <div class="wishlist-item-actions">
-                                <a href="{% url 'store:product_detail' item.product.slug %}" class="btn btn-secondary btn-sm">View</a>
-                                <button type="button" class="btn btn-ghost js-wishlist-toggle in-wishlist" data-product-id="{{ item.product.id }}" aria-label="Remove from wishlist">
+                                <a href="{% url 'store:product_detail' cv.product.slug %}?variant={{ cv.id }}" class="btn btn-secondary btn-sm">View</a>
+                                <button type="button" class="btn btn-ghost js-wishlist-toggle in-wishlist" data-variant-id="{{ cv.id }}" aria-label="Remove from wishlist">
                                     <svg class="wishlist-heart" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="currentColor">
                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                     </svg>
@@ -40,13 +40,14 @@
                                 </button>
                             </div>
                         </div>
+                        {% endwith %}
                     {% endfor %}
                 </div>
             {% else %}
                 <div class="empty-wishlist">
                     <div class="empty-wishlist-icon">❤️</div>
                     <h2>Your Wishlist is Empty</h2>
-                    <p>Save products you love by clicking the heart on product cards or product pages.</p>
+                    <p>Save colors you love by clicking the heart on product cards or product pages.</p>
                     <a href="{% url 'store:product_list' %}" class="btn btn-primary">
                         <span>Browse Collection</span>
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

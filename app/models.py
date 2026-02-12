@@ -504,14 +504,14 @@ class NewsletterSubscription(TimeStampedModel):
 
 
 class Wishlist(TimeStampedModel):
-    """User wishlist: one product per user, stored in database."""
+    """User wishlist: one color variant per user (variant-focused)."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="wishlist_items",
     )
-    product = models.ForeignKey(
-        Product,
+    color_variant = models.ForeignKey(
+        "ColorVariant",
         on_delete=models.CASCADE,
         related_name="wishlisted_by",
     )
@@ -519,14 +519,14 @@ class Wishlist(TimeStampedModel):
     class Meta:
         ordering = ["-created_at"]
         constraints = [
-            models.UniqueConstraint(fields=["user", "product"], name="unique_user_product_wishlist"),
+            models.UniqueConstraint(fields=["user", "color_variant"], name="unique_user_color_variant_wishlist"),
         ]
         indexes = [
             models.Index(fields=["user"]),
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.product.name}"
+        return f"{self.user} - {self.color_variant}"
 
 
 class UserProfile(TimeStampedModel):

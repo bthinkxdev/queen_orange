@@ -1,0 +1,47 @@
+{% load static %}{% load color_tags %}
+{# Fragment for collection page: used for initial render and AJAX load-more. Root has data for next page. #}
+<div class="js-collection-fragment" data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}" data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}">
+    {% for product in products %}
+        <article class="collection-product-card">
+            <button type="button" class="product-card-wishlist js-wishlist-toggle {% if product.id in wishlist_variant_ids %}in-wishlist{% endif %}"
+                    data-variant-id="{{ product.id }}" aria-label="Add to wishlist" title="Add to wishlist">
+                <svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+            </button>
+            <a href="{% url 'store:product_detail' product.product.slug %}?variant={{ product.id }}" class="collection-card-link">
+                {% with images=product.images.all %}
+                <div class="collection-card-image product-card-image-slider{% if images|length > 1 %} js-product-card-slider{% endif %}"{% if images|length > 1 %} data-card-images="{{ images|image_urls_json }}"{% endif %}>
+                    {% if images %}
+                        <img src="{{ images.0.image.url }}" alt="{{ product.product.name }} - {{ product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                    {% else %}
+                        <img src="{% static 'images/banner.png' %}" alt="{{ product.product.name }}" loading="lazy" class="card-slider-img" decoding="async">
+                    {% endif %}
+                    {% if product.product.is_bestseller %}
+                        <span class="collection-card-badge collection-card-badge-bestseller">BESTSELLER</span>
+                    {% elif product.product.discount_percent %}
+                        <span class="collection-card-badge collection-card-badge-discount">↓{{ product.product.discount_percent }}%</span>
+                    {% endif %}
+                </div>
+                {% endwith %}
+                <div class="collection-card-info">
+                    <p class="collection-card-category">{{ product.product.category.name|default:"" }}</p>
+                    <h3 class="collection-card-name">{{ product.product.name }}</h3>
+                    <p class="collection-card-variant-color">{{ product.name }}</p>
+                    <div class="collection-card-price-block">
+                        {% if product.product.original_price and product.product.original_price > product.product.price %}
+                            <span class="collection-card-discount-pct">{{ product.product.discount_percent }}% off</span>
+                        {% endif %}
+                        <div class="collection-card-prices">
+                            <span class="current-price">₹{{ product.product.price|floatformat:0 }}</span>
+                            {% if product.product.original_price and product.product.original_price > product.product.price %}
+                                <span class="original-price">₹{{ product.product.original_price|floatformat:0 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            <a href="{% url 'store:product_detail' product.product.slug %}?variant={{ product.id }}" class="collection-card-cta">View Details</a>
+        </article>
+    {% endfor %}
+</div>

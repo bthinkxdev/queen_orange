@@ -8,8 +8,8 @@
 
     var WISHLIST_SVG = '<svg class="wishlist-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
-    // Cached wishlist product IDs for the current user (used to prefill heart state)
-    var wishlistProductIds = [];
+    // Cached wishlist variant IDs for the current user (used to prefill heart state)
+    var wishlistVariantIds = [];
 
     function formatPriceNoDecimals(val) {
         if (val == null || val === "") return "0";
@@ -103,7 +103,7 @@
         var wishlist = document.createElement("button");
         wishlist.type = "button";
         wishlist.className = "product-card-wishlist js-wishlist-toggle";
-        wishlist.setAttribute("data-product-id", p.id);
+        wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.insertBefore(wishlist, card.firstChild);
@@ -118,7 +118,7 @@
         var wishlist = document.createElement("button");
         wishlist.type = "button";
         wishlist.className = "product-card-wishlist js-wishlist-toggle";
-        wishlist.setAttribute("data-product-id", p.id);
+        wishlist.setAttribute("data-variant-id", (p.variant_id != null ? p.variant_id : p.id));
         wishlist.setAttribute("aria-label", "Add to wishlist");
         wishlist.innerHTML = WISHLIST_SVG;
         card.appendChild(wishlist);
@@ -199,20 +199,20 @@
         return buildCardTall;
     }
 
-    // Apply "in-wishlist" class to any wishlist toggle buttons whose product IDs
-    // are present in wishlistProductIds (used for New Arrivals / Top Selling cards).
+    // Apply "in-wishlist" class to any wishlist toggle buttons whose variant IDs
+    // are present in wishlistVariantIds.
     function applyWishlistState() {
-        if (!wishlistProductIds || !wishlistProductIds.length) return;
+        if (!wishlistVariantIds || !wishlistVariantIds.length) return;
         var idSet = new Set();
-        wishlistProductIds.forEach(function (id) {
+        wishlistVariantIds.forEach(function (id) {
             var num = parseInt(id, 10);
             if (!isNaN(num)) idSet.add(num);
         });
         if (!idSet.size) return;
-        var buttons = document.querySelectorAll(".js-wishlist-toggle[data-product-id]");
+        var buttons = document.querySelectorAll(".js-wishlist-toggle[data-variant-id]");
         buttons.forEach(function (btn) {
-            var pid = parseInt(btn.getAttribute("data-product-id") || "", 10);
-            if (!isNaN(pid) && idSet.has(pid)) {
+            var vid = parseInt(btn.getAttribute("data-variant-id") || "", 10);
+            if (!isNaN(vid) && idSet.has(vid)) {
                 btn.classList.add("in-wishlist");
             }
         });
@@ -228,8 +228,8 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    if (!data || !Array.isArray(data.product_ids)) return;
-                    wishlistProductIds = data.product_ids;
+                    if (!data || !Array.isArray(data.variant_ids)) return;
+                    wishlistVariantIds = data.variant_ids;
                     applyWishlistState();
                 })
                 .catch(function () {
@@ -246,6 +246,13 @@
         var container = section.querySelector(".js-home-ajax-products");
         if (!apiUrl || !container) return;
 
+        // New Arrivals: explicitly request up to 30 items
+        if (sectionType === "new-arrivals") {
+            var urlObj = new URL(apiUrl, window.location.origin);
+            urlObj.searchParams.set("limit", "30");
+            apiUrl = urlObj.toString();
+        }
+
         fetch(apiUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
             .then(function (response) {
                 if (!response.ok) return null;
@@ -253,24 +260,21 @@
             })
             .then(function (data) {
                 if (!data || !Array.isArray(data.products)) {
-                    if (sectionType === "recently-viewed" || sectionType === "you-may-like") {
-                        section.classList.add("is-empty");
-                    }
+                    section.classList.add("is-empty");
                     return;
                 }
-                if (sectionType === "recently-viewed" || sectionType === "you-may-like") {
-                    section.classList.remove("is-empty");
-                }
-                var builder = getCardBuilder(sectionType);
                 var products = data.products || [];
+                if (products.length === 0) {
+                    section.classList.add("is-empty");
+                    return;
+                }
+                section.classList.remove("is-empty");
+                var builder = getCardBuilder(sectionType);
 
-                // Two-row layouts for variant-first sections
-                if (sectionType === "new-arrivals" || sectionType === "recently-viewed" || sectionType === "you-may-like") {
-                    container.innerHTML = "";
-                    var rowSize = 10;
-                    if (sectionType === "you-may-like") {
-                        rowSize = 8;
-                    }
+                // Two-row horizontal layouts for some sections; New Arrivals now uses a vertical grid
+                container.innerHTML = "";
+                if (sectionType === "recently-viewed" || sectionType === "you-may-like") {
+                    var rowSize = (sectionType === "you-may-like") ? 8 : 10;
                     var row1 = document.createElement("div");
                     row1.className = "variant-row";
                     products.slice(0, rowSize).forEach(function (p) {
@@ -301,7 +305,7 @@
                 }
             })
             .catch(function () {
-                if (sectionType === "recently-viewed") section.classList.add("is-empty");
+                section.classList.add("is-empty");
             });
     }
 
