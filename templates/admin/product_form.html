@@ -772,7 +772,7 @@
                             {{ item.size_formset.management_form }}
                             <div class="nested-formset sizes-formset">
                                 {% for sz_form in item.size_formset %}
-                                    <div class="nested-form-row size-row grid-2">
+                                    <div class="nested-form-row size-row grid-2{% if not item.color_form.instance.pk and forloop.first %} size-row-hidden{% endif %}"{% if not item.color_form.instance.pk and forloop.first %} style="display:none"{% endif %}>
                                         <div class="form-group">
                                             <label class="form-label">Size *</label>
                                             {{ sz_form.size }}
@@ -907,18 +907,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const productForm = colorFormset ? colorFormset.closest('form') : productFormEl;
     const totalFormsInput = productForm ? productForm.querySelector('input[name="colors-TOTAL_FORMS"]') : null;
 
+    // Remove new color block (event delegation so it works for dynamically added blocks)
     if (colorFormset) {
-        colorFormset.querySelectorAll('.remove-color-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const block = this.closest('.color-variant-block');
-                if (block) {
-                    // For brand new (unsaved) colors simply remove the block from the DOM.
-                    // Do NOT decrement TOTAL_FORMS – Django formsets expect it to be monotonic.
-                    block.parentNode && block.parentNode.removeChild(block);
-                    if (colorFormset) {
-                        updateFormNumbers(colorFormset, 'color-variant-block');
+        colorFormset.addEventListener('click', function(e) {
+            const btn = e.target.closest('.remove-color-btn');
+            if (!btn) return;
+            e.preventDefault();
+            const block = btn.closest('.color-variant-block');
+            if (!block || !totalFormsInput) return;
+            block.parentNode && block.parentNode.removeChild(block);
+            const remaining = colorFormset.querySelectorAll('.color-variant-block');
+            totalFormsInput.value = String(remaining.length);
+            remaining.forEach(function(blk, newIdx) {
+                const oldIdx = blk.getAttribute('data-form-index');
+                blk.setAttribute('data-form-index', newIdx);
+                const numSpan = blk.querySelector('.form-number');
+                if (numSpan) numSpan.textContent = newIdx + 1;
+                if (String(oldIdx) !== String(newIdx)) {
+                    function repl(s) {
+                        return s.replace(new RegExp('colors-' + oldIdx + '-', 'g'), 'colors-' + newIdx + '-')
+                                .replace(new RegExp('color-' + oldIdx + '-', 'g'), 'color-' + newIdx + '-');
                     }
+                    blk.querySelectorAll('[name]').forEach(function(el) {
+                        const n = el.getAttribute('name');
+                        if (n) el.setAttribute('name', repl(n));
+                    });
+                    blk.querySelectorAll('[id]').forEach(function(el) {
+                        const id = el.getAttribute('id');
+                        if (id) el.setAttribute('id', repl(id));
+                    });
+                    blk.querySelectorAll('[for]').forEach(function(el) {
+                        const f = el.getAttribute('for');
+                        if (f) el.setAttribute('for', repl(f));
+                    });
+                    const szSection = blk.querySelector('.sizes-section');
+                    if (szSection) szSection.setAttribute('data-color-index', newIdx);
                 }
             });
         });
@@ -977,7 +1000,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // For other inputs, reset values while keeping management fields intact.
                 if (inp.type === 'checkbox' || inp.type === 'radio') {
-                    inp.checked = false;
+                    // New color variants must default to is_active=True so they appear on the detail page
+                    if (nameAttr && nameAttr.match(/^colors-\d+-is_active$/)) {
+                        inp.checked = true;
+                    } else {
+                        inp.checked = false;
+                    }
                 } else if (inp.type !== 'hidden') {
                     inp.value = '';
                 }
@@ -1000,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
 
-            // Reset nested size formset for the new color: exactly one blank size row, no initial forms.
+            // Reset nested size formset for the new color: 0 visible rows initially (1 hidden template for Add size).
             const sizesSection = clone.querySelector('.sizes-section');
             if (sizesSection) {
                 const sizeFormset = sizesSection.querySelector('.sizes-formset');
@@ -1012,31 +1040,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (sizeRows.length > 0) {
                         templateRow = sizeRows[0].cloneNode(true);
                     }
-                    // Clear and rebuild with a single blank row based on the template.
                     sizeFormset.innerHTML = '';
                     if (templateRow) {
+                        templateRow.classList.add('size-row-hidden');
+                        templateRow.style.display = 'none';
                         templateRow.querySelectorAll('input, select').forEach(function(el) {
                             const name = el.getAttribute('name') || '';
-                            if (name.indexOf('DELETE') !== -1) {
-                                el.checked = false;
-                                return;
-                            }
-                            if (name.endsWith('-id')) {
-                                // New color should not carry over existing SizeVariant PKs.
-                                el.value = '';
-                                return;
-                            }
-                            if (el.tagName === 'SELECT') {
-                                el.selectedIndex = 0;
-                                return;
-                            }
+                            if (name.indexOf('DELETE') !== -1) { el.checked = false; return; }
+                            if (name.endsWith('-id')) { el.value = ''; return; }
+                            if (el.tagName === 'SELECT') { el.selectedIndex = 0; return; }
                             if (el.type === 'checkbox' || el.type === 'radio') {
-                                // Default new size rows to active.
-                                if (name.indexOf('is_active') !== -1) {
-                                    el.checked = true;
-                                } else {
-                                    el.checked = false;
-                                }
+                                el.checked = (name.indexOf('is_active') !== -1);
                             } else if (el.type !== 'hidden') {
                                 el.value = '';
                             }
@@ -1044,9 +1058,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         sizeFormset.appendChild(templateRow);
                     }
                     sizeTotalInput.value = '1';
-                    if (sizeInitialInput) {
-                        sizeInitialInput.value = '0';
-                    }
+                    if (sizeInitialInput) sizeInitialInput.value = '0';
                 }
             }
 
@@ -1073,6 +1085,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
             if (!formset || !totalInput) return;
             var rows = formset.querySelectorAll('.size-row');
+            var hiddenRows = formset.querySelectorAll('.size-row.size-row-hidden');
+            if (rows.length > 0 && hiddenRows.length === rows.length) {
+                hiddenRows[0].classList.remove('size-row-hidden');
+                hiddenRows[0].style.display = '';
+                return;
+            }
             if (rows.length === 0) return;
             var lastRow = rows[rows.length - 1];
             var newIndex = parseInt(totalInput.value, 10);

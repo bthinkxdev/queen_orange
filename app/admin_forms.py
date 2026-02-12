@@ -371,6 +371,14 @@ ColorVariantFormSet = inlineformset_factory(
     can_delete=True,
     max_num=20,
 )
+ColorVariantFormSetEdit = inlineformset_factory(
+    Product,
+    ColorVariant,
+    form=ColorVariantForm,
+    extra=0,
+    can_delete=True,
+    max_num=20,
+)
 
 
 # Each image is tied to a single ColorVariant. Use with instance=<ColorVariant> only.
@@ -496,6 +504,16 @@ SizeVariantFormSet = inlineformset_factory(
     SizeVariant,
     form=SizeVariantForm,
     extra=1,
+    can_delete=True,
+    max_num=50,
+    min_num=0,
+    validate_min=False,
+)
+SizeVariantFormSetEdit = inlineformset_factory(
+    ColorVariant,
+    SizeVariant,
+    form=SizeVariantForm,
+    extra=0,
     can_delete=True,
     max_num=50,
     min_num=0,
