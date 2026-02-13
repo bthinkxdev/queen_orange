@@ -1213,44 +1213,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add size button: add one more size row per color (delegated so it works in dynamically added color blocks)
-    var colorFormsetEl = document.getElementById('color-formset');
-    if (colorFormsetEl) colorFormsetEl.addEventListener('click', function(e) {
+    // Add size button and delete size button handler
+var colorFormsetEl = document.getElementById('color-formset');
+if (colorFormsetEl) {
+    colorFormsetEl.addEventListener('click', function(e) {
         const addBtn = e.target.closest('.add-size-btn');
         const deleteBtn = e.target.closest('.size-delete-btn');
 
         // Handle "Add size"
         if (addBtn) {
             e.preventDefault();
+            
             var section = addBtn.closest('.sizes-section');
             if (!section) return;
+            
             var formset = section.querySelector('.sizes-formset');
             var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
+            
             if (!formset || !totalInput) return;
+            
             var rows = formset.querySelectorAll('.size-row');
             var hiddenRows = formset.querySelectorAll('.size-row.size-row-hidden');
+            
+            // Check if all rows are hidden - if so, unhide the first one
             if (rows.length > 0 && hiddenRows.length === rows.length) {
                 hiddenRows[0].classList.remove('size-row-hidden');
                 hiddenRows[0].style.display = '';
                 return;
             }
+            
             if (rows.length === 0) return;
+            
             var lastRow = rows[rows.length - 1];
             var newIndex = parseInt(totalInput.value, 10);
 
             var clone = lastRow.cloneNode(true);
+            clone.classList.remove('size-row-hidden');
+            clone.classList.remove('deleted');
+            clone.style.display = '';
+            clone.style.opacity = '';
+            
             function repl(str) {
-                // Replace the dynamic index between "-sizes-" and the next "-" with the new index.
                 return str.replace(/-sizes-(\d+)-/g, '-sizes-' + newIndex + '-');
             }
+            
             clone.querySelectorAll('[name]').forEach(function(el) {
                 var n = el.getAttribute('name');
                 if (n) el.setAttribute('name', repl(n));
             });
+            
             clone.querySelectorAll('[id]').forEach(function(el) {
                 var id = el.getAttribute('id');
                 if (id) el.setAttribute('id', repl(id));
             });
+            
             clone.querySelectorAll('[for]').forEach(function(el) {
                 var f = el.getAttribute('for');
                 if (f) el.setAttribute('for', repl(f));
@@ -1271,7 +1287,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if (name && name.indexOf('DELETE') !== -1) inp.checked = false;
             });
-            clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
+            
+            clone.querySelectorAll('select').forEach(function(sel) { 
+                sel.selectedIndex = 0; 
+            });
+            
+            // Reset delete button for new row
+            var cloneDeleteBtn = clone.querySelector('.size-delete-btn');
+            if (cloneDeleteBtn) {
+                cloneDeleteBtn.setAttribute('data-existing', '0');
+            }
 
             formset.appendChild(clone);
             totalInput.value = newIndex + 1;
@@ -1281,51 +1306,65 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle "Delete size"
         if (deleteBtn) {
             e.preventDefault();
+            
             var row = deleteBtn.closest('.size-row');
             if (!row) return;
+            
             var section = deleteBtn.closest('.sizes-section');
             if (!section) return;
+            
             var formset = section.querySelector('.sizes-formset');
             var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
+            
             if (!formset || !totalInput) return;
 
-            var isExisting = deleteBtn.dataset.existing === '1';
-            var deleteCheckbox = row.querySelector('input[type="checkbox"][name$="DELETE"]');
+            var isExisting = deleteBtn.getAttribute('data-existing') === '1';
+            var deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
 
             if (isExisting) {
-                // Mark existing size for deletion; keep it in DOM but visually dim it.
+                // Existing size: mark for deletion (soft delete)
                 if (deleteCheckbox) {
                     deleteCheckbox.checked = true;
                 }
                 row.classList.add('deleted');
+                row.style.opacity = '0.5';
             } else {
-                // Newly added size: remove from DOM and decrement TOTAL_FORMS, then reindex.
+                // New size: remove from DOM completely
+                var wasHidden = row.classList.contains('size-row-hidden');
+                
                 row.parentNode && row.parentNode.removeChild(row);
-                var total = parseInt(totalInput.value, 10) || 0;
-                total = Math.max(total - 1, 0);
-                totalInput.value = String(total);
+                
+                if (!wasHidden) {
+                    var total = parseInt(totalInput.value, 10) || 0;
+                    total = Math.max(total - 1, 0);
+                    totalInput.value = String(total);
 
-                var rows = formset.querySelectorAll('.size-row');
-                rows.forEach(function(r, idx) {
-                    r.querySelectorAll('[name]').forEach(function(el) {
-                        var n = el.getAttribute('name');
-                        if (!n) return;
-                        el.setAttribute('name', n.replace(/-sizes-(\d+)-/g, '-sizes-' + idx + '-'));
+                    // Reindex remaining visible rows
+                    var visibleRows = formset.querySelectorAll('.size-row:not(.size-row-hidden)');
+                    
+                    visibleRows.forEach(function(r, idx) {
+                        r.querySelectorAll('[name]').forEach(function(el) {
+                            var n = el.getAttribute('name');
+                            if (!n) return;
+                            var newName = n.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-');
+                            el.setAttribute('name', newName);
+                        });
+                        r.querySelectorAll('[id]').forEach(function(el) {
+                            var id = el.getAttribute('id');
+                            if (!id) return;
+                            el.setAttribute('id', id.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-'));
+                        });
+                        r.querySelectorAll('[for]').forEach(function(el) {
+                            var f = el.getAttribute('for');
+                            if (!f) return;
+                            el.setAttribute('for', f.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-'));
+                        });
                     });
-                    r.querySelectorAll('[id]').forEach(function(el) {
-                        var id = el.getAttribute('id');
-                        if (!id) return;
-                        el.setAttribute('id', id.replace(/-sizes-(\d+)-/g, '-sizes-' + idx + '-'));
-                    });
-                    r.querySelectorAll('[for]').forEach(function(el) {
-                        var f = el.getAttribute('for');
-                        if (!f) return;
-                        el.setAttribute('for', f.replace(/-sizes-(\d+)-/g, '-sizes-' + idx + '-'));
-                    });
-                });
+                }
             }
         }
     });
+}
 
     // Field Validation
     document.querySelectorAll('.form-section .form-group').forEach(formGroup => {

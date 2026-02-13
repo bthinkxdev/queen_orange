@@ -113,7 +113,7 @@
                         </div>
                         <div class="list-card-meta">
                             <span><strong style="color: #388e3c;">₹{{ product.price }}</strong>{% if product.original_price %} <span style="text-decoration: line-through; color: var(--gray-500);">₹{{ product.original_price }}</span>{% endif %}</span>
-                            {% if product.color_variants.all %}
+                            {% if product.inventory_count > 0 %}
                                 <span>{{ product.inventory_count }} in stock</span>
                             {% else %}
                                 <span>No Stocks</span>
@@ -125,9 +125,15 @@
                                 <i class="fas fa-palette"></i> Add Variant
                             </button>
                             {% endif %}
-                            <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="btn btn-secondary" title="View">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            {% if product.is_active %}
+                                <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="btn btn-secondary" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            {% else %}
+                                <button type="button" class="btn btn-secondary" disabled title="Product is inactive">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            {% endif %}
                             <a href="{% url 'admin_panel:product_edit' product.pk %}" class="btn btn-primary">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
@@ -185,7 +191,7 @@
                             {% endif %}
                         </div>
                         <div class="product-col product-col-stock">
-                            {% if product.color_variants.all %}
+                            {% if product.inventory_count > 0 %}
                                 <span class="product-stock product-stock-ok">{{ product.inventory_count }} in stock</span>
                             {% else %}
                                 <span class="product-stock product-stock-none">No Stock</span>
@@ -205,9 +211,12 @@
                             {% endif %}
                             <a href="{% url 'admin_panel:product_edit' product.pk %}" class="product-action-link">Edit</a>
                             <span class="product-action-divider">|</span>
-                            <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="product-action-link">View</a>
+                            {% if product.is_active %}
+                                <a href="{% url 'store:product_detail' product.slug %}" target="_blank" class="product-action-link">View</a>
+                            {% else %}
+                                <span class="product-action-link" style="color: var(--gray-400); cursor: not-allowed;" title="Product is inactive">View</span>
+                            {% endif %}
                             <span class="product-action-divider">|</span>
-                            <button type="button" class="product-action-link product-action-delete delete-btn" data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}" data-delete-url="{% url 'admin_panel:product_delete' product.pk %}" title="Delete">Delete</button>
                         </div>
                     </div>
                     {% endfor %}

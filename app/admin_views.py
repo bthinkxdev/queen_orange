@@ -855,7 +855,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
                     "image_formset": ColorVariantImageFormSet(
                         self.request.POST, self.request.FILES, instance=inst, prefix=prefix_img
                     ),
-                    "size_formset": SizeVariantFormSetEdit(
+                    "size_formset": SizeVariantFormSet(
                         self.request.POST, instance=inst, prefix=prefix_sz
                     ),
                 })
@@ -863,7 +863,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
                 context["color_formsets_data"].append({
                     "color_form": cf,
                     "image_formset": ColorVariantImageFormSet(instance=inst, prefix=prefix_img),
-                    "size_formset": SizeVariantFormSetEdit(instance=inst, prefix=prefix_sz),
+                    "size_formset": SizeVariantFormSet(instance=inst, prefix=prefix_sz),
                 })
         context["active_menu"] = "products"
         context["form_title"] = "Edit Product"
@@ -1003,7 +1003,7 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
             image_fs = ColorVariantImageFormSet(
                 self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
             )
-            size_fs = SizeVariantFormSetEdit(self.request.POST, instance=cv, prefix=prefix_sz)
+            size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
             if image_fs.is_valid():
                 image_fs.save()
             if size_fs.is_valid():
