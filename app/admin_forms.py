@@ -1,5 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.forms.formsets import DELETION_FIELD_NAME
+from django.forms.models import BaseInlineFormSet
 
 from .models import (
     Banner,
@@ -216,10 +218,22 @@ class JewelleryImageForm(forms.ModelForm):
         return val
 
 
+class SafeDeleteInlineFormSet(BaseInlineFormSet):
+    """Base formset that safely handles forms without cleaned_data (empty extra forms).
+    Use for all formsets with can_delete=True to avoid AttributeError in _should_delete_form."""
+
+    def _should_delete_form(self, form):
+        cleaned = getattr(form, "cleaned_data", None)
+        if cleaned is None:
+            return False
+        return cleaned.get(DELETION_FIELD_NAME, False)
+
+
 JewelleryImageFormSet = inlineformset_factory(
     JewelleryDetail,
     JewelleryImage,
     form=JewelleryImageForm,
+    formset=SafeDeleteInlineFormSet,
     extra=3,
     can_delete=True,
     max_num=3,
@@ -314,7 +328,7 @@ def validate_product_type_requirements(form, product, color_formset, jewellery_f
     if product_type == "clothing":
         non_deleted = [
             cf for cf in color_formset.forms
-            if cf.cleaned_data and not cf.cleaned_data.get("DELETE")
+            if (cleaned := getattr(cf, "cleaned_data", None)) and not cleaned.get("DELETE")
         ]
         if not non_deleted:
             raise django_forms.ValidationError(
@@ -482,6 +496,7 @@ ColorVariantFormSet = inlineformset_factory(
     Product,
     ColorVariant,
     form=ColorVariantForm,
+    formset=SafeDeleteInlineFormSet,
     extra=1,
     can_delete=True,
     max_num=20,
@@ -490,6 +505,7 @@ ColorVariantFormSetEdit = inlineformset_factory(
     Product,
     ColorVariant,
     form=ColorVariantForm,
+    formset=SafeDeleteInlineFormSet,
     extra=0,
     can_delete=True,
     max_num=20,
@@ -502,6 +518,7 @@ ColorVariantImageFormSet = inlineformset_factory(
     ColorVariant,
     ColorVariantImage,
     form=ColorVariantImageForm,
+    formset=SafeDeleteInlineFormSet,
     # Strictly enforce max 3 images per color:
     # - At most 3 total forms (existing + empty)
     # - On edit: if 3 images already exist, no extra empty forms are rendered
@@ -618,6 +635,7 @@ SizeVariantFormSet = inlineformset_factory(
     ColorVariant,
     SizeVariant,
     form=SizeVariantForm,
+    formset=SafeDeleteInlineFormSet,
     extra=1,
     can_delete=True,
     max_num=50,
@@ -628,6 +646,7 @@ SizeVariantFormSetEdit = inlineformset_factory(
     ColorVariant,
     SizeVariant,
     form=SizeVariantForm,
+    formset=SafeDeleteInlineFormSet,
     extra=0,
     can_delete=True,
     max_num=50,

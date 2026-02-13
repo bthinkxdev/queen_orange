@@ -548,7 +548,8 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
         nested_valid = True
         if product_type == "clothing":
             for i, cf in enumerate(color_formset.forms):
-                if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                cleaned = getattr(cf, "cleaned_data", None)
+                if cleaned is None or cleaned.get("DELETE"):
                     continue
                 prefix_img = "color-%s-images" % i
                 prefix_sz = "color-%s-sizes" % i
@@ -592,7 +593,8 @@ class ProductCreateView(StaffRequiredMixin, CreateView):
         # Only update images and sizes for each saved color variant (clothing only)
         if product_type == "clothing":
             for i, cf in enumerate(color_formset.forms):
-                if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+                cleaned = getattr(cf, "cleaned_data", None)
+                if cleaned is None or cleaned.get("DELETE"):
                     continue
                 cv = cf.instance
                 if not cv.pk:
@@ -724,7 +726,8 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
         # STEP 3 — Validate all nested image/size formsets for non-deleted colors
         nested_valid = True
         for i, cf in enumerate(color_formset.forms):
-            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+            cleaned = getattr(cf, "cleaned_data", None)
+            if cleaned is None or cleaned.get("DELETE"):
                 continue
             cv = cf.instance
             if not cv.pk:
@@ -791,7 +794,8 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
 
         # Only update images and sizes for each non-deleted color variant; never overwrite sibling variants.
         for i, cf in enumerate(color_formset.forms):
-            if cf.cleaned_data and cf.cleaned_data.get("DELETE"):
+            cleaned = getattr(cf, "cleaned_data", None)
+            if cleaned is None or cleaned.get("DELETE"):
                 continue
             cv = cf.instance
             if not cv.pk:
