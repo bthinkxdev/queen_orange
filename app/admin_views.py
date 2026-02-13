@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
-from django.db.models import Count, Sum, Q, F, ProtectedError
+from django.db.models import Count, Max, Sum, Q, F, ProtectedError
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -26,6 +26,8 @@ from .models import (
     Banner,
     CartItem,
     Category,
+    ColorVariant,
+    ColorVariantImage,
     ContactMessage,
     JewelleryDetail,
     Order,
@@ -49,6 +51,7 @@ from .admin_forms import (
     SizeVariantFormSet,
     SizeVariantFormSetEdit,
     validate_product_type_requirements,
+    _validate_image_file,
 )
 
 
@@ -458,6 +461,201 @@ class ProductListView(StaffRequiredMixin, ListView):
             product.inventory_count = total_inventory
         
         return context
+
+
+# ─── Quick Add Color Variant (from product list, clothing only) ───
+PRODUCT_TYPE_CLOTHING = "clothing"
+ADD_VARIANT_MAX_IMAGES = 3
+ADD_VARIANT_ALLOWED_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+
+class AddVariantModalView(StaffRequiredMixin, View):
+    """GET: Return modal form HTML for adding a color variant. Product must be clothing."""
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        if product.product_type != PRODUCT_TYPE_CLOTHING:
+            return JsonResponse(
+                {"success": False, "error": "Product is not a clothing product."},
+                status=400,
+            )
+        existing_colors = list(
+            product.color_variants.values_list("name", flat=True).order_by("display_order", "name")
+        )
+        from .admin_forms import STANDARD_SIZES
+        return render(
+            request,
+            "admin/partials/add_variant_modal.html",
+            {
+                "product": product,
+                "existing_colors": existing_colors,
+                "standard_sizes": STANDARD_SIZES,
+            },
+        )
+
+
+class AddVariantView(StaffRequiredMixin, View):
+    """POST: Create ColorVariant + images + sizes. AJAX only, JSON response. Admin-only, CSRF required."""
+    def post(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        if product.product_type != PRODUCT_TYPE_CLOTHING:
+            return JsonResponse(
+                {"success": False, "errors": {"product": ["Product is not a clothing product."]}},
+                status=400,
+            )
+
+        errors = {}
+
+        # Color name (required)
+        color_name = (request.POST.get("color_name") or "").strip()
+        if not color_name:
+            errors.setdefault("color_name", []).append("Color name is required.")
+        else:
+            if product.color_variants.filter(name__iexact=color_name).exists():
+                errors.setdefault("color_name", []).append(
+                    "A color with this name already exists for this product."
+                )
+
+        color_code = (request.POST.get("color_code") or "").strip()[:20]
+
+        # Images: max 3, at least 1 required
+        image_keys = [k for k in request.FILES if k.startswith("image_")]
+        if len(image_keys) > ADD_VARIANT_MAX_IMAGES:
+            errors.setdefault("images", []).append(f"Maximum {ADD_VARIANT_MAX_IMAGES} images allowed.")
+        else:
+            image_files = []
+            for key in sorted(image_keys)[:ADD_VARIANT_MAX_IMAGES]:
+                f = request.FILES.get(key)
+                if not f:
+                    continue
+                image_files.append(f)
+            if not image_files:
+                errors.setdefault("images", []).append("At least one image is required.")
+            else:
+                for i, f in enumerate(image_files):
+                    name = (getattr(f, "name", "") or "").lower()
+                    if not any(name.endswith(ext) for ext in ADD_VARIANT_ALLOWED_IMAGE_EXTENSIONS):
+                        errors.setdefault("images", []).append(
+                            "Invalid file type. Use JPG, PNG, GIF, or WebP."
+                        )
+                        break
+                    try:
+                        _validate_image_file(f, required=True)
+                    except Exception as e:
+                        msgs = getattr(e, "messages", None)
+                        msg = (msgs[0] if msgs else str(e)) if msgs or str(e) else "Invalid image."
+                        errors.setdefault("images", []).append(msg)
+                        break
+
+        # Sizes: at least 1, stock >= 0, no duplicate size
+        size_raw = request.POST.get("sizes_json")
+        sizes_data = []
+        if size_raw:
+            try:
+                import json as _json
+                sizes_data = _json.loads(size_raw)
+            except Exception:
+                errors.setdefault("sizes", []).append("Invalid sizes data.")
+        if not errors.get("sizes") and not sizes_data:
+            # Fallback: parse size_0, stock_0, size_1, stock_1, ...
+            for i in range(20):
+                sz = (request.POST.get(f"size_{i}") or "").strip()
+                st = request.POST.get(f"stock_{i}")
+                if not sz and (st is None or st == ""):
+                    continue
+                try:
+                    stock_val = int(st) if st not in (None, "") else 0
+                except (TypeError, ValueError):
+                    stock_val = 0
+                if stock_val < 0:
+                    errors.setdefault("sizes", []).append("Stock cannot be negative.")
+                    break
+                sizes_data.append({"size": sz, "stock": stock_val})
+        if not errors.get("sizes") and not sizes_data:
+            errors.setdefault("sizes", []).append("At least one size is required.")
+
+        if sizes_data and "sizes" not in errors:
+            seen_sizes = set()
+            for item in sizes_data:
+                sz = (item.get("size") or "").strip()
+                if not sz:
+                    continue
+                if sz in seen_sizes:
+                    errors.setdefault("sizes", []).append(f"Duplicate size: {sz}.")
+                    break
+                seen_sizes.add(sz)
+                stock_val = item.get("stock")
+                if stock_val is None:
+                    stock_val = 0
+                try:
+                    stock_val = int(stock_val)
+                except (TypeError, ValueError):
+                    stock_val = 0
+                if stock_val < 0:
+                    errors.setdefault("sizes", []).append("Stock cannot be negative.")
+                    break
+
+        if errors:
+            return JsonResponse({"success": False, "errors": errors}, status=400)
+
+        # Re-read image files (iterator may be consumed)
+        image_files = []
+        for key in sorted([k for k in request.FILES if k.startswith("image_")])[:ADD_VARIANT_MAX_IMAGES]:
+            f = request.FILES.get(key)
+            if f:
+                image_files.append(f)
+
+        try:
+            with transaction.atomic():
+                next_order = (
+                    product.color_variants.aggregate(
+                        m=Max("display_order")
+                    ).get("m") or 0
+                ) + 1
+                color_variant = ColorVariant.objects.create(
+                    product=product,
+                    name=color_name,
+                    color_code=color_code or "",
+                    display_order=next_order,
+                    is_active=True,
+                )
+                for idx, img_file in enumerate(image_files):
+                    ColorVariantImage.objects.create(
+                        color_variant=color_variant,
+                        image=img_file,
+                        is_primary=(idx == 0),
+                        alt_text="",
+                    )
+                for item in sizes_data:
+                    sz = (item.get("size") or "").strip()
+                    if not sz:
+                        continue
+                    stock_val = item.get("stock")
+                    if stock_val is None:
+                        stock_val = 0
+                    try:
+                        stock_val = int(stock_val)
+                    except (TypeError, ValueError):
+                        stock_val = 0
+                    if stock_val < 0:
+                        stock_val = 0
+                    SizeVariant.objects.create(
+                        color_variant=color_variant,
+                        size=sz,
+                        stock_quantity=stock_val,
+                        is_active=True,
+                    )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "errors": {"__all__": [str(e)]}},
+                status=400,
+            )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Variant added successfully.",
+            "color_variant_id": color_variant.id,
+            "color_name": color_variant.name,
+        })
 
 
 class ProductCreateView(StaffRequiredMixin, CreateView):

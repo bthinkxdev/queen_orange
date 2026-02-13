@@ -1620,3 +1620,134 @@ html, body {
     justify-content: flex-end;
 }
 
+/* Add Variant modal (product list, clothing only) — centered, well-styled */
+.add-variant-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+.add-variant-modal .admin-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.add-variant-modal .admin-modal-content {
+    position: relative;
+    margin: auto;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+    background: var(--white, #fff);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18), 0 12px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 1.75rem 2rem;
+    flex-shrink: 0;
+}
+.add-variant-modal-inner {
+    padding: 0;
+}
+.add-variant-modal-title {
+    margin: 0 0 0.35rem 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--gray-900, #1a1a1a);
+    letter-spacing: -0.02em;
+}
+.add-variant-modal-product {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--gray-600, #6b7280);
+}
+.add-variant-existing-colors {
+    margin-bottom: 1.25rem;
+    padding: 0.65rem 1rem;
+    background: var(--gray-100, #f3f4f6);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.add-variant-existing-label {
+    font-weight: 600;
+    margin-right: 0.35rem;
+    color: var(--gray-700, #374151);
+}
+.add-variant-form .form-group {
+    margin-bottom: 1.1rem;
+}
+.add-variant-form .form-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--gray-700, #374151);
+}
+.add-variant-form .form-control {
+    border-radius: 10px;
+    border: 1px solid var(--gray-300, #d1d5db);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+}
+.add-variant-form .form-control:focus {
+    border-color: var(--primary, #6366f1);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.add-variant-images .add-variant-image-row {
+    margin-bottom: 0.5rem;
+}
+.add-variant-sizes .add-variant-size-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+.add-variant-size-row .add-variant-size-select {
+    flex: 0 0 130px;
+}
+.add-variant-size-row .add-variant-stock {
+    flex: 0 0 90px;
+}
+.add-variant-size-row .add-variant-remove-size {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.5rem;
+    border-radius: 8px;
+}
+.add-variant-modal-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--gray-200, #e5e7eb);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+.add-variant-modal-actions .btn {
+    border-radius: 10px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+}
+.add-variant-field-error,
+.add-variant-form-errors {
+    color: var(--danger, #dc3545);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+.add-variant-loading {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--gray-600);
+    font-size: 0.95rem;
+}
+.add-variant-form-errors ul {
+    padding-left: 1.25rem;
+}
+

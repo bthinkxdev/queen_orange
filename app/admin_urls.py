@@ -44,6 +44,8 @@ urlpatterns = [
     path("products/<int:pk>/edit/", admin_views.ProductUpdateView.as_view(), name="product_edit"),
     path("products/<int:pk>/delete/", admin_views.ProductDeleteView.as_view(), name="product_delete"),
     path("products/<int:pk>/delete-check/", admin_views.ProductDeleteCheckView.as_view(), name="product_delete_check"),
+    path("products/<int:pk>/add-variant-modal/", admin_views.AddVariantModalView.as_view(), name="product_add_variant_modal"),
+    path("products/<int:pk>/add-variant/", admin_views.AddVariantView.as_view(), name="product_add_variant"),
     
     # Orders
     path("orders/", admin_views.OrderListView.as_view(), name="order_list"),

@@ -1,0 +1,69 @@
+{% load static %}
+<div class="add-variant-modal-inner" data-product-id="{{ product.pk }}">
+    <h3 id="add-variant-modal-title" class="add-variant-modal-title">Add color variant</h3>
+    <p class="add-variant-modal-product">Product: <strong>{{ product.name }}</strong></p>
+
+    {% if existing_colors %}
+    <div class="add-variant-existing-colors">
+        <span class="add-variant-existing-label">Existing colors:</span>
+        <span class="add-variant-existing-list">{{ existing_colors|join:", " }}</span>
+    </div>
+    {% endif %}
+
+    <form id="add-variant-form" class="add-variant-form" method="post" action="{% url 'admin_panel:product_add_variant' product.pk %}" enctype="multipart/form-data" data-existing-colors="{{ existing_colors|join:'||' }}">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" value="{{ product.pk }}">
+
+        <div class="form-group">
+            <label for="add-variant-color-name" class="form-label">Color name <span class="text-danger">*</span></label>
+            <input type="text" id="add-variant-color-name" name="color_name" class="form-control" placeholder="e.g. Red, Blue" maxlength="60" required>
+            <div id="add-variant-color-name-error" class="invalid-feedback add-variant-field-error" style="display: none;"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="add-variant-color-code" class="form-label">Color code (optional)</label>
+            <input type="text" id="add-variant-color-code" name="color_code" class="form-control" placeholder="#hex or leave blank" maxlength="20">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Images <span class="text-danger">*</span> (max 3, at least 1 required)</label>
+            <div class="add-variant-images">
+                <div class="add-variant-image-row">
+                    <input type="file" name="image_0" class="form-control add-variant-file" accept="image/*" data-index="0">
+                </div>
+                <div class="add-variant-image-row">
+                    <input type="file" name="image_1" class="form-control add-variant-file" accept="image/*" data-index="1">
+                </div>
+                <div class="add-variant-image-row">
+                    <input type="file" name="image_2" class="form-control add-variant-file" accept="image/*" data-index="2">
+                </div>
+            </div>
+            <div id="add-variant-images-error" class="invalid-feedback add-variant-field-error" style="display: none;"></div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Sizes <span class="text-danger">*</span> (at least 1, stock ≥ 0)</label>
+            <div id="add-variant-sizes-container" class="add-variant-sizes">
+                <div class="add-variant-size-row" data-index="0">
+                    <select name="size_0" class="form-control add-variant-size-select">
+                        <option value="">Select size</option>
+                        {% for s in standard_sizes %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="stock_0" class="form-control add-variant-stock" min="0" placeholder="Stock" value="0">
+                    <button type="button" class="btn btn-sm btn-outline-danger add-variant-remove-size" title="Remove size" aria-label="Remove size"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <button type="button" id="add-variant-add-size" class="btn btn-sm btn-outline-secondary mt-1"><i class="fas fa-plus"></i> Add size</button>
+            <div id="add-variant-sizes-error" class="invalid-feedback add-variant-field-error" style="display: none;"></div>
+        </div>
+
+        <div id="add-variant-form-errors" class="add-variant-form-errors" style="display: none;"></div>
+
+        <div class="add-variant-modal-actions">
+            <button type="button" class="btn btn-secondary add-variant-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="add-variant-submit">Save variant</button>
+        </div>
+    </form>
+</div>
