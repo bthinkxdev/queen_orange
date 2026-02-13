@@ -19,7 +19,8 @@ from .models import (
 STANDARD_SIZES = [
     "Free Size","XS", "S", "M", "L", "XL",
     "2XL", "3XL", "4XL", "5XL", "6XL",
-    "7XL", "8XL", "9XL", "10XL",
+    "7XL", "8XL", "9XL", "10XL","Age 6M - 12M",
+    "Age 1Y - 2Y", "Age 2Y - 3Y", "Age 3Y - 4Y", "Age 4Y - 5Y", "Age 5Y - 6Y", "Age 6Y - 7Y", "Age 7Y - 8Y", "Age 8Y - 9Y", "Age 9Y - 10Y", "Age 10Y - 11Y", "Age 11Y - 12Y"
 ]
 
 
