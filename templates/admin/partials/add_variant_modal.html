@@ -29,13 +29,31 @@
             <label class="form-label">Images <span class="text-danger">*</span> (max 3, at least 1 required)</label>
             <div class="add-variant-images">
                 <div class="add-variant-image-row">
-                    <input type="file" name="image_0" class="form-control add-variant-file" accept="image/*" data-index="0">
+                    <div class="add-variant-image-cell">
+                        <input type="file" name="image_0" class="form-control add-variant-file" accept="image/*" data-index="0">
+                        <div class="add-variant-image-preview-wrap" style="display: none;">
+                            <img class="add-variant-image-preview" alt="Preview" src="">
+                            <button type="button" class="btn btn-sm add-variant-image-remove" title="Remove image" aria-label="Remove image"><i class="fas fa-times"></i> Remove</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="add-variant-image-row">
-                    <input type="file" name="image_1" class="form-control add-variant-file" accept="image/*" data-index="1">
+                    <div class="add-variant-image-cell">
+                        <input type="file" name="image_1" class="form-control add-variant-file" accept="image/*" data-index="1">
+                        <div class="add-variant-image-preview-wrap" style="display: none;">
+                            <img class="add-variant-image-preview" alt="Preview" src="">
+                            <button type="button" class="btn btn-sm add-variant-image-remove" title="Remove image" aria-label="Remove image"><i class="fas fa-times"></i> Remove</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="add-variant-image-row">
-                    <input type="file" name="image_2" class="form-control add-variant-file" accept="image/*" data-index="2">
+                    <div class="add-variant-image-cell">
+                        <input type="file" name="image_2" class="form-control add-variant-file" accept="image/*" data-index="2">
+                        <div class="add-variant-image-preview-wrap" style="display: none;">
+                            <img class="add-variant-image-preview" alt="Preview" src="">
+                            <button type="button" class="btn btn-sm add-variant-image-remove" title="Remove image" aria-label="Remove image"><i class="fas fa-times"></i> Remove</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="add-variant-images-error" class="invalid-feedback add-variant-field-error" style="display: none;"></div>

@@ -65,28 +65,87 @@
         }
     }
 
-    function bindImageLimit(formEl) {
-        var files = formEl.querySelectorAll(".add-variant-file");
+    function bindImagePreviewsAndLimit(formEl) {
         var allowed = 3;
-        files.forEach(function(input) {
-            input.addEventListener("change", function() {
-                var count = 0;
-                var inputs = formEl.querySelectorAll(".add-variant-file");
-                for (var i = 0; i < inputs.length; i++) {
-                    if (inputs[i].files && inputs[i].files.length) count++;
+        formEl.querySelectorAll(".add-variant-image-row").forEach(function(row) {
+            var input = row.querySelector(".add-variant-file");
+            var previewWrap = row.querySelector(".add-variant-image-preview-wrap");
+            var previewImg = row.querySelector(".add-variant-image-preview");
+            var removeBtn = row.querySelector(".add-variant-image-remove");
+            var currentObjectUrl = null;
+
+            function showPreview(src, isObjectUrl) {
+                if (currentObjectUrl && window.URL && window.URL.revokeObjectURL) {
+                    window.URL.revokeObjectURL(currentObjectUrl);
+                    currentObjectUrl = null;
                 }
-                if (count > allowed) {
+                if (isObjectUrl) currentObjectUrl = src;
+                if (previewImg) previewImg.src = src;
+                if (previewWrap) previewWrap.style.display = "flex";
+                if (input) input.style.display = "none";
+            }
+            function hidePreview() {
+                if (currentObjectUrl && window.URL && window.URL.revokeObjectURL) {
+                    window.URL.revokeObjectURL(currentObjectUrl);
+                    currentObjectUrl = null;
+                }
+                if (previewImg) previewImg.src = "";
+                if (previewWrap) previewWrap.style.display = "none";
+                if (input) {
                     input.value = "";
-                    var err = formEl.querySelector("#add-variant-images-error");
-                    if (err) {
-                        err.style.display = "block";
-                        err.textContent = "Maximum " + allowed + " images allowed.";
-                    }
-                } else {
+                    input.style.display = "block";
+                }
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener("click", function() {
+                    hidePreview();
                     var err = formEl.querySelector("#add-variant-images-error");
                     if (err) err.style.display = "none";
-                }
-            });
+                });
+            }
+
+            if (input) {
+                input.addEventListener("change", function() {
+                    var file = input.files && input.files[0];
+                    if (!file) {
+                        hidePreview();
+                        return;
+                    }
+                    if (!file.type.match(/^image\//)) {
+                        input.value = "";
+                        var err = formEl.querySelector("#add-variant-images-error");
+                        if (err) {
+                            err.style.display = "block";
+                            err.textContent = "Please choose an image file (JPG, PNG, GIF, WebP).";
+                        }
+                        return;
+                    }
+                    var count = 0;
+                    formEl.querySelectorAll(".add-variant-file").forEach(function(inp) {
+                        if (inp.files && inp.files.length) count++;
+                    });
+                    if (count > allowed) {
+                        input.value = "";
+                        var err = formEl.querySelector("#add-variant-images-error");
+                        if (err) {
+                            err.style.display = "block";
+                            err.textContent = "Maximum " + allowed + " images allowed.";
+                        }
+                        return;
+                    }
+                    var err = formEl.querySelector("#add-variant-images-error");
+                    if (err) err.style.display = "none";
+                    var url = (window.URL && window.URL.createObjectURL) ? window.URL.createObjectURL(file) : null;
+                    if (url) {
+                        showPreview(url, true);
+                    } else {
+                        var reader = new FileReader();
+                        reader.onload = function(e) { showPreview(e.target.result, false); };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
         });
     }
 
@@ -216,16 +275,34 @@
                 try { json = JSON.parse(xhr.responseText); } catch (err) {}
                 if (xhr.status >= 200 && xhr.status < 300 && json && json.success) {
                     closeModal();
-                    window.location.reload();
+                    var msg = "Variant added successfully.";
+                    if (json.color_name) msg = "Color variant \"" + json.color_name + "\" added successfully.";
+                    if (typeof showAdminToast === "function") {
+                        showAdminToast(msg, "success");
+                    }
+                    setTimeout(function() { window.location.reload(); }, 2200);
                 } else if (json && json.errors) {
                     showFormErrors(formEl, json.errors);
+                    var errMsg = "Could not add variant.";
+                    if (json.errors && typeof json.errors === "object") {
+                        var first = [];
+                        Object.keys(json.errors).forEach(function(k) {
+                            if (Array.isArray(json.errors[k])) first = first.concat(json.errors[k]);
+                        });
+                        if (first.length) errMsg = first[0];
+                    }
+                    if (typeof showAdminToast === "function") showAdminToast(errMsg, "error");
                 } else {
-                    showFormErrors(formEl, { __all__: ["Something went wrong. Please try again."] });
+                    var fallback = "Something went wrong. Please try again.";
+                    showFormErrors(formEl, { __all__: [fallback] });
+                    if (typeof showAdminToast === "function") showAdminToast(fallback, "error");
                 }
             };
             xhr.onerror = function() {
                 if (submitBtn) submitBtn.disabled = false;
-                showFormErrors(formEl, { __all__: ["Network error. Please try again."] });
+                var fallback = "Network error. Please try again.";
+                showFormErrors(formEl, { __all__: [fallback] });
+                if (typeof showAdminToast === "function") showAdminToast(fallback, "error");
             };
             xhr.send(formData);
         });
@@ -255,7 +332,7 @@
                     if (formEl) {
                         sizeIndex = 1;
                         bindDuplicateCheck(formEl);
-                        bindImageLimit(formEl);
+                        bindImagePreviewsAndLimit(formEl);
                         bindSizes(formEl);
                         bindSubmit(formEl, productId);
                         bindCancel(formEl);

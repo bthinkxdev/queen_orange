@@ -1703,7 +1703,43 @@ html, body {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 .add-variant-images .add-variant-image-row {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.add-variant-image-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+.add-variant-image-cell .add-variant-file {
+    flex: 1 1 200px;
+    min-width: 0;
+}
+.add-variant-image-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.add-variant-image-preview {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    background: var(--gray-100, #f3f4f6);
+}
+.add-variant-image-remove {
+    color: var(--danger, #dc3545);
+    border-color: var(--danger, #dc3545);
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+}
+.add-variant-image-remove:hover {
+    color: #fff;
+    background-color: var(--danger, #dc3545);
+    border-color: var(--danger, #dc3545);
 }
 .add-variant-sizes .add-variant-size-row {
     display: flex;
