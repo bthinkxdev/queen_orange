@@ -17,77 +17,68 @@
 {% endblock %}
 
 {% block content %}
-<div class="grid-2 order-detail-grid">
+<div class="order-detail-page">
+<div class="order-detail-grid">
     <!-- Order Information -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Order Information</h3>
         </div>
         <div class="card-body">
-            <div style="display: grid; gap: 1rem;">
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Order Number</div>
-                    <div style="font-weight: 600; font-size: 1.1rem;">{{ order.order_number }}</div>
-                </div>
-                
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Order Date</div>
-                    <div>{{ order.created_at|date:"d M, Y - h:i A" }}</div>
-                </div>
-                
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Status</div>
-                    <div>
-                        {% if order.status == 'placed' %}
-                            <span class="badge badge-info">{{ order.get_status_display }}</span>
-                        {% elif order.status == 'confirmed' %}
-                            <span class="badge badge-warning">{{ order.get_status_display }}</span>
-                        {% elif order.status == 'shipped' %}
-                            <span class="badge badge-secondary">{{ order.get_status_display }}</span>
-                        {% elif order.status == 'delivered' %}
-                            <span class="badge badge-success">{{ order.get_status_display }}</span>
-                        {% elif order.status == 'cancelled' %}
-                            <span class="badge badge-danger">{{ order.get_status_display }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Payment Method</div>
-                    <div>{{ order.payment.get_method_display }}</div>
-                </div>
-
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Payment Status</div>
-                    <div>
-                        {% if order.payment.status == 'paid' %}
-                            <span class="badge badge-success">Paid</span>
-                        {% elif order.payment.status == 'pending' %}
-                            <span class="badge badge-warning">Pending</span>
-                        {% else %}
-                            <span class="badge badge-danger">Failed</span>
-                        {% endif %}
-                    </div>
-                </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Order Number</span>
+                <span class="order-detail-info-value" style="font-size: 1.1rem;">{{ order.order_number }}</span>
+            </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Order Date</span>
+                <span class="order-detail-info-value">{{ order.created_at|date:"d M, Y - h:i A" }}</span>
+            </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Status</span>
+                <span class="order-detail-info-value">
+                    {% if order.status == 'placed' %}
+                        <span class="badge badge-info">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'confirmed' %}
+                        <span class="badge badge-warning">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'shipped' %}
+                        <span class="badge badge-secondary">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'delivered' %}
+                        <span class="badge badge-success">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'cancelled' %}
+                        <span class="badge badge-danger">{{ order.get_status_display }}</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Payment Method</span>
+                <span class="order-detail-info-value">{{ order.payment.get_method_display }}</span>
+            </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Payment Status</span>
+                <span class="order-detail-info-value">
+                    {% if order.payment.status == 'paid' %}
+                        <span class="badge badge-success">Paid</span>
+                    {% elif order.payment.status == 'pending' %}
+                        <span class="badge badge-warning">Pending</span>
+                    {% else %}
+                        <span class="badge badge-danger">Failed</span>
+                    {% endif %}
+                </span>
             </div>
 
-            <hr style="margin: 1.5rem 0; border-color: var(--gray-200);">
+            <hr class="order-detail-divider">
 
-            <h4 style="margin-bottom: 1rem; font-size: 1rem;">Update Order Status</h4>
-            <form method="post" action="{% url 'admin_panel:order_update_status' order.order_number %}">
+            <h4 class="order-detail-section-title">Update Order Status</h4>
+            <form method="post" action="{% url 'admin_panel:order_update_status' order.order_number %}" class="order-detail-status-form">
                 {% csrf_token %}
-                <div class="d-flex gap-2">
-                    <select name="status" class="form-control" style="flex: 1;">
-                        {% for value, label in status_choices %}
-                            <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>
-                                {{ label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-check"></i> Update
-                    </button>
-                </div>
+                <select name="status" class="form-control">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Update
+                </button>
             </form>
         </div>
     </div>
@@ -98,41 +89,32 @@
             <h3 class="card-title">Customer Information</h3>
         </div>
         <div class="card-body">
-            <div style="display: grid; gap: 1rem;">
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Full Name</div>
-                    <div style="font-weight: 500;">{{ order.address.full_name }}</div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Full Name</span>
+                <span class="order-detail-info-value">{{ order.address.full_name }}</span>
+            </div>
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Phone</span>
+                <div class="order-detail-phone-row">
+                    <a href="tel:{{ order.address.phone }}">{{ order.address.phone }}</a>
+                    <a href="https://wa.me/{{ order.address.phone|whatsapp_number }}" target="_blank" class="order-detail-whatsapp-link" aria-label="WhatsApp customer" title="Chat on WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
                 </div>
-                
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Phone</div>
-                    <div class="order-detail-phone-row">
-                        <a href="tel:{{ order.address.phone }}" style="color: var(--primary); text-decoration: none;">{{ order.address.phone }}</a>
-                        <a href="https://wa.me/{{ order.address.phone|whatsapp_number }}" target="_blank" class="order-detail-whatsapp-link" aria-label="WhatsApp customer" title="Chat on WhatsApp">
-                            <i class="fab fa-whatsapp"></i>
-                        </a>
-                    </div>
-                </div>
-                
-                {% if order.address.email %}
-                    <div>
-                        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Email</div>
-                        <div>
-                            <a href="mailto:{{ order.address.email }}" style="color: var(--primary); text-decoration: none;">
-                                {{ order.address.email }}
-                            </a>
-                        </div>
-                    </div>
-                {% endif %}
-                
-                <div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Shipping Address</div>
-                    <div style="line-height: 1.6;">
-                        {{ order.address.address_line }}<br>
-                        {{ order.address.city }}, {{ order.address.state }}<br>
-                        {{ order.address.pincode }}
-                    </div>
-                </div>
+            </div>
+            {% if order.address.email %}
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Email</span>
+                <a href="mailto:{{ order.address.email }}" class="order-detail-info-value">{{ order.address.email }}</a>
+            </div>
+            {% endif %}
+            <div class="order-detail-info-row">
+                <span class="order-detail-info-label">Shipping Address</span>
+                <span class="order-detail-info-value" style="line-height: 1.6; display: block;">
+                    {{ order.address.address_line }}<br>
+                    {{ order.address.city }}, {{ order.address.state }}<br>
+                    {{ order.address.pincode }}
+                </span>
             </div>
         </div>
     </div>
@@ -170,18 +152,18 @@
         </div>
     </div>
     <div class="card-footer">
-        <div style="display: grid; gap: 0.5rem; max-width: 300px; margin-left: auto;">
-            <div style="display: flex; justify-content: space-between;">
-                <span>Subtotal:</span>
-                <span style="font-weight: 600;">₹{{ order.subtotal }}</span>
+        <div class="order-detail-totals">
+            <div class="order-detail-totals-row">
+                <span>Subtotal</span>
+                <span class="amount">₹{{ order.subtotal }}</span>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>Shipping:</span>
-                <span style="font-weight: 600;">₹{{ order.shipping }}</span>
+            <div class="order-detail-totals-row">
+                <span>Shipping</span>
+                <span class="amount">₹{{ order.shipping }}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 2px solid var(--gray-300); font-size: 1.1rem;">
-                <span style="font-weight: 700;">Total:</span>
-                <span style="font-weight: 700; color: var(--primary);">₹{{ order.total }}</span>
+            <div class="order-detail-totals-row total-row">
+                <span>Total</span>
+                <span class="amount">₹{{ order.total }}</span>
             </div>
         </div>
     </div>
@@ -198,6 +180,7 @@
     <a href="{% url 'admin_panel:order_list' %}" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Orders
     </a>
+</div>
 </div>
 {% endblock %}
 
