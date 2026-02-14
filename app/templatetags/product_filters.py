@@ -25,6 +25,17 @@ def price_inr(value):
 
 
 @register.filter
+def whatsapp_number(value):
+    """Normalize phone for wa.me URL: strip non-digits, add 91 if 10 digits."""
+    if not value:
+        return ""
+    digits = "".join(c for c in str(value) if c.isdigit())
+    if len(digits) == 10:
+        return "91" + digits
+    return digits if digits else ""
+
+
+@register.filter
 def to_json(value):
     """Serialize a list/dict to JSON for use in data attributes. Returns empty array string for invalid values."""
     if value is None:

@@ -314,15 +314,81 @@
 }
 
 /* --------------------------------------
-   ORDER DETAIL - Mobile
+   ORDER DETAIL - Mobile & Desktop
    -------------------------------------- */
+.page-title-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+.page-title-actions .page-title-text {
+    flex: 1;
+    min-width: 0;
+}
+.page-title-actions .page-title-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.order-detail-phone-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.order-detail-phone-row a[href^="tel:"] {
+    flex: 1;
+    min-width: 0;
+}
+.order-detail-whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #25D366 !important;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+.order-detail-whatsapp-link:hover {
+    color: #128C7E !important;
+}
+.order-detail-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.order-detail-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+}
+.order-detail-contact a {
+    color: var(--primary);
+    text-decoration: none;
+}
+.order-detail-contact a:hover {
+    text-decoration: underline;
+}
 @media (max-width: 768px) {
     .page-title-actions {
         flex-direction: column;
         align-items: stretch;
     }
-    .page-title-actions .btn {
+    .page-title-actions .page-title-buttons {
+        flex-direction: column;
+    }
+    .page-title-actions .page-title-buttons .btn {
         width: 100%;
+        justify-content: center;
+    }
+    .page-title-actions .btn-text {
+        display: inline;
     }
     .order-detail-grid {
         grid-template-columns: 1fr !important;
@@ -335,7 +401,13 @@
     .order-items-table-wrap .table {
         min-width: 400px;
     }
-    /* Order items as cards on very small */
+    .order-detail-footer {
+        gap: 1rem;
+    }
+    .order-detail-contact {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 @media (max-width: 480px) {
     .order-items-mobile-cards .order-item-card {

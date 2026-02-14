@@ -146,10 +146,10 @@
      data-url-jewellery-upload-image="{% url 'admin_panel:jewellery_upload_image' 999 %}"
      data-url-jewellery-image-delete="{% url 'admin_panel:jewellery_image_delete' 1 %}"
      data-url-jewellery-image-replace="{% url 'admin_panel:jewellery_image_replace' 1 %}">
-    {% csrf_token %}
-    <input type="hidden" id="created-product-id" value="">
+        {% csrf_token %}
+        <input type="hidden" id="created-product-id" value="">
 
-    <div class="product-create-inner">
+        <div class="product-create-inner">
         <!-- Step 1: Basic info -->
         <div class="create-section" id="section-basic">
             <h4 class="section-heading"><span class="section-num">1</span> Basic info</h4>
@@ -309,28 +309,29 @@
         <div style="margin-top:1.5rem;">
             <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancel</a>
         </div>
-    </div>
+        </div>
 
-    <!-- Add color modal -->
-    <div id="add-color-modal" class="modal-overlay" aria-hidden="true">
-        <div class="modal-dialog">
-            <h3>Add color</h3>
-            <label class="form-label">Color name</label>
-            <input type="text" id="add-color-name-input" class="form-control" placeholder="e.g. Navy">
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" id="add-color-modal-cancel">Cancel</button>
-                <button type="button" class="btn btn-primary" id="add-color-modal-submit">Add</button>
-                                        </div>
-                                        </div>
+        <!-- Add color modal -->
+        <div id="add-color-modal" class="modal-overlay" aria-hidden="true">
+            <div class="modal-dialog">
+                <h3>Add color</h3>
+                <label class="form-label">Color name</label>
+                <input type="text" id="add-color-name-input" class="form-control" placeholder="e.g. Navy">
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="add-color-modal-cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="add-color-modal-submit">Add</button>
+                </div>
             </div>
+        </div>
 
-    <div id="action-loader-create" class="action-loader-overlay" aria-hidden="true">
-        <div style="text-align:center;">
-            <div class="loader-spinner"></div>
-            <div class="loader-text">Saving…</div>
+        <div id="action-loader-create" class="action-loader-overlay" aria-hidden="true">
+            <div style="text-align:center;">
+                <div class="loader-spinner"></div>
+                <div class="loader-text">Saving…</div>
+            </div>
         </div>
-        </div>
-    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+        <div id="toast-container" class="toast-container" aria-live="polite"></div>
+    </div>
 </div>
 
 {{ standard_sizes|json_script:"standard-sizes" }}

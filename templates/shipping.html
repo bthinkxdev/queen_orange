@@ -84,7 +84,6 @@
                             <li>EMI Options (Credit Card & Cardless EMI)</li>
                         </ul>
                     </li>
-                    <li><strong>Easy Refunds:</strong> Faster refund processing for online payments (5-7 business days)</li>
                 </ul>
 
                 <h2>8. Delivery Process</h2>
@@ -112,8 +111,8 @@
                 <ul>
                     <li><strong>Delayed Shipment:</strong> Contact us if your order is delayed beyond the estimated delivery date</li>
                     <li><strong>Investigation:</strong> We'll immediately investigate with our courier partners</li>
-                    <li><strong>Resolution:</strong> We'll either arrange a re-shipment or provide a full refund</li>
-                    <li><strong>Lost Packages:</strong> If a package is confirmed lost, we'll refund or re-ship immediately</li>
+                    <li><strong>Resolution:</strong> We'll arrange a re-shipment at no extra cost</li>
+                    <li><strong>Lost Packages:</strong> If a package is confirmed lost, we'll re-ship immediately</li>
                     <li><strong>Insurance:</strong> All shipments are insured against loss or damage</li>
                 </ul>
 
@@ -122,7 +121,7 @@
                     <li><strong>Address Verification:</strong> Please double-check your shipping address before placing the order</li>
                     <li><strong>Address Change:</strong> Contact us immediately if you need to update the address (before dispatch)</li>
                     <li><strong>After Dispatch:</strong> Once dispatched, address changes may not be possible</li>
-                    <li><strong>Return to Sender:</strong> Orders returned due to wrong address will be reshipped at customer's cost</li>
+                    <li><strong>Wrong Address:</strong> Orders sent to wrong address can be reshipped at customer's cost</li>
                     <li><strong>Landmark:</strong> Please provide a clear landmark for easier delivery</li>
                 </ul>
 
@@ -130,8 +129,7 @@
                 <p>If an order cannot be delivered:</p>
                 <ul>
                     <li><strong>Customer Unavailable:</strong> Our partner will attempt delivery 2-3 times</li>
-                    <li><strong>RTO (Return to Origin):</strong> Undelivered packages are returned to our warehouse</li>
-                    <li><strong>Refund for RTO:</strong> Shipping charges will be deducted from the refund amount</li>
+                    <li><strong>RTO (Return to Origin):</strong> Undelivered packages are sent back to our warehouse</li>
                     <li><strong>Re-delivery:</strong> You can request re-delivery by paying shipping charges again</li>
                 </ul>
 
@@ -147,7 +145,7 @@
                     <li><strong>Inspection on Delivery:</strong> Check your package before accepting delivery</li>
                     <li><strong>Report Immediately:</strong> If you receive a damaged product, contact us within 24 hours</li>
                     <li><strong>Photo Evidence:</strong> Please share photos of the damaged product and packaging</li>
-                    <li><strong>Replacement:</strong> We'll arrange a free replacement or full refund immediately</li>
+                    <li><strong>Replacement:</strong> We'll arrange a free replacement immediately</li>
                     <li><strong>No Questions Asked:</strong> We stand behind our products and packaging</li>
                 </ul>
 
@@ -162,9 +160,7 @@
                 <h2>16. Order Cancellation & Shipping</h2>
                 <ul>
                     <li><strong>Before Dispatch:</strong> Orders can be cancelled free of charge before dispatch</li>
-                    <li><strong>After Dispatch:</strong> Once shipped, you cannot cancel but can return after delivery</li>
-                    <li><strong>Refund:</strong> Shipping charges will be refunded if order is cancelled before dispatch</li>
-                    <li><strong>Return Policy:</strong> Refer to our <a href="{% url 'store:refund' %}">Return & Refund Policy</a> for more details</li>
+                    <li><strong>After Dispatch:</strong> Once shipped, cancellation may not be possible; contact us for assistance</li>
                 </ul>
 
                 <h2>17. Customer Responsibilities</h2>
@@ -173,7 +169,7 @@
                     <li>Be available to receive the order or authorize someone on your behalf</li>
                     <li>Inspect the package upon delivery before accepting</li>
                     <li>Report any issues within 24 hours of delivery</li>
-                    <li>Keep the original packaging for returns or exchanges</li>
+                    <li>Keep the original packaging for your records</li>
                 </ul>
 
                 <h2>18. Force Majeure</h2>
@@ -190,8 +186,8 @@
                 <p>Have questions about your shipment? We're here to help!</p>
                 <ul>
                     <li><strong>Email:</strong> support@queenorange.com</li>
-                    <li><strong>Phone:</strong> <a href="tel:+919188757461">+91 91887 57461</a></li>
-                    <li><strong>WhatsApp:</strong> <a href="https://wa.me/919188757461" target="_blank">+91 91887 57461</a></li>
+                    <li><strong>Phone:</strong> <a href="tel:{{ site_phone|default:'+916238439926' }}">{{ site_phone|default:'+91 62384 39926' }}</a></li>
+                    <li><strong>WhatsApp:</strong> <a href="https://wa.me/{{ site_whatsapp|default:'916238439926' }}" target="_blank">{{ site_phone|default:'+91 62384 39926' }}</a></li>
                     <li><strong>Hours:</strong> Monday to Saturday, 9:00 AM - 6:00 PM IST</li>
                 </ul>
 

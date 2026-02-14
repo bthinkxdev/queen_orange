@@ -1,13 +1,18 @@
 {% extends "admin/base.html" %}
-{% load static %}
+{% load static product_filters %}
 
 {% block title %}Order {{ order.order_number }}{% endblock %}
 {% block page_title %}
-    <span class="page-title-actions" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;">
-        <span>Order Details</span>
-        <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary">
-            <i class="fas fa-print"></i> Print Invoice
-        </a>
+    <span class="page-title-actions">
+        <span class="page-title-text">Order Details</span>
+        <div class="page-title-buttons">
+            <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-primary" aria-label="Print Invoice">
+                <i class="fas fa-print"></i> <span class="btn-text">Print Invoice</span>
+            </a>
+            <a href="{% url 'admin_panel:order_invoice' order.order_number %}" target="_blank" class="btn btn-secondary order-detail-pdf-btn" aria-label="Download PDF">
+                <i class="fas fa-file-pdf"></i> <span class="btn-text">Download PDF</span>
+            </a>
+        </div>
     </span>
 {% endblock %}
 
@@ -101,9 +106,10 @@
                 
                 <div>
                     <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Phone</div>
-                    <div>
-                        <a href="tel:{{ order.address.phone }}" style="color: var(--primary); text-decoration: none;">
-                            {{ order.address.phone }}
+                    <div class="order-detail-phone-row">
+                        <a href="tel:{{ order.address.phone }}" style="color: var(--primary); text-decoration: none;">{{ order.address.phone }}</a>
+                        <a href="https://wa.me/{{ order.address.phone|whatsapp_number }}" target="_blank" class="order-detail-whatsapp-link" aria-label="WhatsApp customer" title="Chat on WhatsApp">
+                            <i class="fab fa-whatsapp"></i>
                         </a>
                     </div>
                 </div>
@@ -181,7 +187,14 @@
     </div>
 </div>
 
-<div style="margin-top: 1.5rem;">
+<div class="order-detail-footer">
+    <div class="order-detail-contact">
+        <strong>Store Contact:</strong>
+        <a href="tel:{{ site_phone|default:'+916238439926' }}">{{ site_phone|default:'+91 62384 39926' }}</a>
+        <a href="https://wa.me/{{ site_whatsapp|default:'916238439926' }}" target="_blank" class="order-detail-whatsapp-link" aria-label="WhatsApp store" title="Contact us on WhatsApp">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+    </div>
     <a href="{% url 'admin_panel:order_list' %}" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Orders
     </a>

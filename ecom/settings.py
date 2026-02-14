@@ -83,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'app.context_processors.site_contact_context',
                 'app.context_processors.cart_context',
                 'app.context_processors.wishlist_context',
                 'app.context_processors.admin_message_badge',
@@ -190,6 +191,10 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_NOTIFICATION_EMAILS = ['adithyamc@bthinkx.com']
+
+# Site contact (used site-wide: footer, invoice, WhatsApp FAB, etc.)
+SITE_PHONE = config("SITE_PHONE", default="+91 62384 39926")
+SITE_WHATSAPP = config("SITE_WHATSAPP", default="916238439926")  # No + or spaces for wa.me
 
 # Razorpay Configuration
 RZP_CLIENT_ID = config('RZP_CLIENT_ID')

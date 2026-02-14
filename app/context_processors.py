@@ -1,5 +1,15 @@
+from django.conf import settings
+
 from .models import Wishlist, ContactMessage
 from .services import CartService
+
+
+def site_contact_context(request):
+    """Site-wide phone and WhatsApp contact for templates."""
+    return {
+        "site_phone": getattr(settings, "SITE_PHONE", "+91 62384 39926"),
+        "site_whatsapp": getattr(settings, "SITE_WHATSAPP", "916238439926"),
+    }
 
 
 def cart_context(request):
