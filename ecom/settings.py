@@ -27,6 +27,10 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', cast=bool)
 
+# Temporary: enable edit flow tracing (structured logging only). Set to True to trace ProductUpdateView.
+# Ensure LOGGING config includes logger "edit_trace" at DEBUG level to see TRACE output.
+DEBUG_TRACE = config('DEBUG_TRACE', default=False, cast=bool)
+
 # Parse ALLOWED_HOSTS from environment variable (strip surrounding quotes per value)
 ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS')
 ALLOWED_HOSTS = [
@@ -58,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'app.middleware.DebugTraceMiddleware',  # STEP 4: force_debug_cursor when DEBUG_TRACE
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -213,9 +218,10 @@ if USE_S3:
         'project': config('AWS_S3_TAG_PROJECT', default='queen-orange'),
         'app': config('AWS_S3_TAG_APP', default='media'),
     }
-    _client_tag = config('AWS_S3_CLIENT_TAG', default='')
-    if _client_tag:
-        _s3_tag_dict['client'] = _client_tag
+
+    AWS_S3_CLIENT_TAG= config('AWS_S3_CLIENT_TAG', default='queen-orange')
+    if AWS_S3_CLIENT_TAG:
+        _s3_tag_dict['client'] = AWS_S3_CLIENT_TAG
     from s3_tagging_utils import build_safe_tags
     _s3_tagging_str = build_safe_tags(_s3_tag_dict)
     if _s3_tagging_str:
