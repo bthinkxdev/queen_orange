@@ -15,7 +15,7 @@
  * ✅ ADDED: popstate event handler (back/forward navigation)
  * ✅ ADDED: pageshow event handler (bfcache restoration)
  * ✅ ADDED: DOMContentLoaded event handler (early hide)
- * ✅ ADDED: Failsafe timer (auto-hide after 5s)
+ * REMOVED: Failsafe timer (loader must hide only on response/navigation, not on fixed delay)
  * 
  * Usage:
  * - Loader shows automatically on internal link clicks and form submissions
@@ -40,7 +40,6 @@
  */
 (function () {
     var loaderElement = null;
-    var failsafeTimer = null;
 
     // Helper: Get loader element
     function getLoader() {
@@ -50,17 +49,11 @@
         return loaderElement;
     }
 
-    // Helper: Show loader
+    // Helper: Show loader (no static delay; hides only on DOMContentLoaded/load of response page)
     function showLoader() {
         var loader = getLoader();
         if (loader) {
             loader.classList.remove('hidden');
-            // Start failsafe timer (auto-hide after 5s if still visible)
-            clearFailsafeTimer();
-            failsafeTimer = setTimeout(function() {
-                hideLoader();
-                console.warn('Loader auto-hidden after 5s timeout');
-            }, 5000);
         }
     }
 
@@ -69,15 +62,6 @@
         var loader = getLoader();
         if (loader) {
             loader.classList.add('hidden');
-        }
-        clearFailsafeTimer();
-    }
-
-    // Helper: Clear failsafe timer
-    function clearFailsafeTimer() {
-        if (failsafeTimer) {
-            clearTimeout(failsafeTimer);
-            failsafeTimer = null;
         }
     }
 
@@ -137,7 +121,7 @@
         showLoader();
     });
 
-    // ===== STEP 5: Expose global functions for AJAX handling =====
+    // ===== Expose global functions for AJAX handling =====
     window.pageLoader = {
         show: showLoader,
         hide: hideLoader

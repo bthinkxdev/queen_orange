@@ -1,0 +1,1547 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Flattened layout: minimal boxes, maximum space for form */
+    .product-edit-wrapper { max-width: 1100px; margin: 0 auto; padding: 0 1rem 2rem; }
+
+    .edit-section {
+        padding: 0 0 1.5rem 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .edit-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+    .section-heading {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .section-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 50%;
+        background: var(--primary, #6d4c41);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .section-hint {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin: 0 0 0.85rem 0;
+        line-height: 1.4;
+    }
+    .form-group { margin-bottom: 0.65rem; }
+    .form-label { display: block; margin-bottom: 0.25rem; font-weight: 600; color: #374151; font-size: 0.8125rem; }
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.9375rem;
+        transition: border-color 0.15s;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary, #6d4c41);
+        box-shadow: 0 0 0 2px rgba(109, 76, 65, 0.12);
+    }
+    /* Toggle switch (replaces checkboxes) */
+    .toggle-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    .toggle-wrap .toggle-input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+    .toggle-track {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        border-radius: 12px;
+        background: #e2e8f0;
+        border: 1px solid #cbd5e1;
+        flex-shrink: 0;
+        transition: background 0.2s, border-color 0.2s;
+    }
+    .toggle-wrap.checked .toggle-track { background: #3b82f6; border-color: #2563eb; }
+    .toggle-knob {
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+        transition: transform 0.2s ease;
+    }
+    .toggle-wrap.checked .toggle-knob { transform: translateX(20px); }
+    .toggle-label { font-weight: 500; color: #374151; font-size: 0.875rem; }
+    .toggle-status { font-size: 0.75rem; color: #6b7280; min-width: 2.2em; }
+    .toggle-wrap.checked .toggle-status { color: #2563eb; font-weight: 500; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; }
+    .btn {
+        padding: 0.5rem 0.9rem;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        border: none;
+        font-size: 0.875rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary, #6d4c41) 0%, #4e342e 100%);
+        color: #fff;
+    }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.8125rem; }
+    .btn-outline { background: transparent; border: 1px solid #d1d5db; color: #4b5563; }
+    .btn-outline:hover { background: #f9fafb; }
+
+    /* Variant: collapsible card — header = button, body = expandable */
+    .variant-card {
+        padding: 0;
+        margin-bottom: 0;
+        border-bottom: 1px solid #e5e7eb;
+        background: transparent;
+    }
+    .variant-card:last-child { border-bottom: none; }
+    .variant-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.85rem 0.5rem;
+        cursor: pointer;
+        user-select: none;
+        border-radius: 8px;
+        transition: background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .variant-card-header:hover { background: #f9fafb; }
+    .variant-card-header .color-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.15);
+        flex-shrink: 0;
+    }
+    .variant-card-header .variant-title { font-size: 0.95rem; font-weight: 600; color: #111827; flex: 1; text-align: left; }
+    .variant-card-header .variant-delete-icon-btn {
+        background: none;
+        border: none;
+        padding: 0.4rem;
+        color: #dc2626;
+        cursor: pointer;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .variant-card-header .variant-delete-icon-btn:hover { background: #fef2f2; color: #b91c1c; }
+    .variant-card-header .variant-chevron {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        transition: transform 0.2s;
+    }
+    .variant-card.expanded .variant-card-header .variant-chevron { transform: rotate(180deg); }
+    .variant-card-body {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 0.3s ease, opacity 0.2s ease;
+    }
+    .variant-card.expanded .variant-card-body {
+        max-height: 2000px;
+        opacity: 1;
+    }
+    .variant-card-body-inner {
+        padding: 0 0 1.25rem 0;
+        padding-top: 0.5rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    .variant-card h5 { display: none; }
+    .variant-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: flex-end;
+        margin-bottom: 0.75rem;
+    }
+    .variant-field { display: inline-flex; flex-direction: column; gap: 0.2rem; }
+    .variant-field-label { font-size: 0.75rem; color: #6b7280; margin: 0; white-space: nowrap; }
+    .variant-field .form-control { max-width: 140px; min-width: 0; }
+    .variant-field-order .form-control { width: 70px; max-width: 70px; }
+    .variant-active-wrap { margin: 0; font-size: 0.8125rem; cursor: pointer; }
+    .variant-row .form-control { max-width: 140px; min-width: 0; }
+    .nested-block {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    .nested-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 0.4rem;
+    }
+    .nested-hint { font-weight: 400; color: #9ca3af; font-size: 0.65rem; }
+    .loading-msg { margin: 0; font-size: 0.875rem; color: #6b7280; }
+    .add-color-btn { margin-top: 0.5rem; }
+    .size-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.4rem;
+        padding: 0.35rem 0;
+        border-bottom: none;
+    }
+    .size-row .size-label { font-weight: 500; color: #374151; min-width: 2.5rem; font-size: 0.875rem; }
+    .size-field { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .size-field-label { font-size: 0.75rem; color: #6b7280; white-space: nowrap; margin: 0; }
+    .size-row input[type="number"] { width: 80px; padding: 0.35rem 0.5rem; }
+    .size-row input[type="text"] { width: 110px; padding: 0.35rem 0.5rem; }
+    .size-active-wrap { margin: 0; font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
+
+    .image-list { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-start; }
+    .image-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0;
+        background: transparent;
+        border: none;
+    }
+    .image-thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 6px;
+        display: block;
+        border: 1px solid #e5e7eb;
+    }
+    .image-item .btn { margin: 0; }
+    .add-image-btn, .add-size-inline { margin-top: 0.5rem; }
+    .add-size-block { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #e5e7eb; }
+    .add-size-block .add-size-heading { font-size: 0.8rem; font-weight: 600; color: #374151; margin: 0 0 0.5rem 0; }
+    .add-size-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: flex-end;
+        padding: 0;
+        background: transparent;
+        border: none;
+    }
+    .add-size-inline .add-size-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .add-size-inline .add-size-field label { font-size: 0.75rem; color: #6b7280; margin: 0; font-weight: 500; }
+    .add-size-inline select { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid #d1d5db; min-width: 110px; }
+    .add-size-inline input[type="number"] { width: 72px; padding: 0.35rem 0.5rem; }
+    .add-size-inline input[type="text"] { width: 90px; padding: 0.35rem 0.5rem; }
+
+    /* Add color modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .modal-overlay.is-open { display: flex; }
+    .modal-dialog {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    .modal-dialog h3 { margin: 0 0 1rem 0; font-size: 1.1rem; color: #111827; }
+    .modal-dialog .form-label { margin-bottom: 0.25rem; }
+    .modal-dialog .form-control { margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+
+    /* Loader overlay */
+    .action-loader-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,255,0.85);
+        z-index: 10001;
+        align-items: center;
+        justify-content: center;
+    }
+    .action-loader-overlay.is-active { display: flex; }
+    .action-loader-overlay .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e5e7eb;
+        border-top-color: var(--primary, #6d4c41);
+        border-radius: 50%;
+        animation: loader-spin 0.8s linear infinite;
+    }
+    .action-loader-overlay .loader-text { margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280; }
+    @keyframes loader-spin { to { transform: rotate(360deg); } }
+    .btn-save-field { padding: 0.35rem 0.6rem; min-width: 70px; flex-shrink: 0; color: #fff; background: #3b82f6; border: 1px solid #2563eb; border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-weight: 600; }
+    .btn-save-field:hover:not(:disabled) { background: #2563eb; border-color: #1d4ed8; }
+    .btn-save-field:disabled { color: #94a3b8; background: #e2e8f0; border-color: #cbd5e1; opacity: 0.9; cursor: not-allowed; }
+    .btn-save-field.loading { pointer-events: none; opacity: 0.8; }
+    .btn-save-field.loading .fa-spinner { display: inline-block; animation: loader-spin 0.8s linear infinite; }
+    .btn-save-field.loading .btn-save-text { display: none; }
+    .btn-save-field .fa-spinner { display: none; }
+
+    /* Toasts */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 320px;
+        pointer-events: none;
+    }
+    .toast {
+        padding: 0.65rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: auto;
+        animation: toast-in 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .toast.success { background: #059669; color: #fff; }
+    .toast.error { background: #dc2626; color: #fff; }
+    .toast.info { background: #2563eb; color: #fff; }
+    @keyframes toast-in {
+        from { opacity: 0; transform: translateX(100%); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @media (max-width: 768px) {
+        .toast-container { top: 0.5rem; right: 0.5rem; left: 0.5rem; max-width: none; }
+    }
+    .save-feedback { font-size: 0.75rem; color: var(--primary); margin-left: 0.5rem; }
+    .save-feedback.err { color: #dc2626; }
+    #basic-edit-form .form-control.is-invalid { border-color: #dc2626; }
+    .toggle-grid { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    .toggle-grid .toggle-wrap { margin-right: 0.5rem; }
+    #basic-edit-form .btn-save-field { margin-top: 1.25rem; }
+
+    /* Sticky Back bar: fixed bottom, visible only when scrolling up */
+    .sticky-back-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+        z-index: 150;
+        transform: translateY(100%);
+        opacity: 0;
+        visibility: hidden;
+        transition: transform 0.25s ease, opacity 0.25s ease, visibility 0.25s;
+    }
+    .sticky-back-bar.visible {
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+    }
+    .sticky-back-bar { display: flex; justify-content: center; align-items: center; }
+    .sticky-back-bar .sticky-back-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0.6rem 1.25rem; width: 100%; max-width: 320px; }
+    .edit-page-actions { display: flex; justify-content: center; flex-wrap: wrap; }
+    .edit-page-actions .back-link-inline { min-height: 44px; padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+    #variants-loading { color: #6b7280; }
+    #variants-container { padding: 0; }
+
+    /* Desktop: box/card layering */
+    @media (min-width: 769px) {
+        .edit-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .edit-section:last-of-type { border-bottom: 1px solid #e5e7eb; }
+        .edit-section .section-hint { margin-bottom: 1rem; }
+        .section-heading { font-size: 1.05rem; }
+        .section-num { width: 1.5rem; height: 1.5rem; font-size: 0.8rem; }
+
+        .variant-card {
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .variant-card:last-child { margin-bottom: 0; }
+        .variant-card:hover { border-color: #d1d5db; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .variant-card-header { padding: 1rem 1.25rem; }
+        .variant-card-body-inner { padding: 0 1.25rem 1.25rem; border-top-color: #e5e7eb; }
+        .variant-card .nested-block { border-top-color: #e5e7eb; }
+
+        .image-item {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0.5rem;
+        }
+        .add-size-inline {
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 0.65rem 0.75rem;
+            margin-top: 0.6rem;
+        }
+    }
+
+    /* Mobile: single outer box per section and per variant for clarity */
+    @media (max-width: 768px) {
+        .product-edit-wrapper { padding: 0 0 4rem 0; max-width: 100%; }
+        .edit-section {
+            padding: 1rem 1rem 1.25rem;
+            margin-bottom: 1.25rem;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .edit-section .section-heading { font-size: 0.95rem; }
+        .section-num { width: 1.5rem; height: 1.5rem; font-size: 0.8rem; flex-shrink: 0; }
+        .section-hint { font-size: 0.8rem; margin-bottom: 0.75rem; }
+        .grid-2 { grid-template-columns: 1fr; gap: 0.5rem; }
+        .form-group { margin-bottom: 0.6rem; }
+        .form-label { font-size: 0.8rem; }
+        .form-control { font-size: 16px; padding: 0.55rem 0.7rem; }
+        #basic-edit-form .btn-save-field { width: 100%; min-height: 44px; }
+        #basic-save-feedback { display: block; margin-top: 0.35rem; margin-left: 0; }
+
+        .variant-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .variant-card:last-child { margin-bottom: 0; }
+        .variant-card-header { padding: 1rem; min-height: 44px; }
+        .variant-card-header .variant-title { font-size: 0.9rem; }
+        .variant-card-body-inner { padding: 0 1rem 1rem; padding-top: 0.75rem; }
+        .variant-row { flex-direction: column; align-items: stretch; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .variant-field { min-width: 100%; }
+        .variant-field .form-control, .variant-row .form-control { max-width: none; width: 100%; }
+        .variant-field-order .form-control { width: 100%; max-width: none; }
+        .variant-row .btn { min-height: 44px; }
+        .variant-row .save-variant-btn { width: 100%; }
+        .variant-feedback { margin-left: 0; margin-top: 0.2rem; display: block; font-size: 0.8rem; }
+
+        .nested-block { margin-top: 0.75rem; padding-top: 0.5rem; }
+        .nested-title { font-size: 0.75rem; margin-bottom: 0.35rem; color: #374151; font-weight: 600; }
+        .size-row { flex-wrap: wrap; gap: 0.35rem; padding: 0.35rem 0; align-items: flex-end; }
+        .size-row .size-label { min-width: 100%; font-size: 0.8rem; }
+        .size-field { flex-direction: column; align-items: stretch; gap: 0.2rem; flex: 1 1 80px; min-width: 0; }
+        .size-field-label { font-size: 0.75rem; color: #374151; font-weight: 500; }
+        .size-row input[type="number"], .size-row input[type="text"] { width: 100%; min-width: 0; flex: none; padding: 0.5rem; font-size: 16px; }
+        .size-row .size-active-wrap { width: 100%; margin-top: 0.25rem; font-size: 0.8rem; }
+
+        .add-size-block { margin-top: 0.6rem; padding-top: 0.6rem; }
+        .add-size-block .add-size-heading { font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .add-size-inline { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+        .add-size-inline .add-size-field label { font-size: 0.8rem; }
+        .add-size-inline select, .add-size-inline input[type="number"], .add-size-inline input[type="text"] {
+            width: 100%; min-width: 0; padding: 0.5rem 0.65rem; font-size: 16px;
+        }
+        .add-size-inline .add-size-submit-btn { width: 100%; min-height: 44px; }
+
+        .image-list { gap: 0.5rem; }
+        .image-thumb { width: 64px; height: 64px; }
+        .image-item .btn { min-height: 42px; width: 100%; padding: 0.5rem 0.6rem; font-size: 0.8rem; }
+        .add-image-btn { width: 100%; min-height: 44px; font-size: 0.875rem; }
+        .add-color-btn { width: 100%; min-height: 44px; margin-top: 0.5rem; font-size: 0.875rem; }
+        .edit-page-actions { margin-top: 1.25rem; }
+        .edit-page-actions .btn { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.875rem; }
+    }
+
+    @media (max-width: 480px) {
+        .product-edit-wrapper { padding: 0 0 4rem 0; }
+        .section-heading { font-size: 0.9rem; }
+        .variant-row .save-variant-btn { width: 100%; }
+        .size-row { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+        .size-field { flex: 1 1 100%; min-width: 100%; }
+        .size-row input[type="number"], .size-row input[type="text"] { width: 100%; }
+        .image-thumb { width: 56px; height: 56px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="product-edit-wrapper" data-product-id="{{ product.pk }}" data-product-type="{{ product.product_type|default:'clothing' }}"
+     data-url-update-basic="{% url 'admin_panel:product_update_basic' product.pk %}"
+     data-url-variants="{% url 'admin_panel:product_variants_list' product.pk %}"
+     data-url-variant-add="{% url 'admin_panel:product_variant_add' product.pk %}"
+     data-url-variant-update="{% url 'admin_panel:variant_update' 1 %}"
+     data-url-variant-delete="{% url 'admin_panel:variant_delete' 1 %}"
+     data-url-size-stock="{% url 'admin_panel:size_update_stock' 1 %}"
+     data-url-upload-image="{% url 'admin_panel:variant_upload_image' 1 %}"
+     data-url-variant-add-size="{% url 'admin_panel:variant_add_size' 1 %}"
+     data-url-image-delete="{% url 'admin_panel:product_image_delete' 1 %}"
+     data-url-image-replace="{% url 'admin_panel:product_image_replace' 1 %}"
+     data-url-jewellery-detail="{% url 'admin_panel:product_jewellery_detail' product.pk %}"
+     data-url-jewellery-upload-image="{% url 'admin_panel:jewellery_upload_image' product.pk %}"
+     data-url-jewellery-image-delete="{% url 'admin_panel:jewellery_image_delete' 1 %}"
+     data-url-jewellery-image-replace="{% url 'admin_panel:jewellery_image_replace' 1 %}">
+    <input type="hidden" id="product-id" value="{{ product.pk }}">
+    {% csrf_token %}
+
+    <!-- Section 1: Basic info -->
+    <div class="edit-section">
+        <h4 class="section-heading"><span class="section-num">1</span> Basic info</h4>
+        <p class="section-hint">Name, price, category. Tap <strong>Save</strong> when done.</p>
+        <div id="basic-edit-form">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    {{ basic_form.category }}
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Name *</label>
+                    <input type="text" class="form-control" id="basic-name" value="{{ product.name }}" placeholder="Product name">
+                    <span id="basic-name-err" class="save-feedback err" style="display:none;"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Slug</label>
+                    <input type="text" class="form-control" id="basic-slug" value="{{ product.slug }}" placeholder="product-slug">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="basic-description" rows="4">{{ product.description }}</textarea>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Price (₹) *</label>
+                    <input type="number" class="form-control" id="basic-price" step="0.01" value="{{ product.price }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Original price (₹)</label>
+                    <input type="number" class="form-control" id="basic-original_price" step="0.01" value="{{ product.original_price|default:'' }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Material</label>
+                <input type="text" class="form-control" id="basic-material" value="{{ product.material|default:'' }}">
+            </div>
+            <div class="grid-2 toggle-grid">
+                <label class="toggle-wrap{% if product.is_featured %} checked{% endif %}" for="basic-is_featured">
+                    <input type="checkbox" class="toggle-input" id="basic-is_featured" {% if product.is_featured %}checked{% endif %}>
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                    <span class="toggle-label">Featured</span>
+                    <span class="toggle-status" data-on="On" data-off="Off">{% if product.is_featured %}On{% else %}Off{% endif %}</span>
+                </label>
+                <label class="toggle-wrap{% if product.is_bestseller %} checked{% endif %}" for="basic-is_bestseller">
+                    <input type="checkbox" class="toggle-input" id="basic-is_bestseller" {% if product.is_bestseller %}checked{% endif %}>
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                    <span class="toggle-label">Bestseller</span>
+                    <span class="toggle-status" data-on="On" data-off="Off">{% if product.is_bestseller %}On{% else %}Off{% endif %}</span>
+                </label>
+                <label class="toggle-wrap{% if product.is_active %} checked{% endif %}" for="basic-is_active">
+                    <input type="checkbox" class="toggle-input" id="basic-is_active" {% if product.is_active %}checked{% endif %}>
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                    <span class="toggle-label">Active</span>
+                    <span class="toggle-status" data-on="On" data-off="Off">{% if product.is_active %}On{% else %}Off{% endif %}</span>
+                </label>
+            </div>
+            <button type="button" id="basic-save-btn" class="btn-save-field" title="Save" disabled><i class="fas fa-spinner"></i><span class="btn-save-text">Save</span></button>
+            <span id="basic-save-feedback" class="save-feedback"></span>
+        </div>
+    </div>
+
+    <!-- Section 2 & 3 & 4: Color variants (only for clothing) -->
+    {% if product.product_type == 'clothing' %}
+    {{ standard_sizes|json_script:"standard-sizes" }}
+    <div class="edit-section">
+        <h4 class="section-heading"><span class="section-num">2</span> Colors &amp; sizes</h4>
+        <p class="section-hint">Each color has sizes and photos. Tap <strong>Save</strong> per color. For each size row, tap <strong>Save</strong> button to save stock &amp; SKU.</p>
+        <div id="variants-container">
+            <p id="variants-loading" class="loading-msg">Loading…</p>
+            <div id="variants-list"></div>
+            <button type="button" id="add-variant-btn" class="btn btn-secondary add-color-btn"><i class="fas fa-plus"></i> Add color</button>
+        </div>
+    </div>
+    {% else %}
+    <!-- Section 2: Jewellery details (only for jewellery) -->
+    <div class="edit-section" id="jewellery-section">
+        <h4 class="section-heading"><span class="section-num">2</span> Jewellery details</h4>
+        <p class="section-hint">Metal, purity, weight, gemstone, stock. Tap <strong>Save</strong> when done. Add up to 3 photos below.</p>
+        <div id="jewellery-detail-form">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Metal type *</label>
+                    <input type="text" class="form-control" id="jew-metal_type" placeholder="e.g. Gold, Silver">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Purity</label>
+                    <input type="text" class="form-control" id="jew-purity" placeholder="e.g. 18K, 22K, 92.5%">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Weight (g)</label>
+                    <input type="number" class="form-control" id="jew-weight" step="0.001" min="0" placeholder="grams">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gemstone</label>
+                    <input type="text" class="form-control" id="jew-gemstone" placeholder="Optional">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Making charge (₹)</label>
+                    <input type="number" class="form-control" id="jew-making_charge" step="0.01" min="0" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stock quantity</label>
+                    <input type="number" class="form-control" id="jew-stock_quantity" min="0" value="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="toggle-wrap" for="jew-is_adjustable">
+                    <input type="checkbox" class="toggle-input" id="jew-is_adjustable">
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                    <span class="toggle-label">Adjustable</span>
+                    <span class="toggle-status" data-on="Yes" data-off="No">No</span>
+                </label>
+            </div>
+            <button type="button" id="jewellery-save-btn" class="btn-save-field" title="Save" disabled><i class="fas fa-spinner"></i><span class="btn-save-text">Save</span></button>
+            <span id="jewellery-save-feedback" class="save-feedback"></span>
+        </div>
+        <div class="nested-block images-block-wrap" style="margin-top:1rem;">
+            <div class="nested-title">Photos (max 3)</div>
+            <div id="jewellery-images-list" class="image-list"></div>
+            <button type="button" class="btn btn-sm btn-secondary add-image-btn" id="jewellery-add-image-btn" style="display:none;">Add image</button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="edit-page-actions" style="margin-top:1.5rem;">
+        <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary back-link-inline"><i class="fas fa-arrow-left"></i> Back to products</a>
+    </div>
+
+    <!-- Add color modal (for clothing) -->
+    {% if product.product_type == 'clothing' %}
+    <div id="add-color-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-dialog" role="dialog" aria-labelledby="add-color-modal-title">
+            <h3 id="add-color-modal-title">Add new color</h3>
+            <label class="form-label" for="add-color-name-input">Color name</label>
+            <input type="text" id="add-color-name-input" class="form-control" placeholder="e.g. Navy, Red" autocomplete="off">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="add-color-modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="add-color-modal-submit">Add color</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="action-loader-edit" class="action-loader-overlay" aria-hidden="true">
+        <div style="text-align:center;">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Saving…</div>
+        </div>
+    </div>
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Sticky Back bar (visible when scrolling up) -->
+    <div id="sticky-back-bar" class="sticky-back-bar" aria-hidden="true">
+        <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary sticky-back-btn"><i class="fas fa-arrow-left"></i> Back to products</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var wrapper = document.querySelector('.product-edit-wrapper');
+    var productId = wrapper ? wrapper.dataset.productId : document.getElementById('product-id').value;
+    var urlUpdateBasic = wrapper ? wrapper.dataset.urlUpdateBasic : '';
+    var urlVariants = wrapper ? wrapper.dataset.urlVariants : '';
+    var urlVariantAdd = wrapper ? wrapper.dataset.urlVariantAdd : '';
+    var urlVariantUpdate = wrapper ? wrapper.dataset.urlVariantUpdate : '';
+    var urlVariantDelete = wrapper ? wrapper.dataset.urlVariantDelete : '';
+    var urlSizeStock = wrapper ? wrapper.dataset.urlSizeStock : '';
+    var urlUploadImage = wrapper ? wrapper.dataset.urlUploadImage : '';
+    var urlVariantAddSize = wrapper ? wrapper.dataset.urlVariantAddSize : '';
+    var urlImageDelete = wrapper ? wrapper.dataset.urlImageDelete : '';
+    var urlImageReplace = wrapper ? wrapper.dataset.urlImageReplace : '';
+    var standardSizes = [];
+    try {
+        var el = document.getElementById('standard-sizes');
+        if (el) standardSizes = JSON.parse(el.textContent || '[]');
+    } catch (e) {}
+
+    function getCookie(name) {
+        var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : getCookie('csrftoken');
+
+    function headers(json) {
+        var h = { 'X-CSRFToken': csrf };
+        if (json) h['Content-Type'] = 'application/json';
+        return h;
+    }
+
+    function urlWithId(pattern, id) {
+        return pattern ? pattern.replace(/\/1\//, '/' + id + '/') : '';
+    }
+    function escapeHtml(s) {
+        if (s == null) return '';
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    function toast(message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toast-container');
+        if (!container) return;
+        var el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.setAttribute('role', 'alert');
+        var icon = type === 'error' ? 'fa-exclamation-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-check-circle');
+        var iconEl = document.createElement('i');
+        iconEl.className = 'fas ' + icon;
+        iconEl.setAttribute('aria-hidden', 'true');
+        el.appendChild(iconEl);
+        el.appendChild(document.createTextNode(' ' + (message || 'Done.')));
+        container.appendChild(el);
+        setTimeout(function() {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(100%)';
+            el.style.transition = 'opacity 0.2s, transform 0.2s';
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+        }, 3500);
+    }
+
+    var loaderCount = 0;
+    function showLoader() {
+        loaderCount++;
+        var el = document.getElementById('action-loader-edit');
+        if (el) { el.classList.add('is-active'); el.setAttribute('aria-hidden', 'false'); }
+    }
+    function hideLoader() {
+        loaderCount = Math.max(0, loaderCount - 1);
+        if (loaderCount === 0) {
+            var el = document.getElementById('action-loader-edit');
+            if (el) { el.classList.remove('is-active'); el.setAttribute('aria-hidden', 'true'); }
+        }
+    }
+
+    // --- Toggle sync (labels + status for all toggle switches) ---
+    function syncToggleWrap(wrap) {
+        var inp = wrap.querySelector('.toggle-input');
+        var status = wrap.querySelector('.toggle-status');
+        if (inp && status) {
+            wrap.classList.toggle('checked', inp.checked);
+            status.textContent = inp.checked ? (status.getAttribute('data-on') || 'On') : (status.getAttribute('data-off') || 'Off');
+        }
+    }
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('toggle-input')) {
+            var wrap = e.target.closest('.toggle-wrap');
+            if (wrap) syncToggleWrap(wrap);
+        }
+    });
+    function syncAllToggles() {
+        document.querySelectorAll('.toggle-wrap').forEach(syncToggleWrap);
+    }
+    syncAllToggles();
+
+    // --- Section 1: Basic form — same save button style, disabled until dirty ---
+    var basicForm = document.getElementById('basic-edit-form');
+    var basicSaveBtn = document.getElementById('basic-save-btn');
+    var basicFeedback = document.getElementById('basic-save-feedback');
+    var basicInitial = {};
+    function getBasicValues() {
+        var catSel = basicForm ? basicForm.querySelector('select[name="category"]') : null;
+        var wrapperEl = document.querySelector('.product-edit-wrapper');
+        var nameEl = document.getElementById('basic-name');
+        var slugEl = document.getElementById('basic-slug');
+        var descEl = document.getElementById('basic-description');
+        var priceEl = document.getElementById('basic-price');
+        var origEl = document.getElementById('basic-original_price');
+        var matEl = document.getElementById('basic-material');
+        var featEl = document.getElementById('basic-is_featured');
+        var bestEl = document.getElementById('basic-is_bestseller');
+        var actEl = document.getElementById('basic-is_active');
+        return {
+            name: nameEl ? nameEl.value.trim() : '',
+            slug: slugEl ? (slugEl.value.trim() || '') : '',
+            description: descEl ? descEl.value.trim() : '',
+            price: priceEl ? priceEl.value : '',
+            original_price: origEl ? origEl.value : '',
+            material: matEl ? matEl.value.trim() : '',
+            is_featured: featEl ? featEl.checked : false,
+            is_bestseller: bestEl ? bestEl.checked : false,
+            is_active: actEl ? actEl.checked : false,
+            category: catSel ? catSel.value : '',
+            product_type: (wrapperEl && wrapperEl.dataset.productType) ? wrapperEl.dataset.productType : 'clothing'
+        };
+    }
+    function setBasicInitial() {
+        basicInitial = getBasicValues();
+    }
+    function isBasicDirty() {
+        var cur = getBasicValues();
+        return cur.name !== basicInitial.name || cur.slug !== basicInitial.slug ||
+            cur.description !== basicInitial.description || cur.price !== basicInitial.price ||
+            cur.original_price !== basicInitial.original_price || cur.material !== basicInitial.material ||
+            cur.is_featured !== basicInitial.is_featured || cur.is_bestseller !== basicInitial.is_bestseller ||
+            cur.is_active !== basicInitial.is_active || cur.category !== basicInitial.category ||
+            cur.product_type !== basicInitial.product_type;
+    }
+    function updateBasicSaveButton() {
+        if (basicSaveBtn) basicSaveBtn.disabled = !isBasicDirty();
+    }
+    if (basicForm) {
+        setBasicInitial();
+        basicForm.addEventListener('input', updateBasicSaveButton);
+        basicForm.addEventListener('change', updateBasicSaveButton);
+    }
+
+    document.getElementById('basic-save-btn').addEventListener('click', function() {
+        if (basicSaveBtn.disabled) return;
+        var payload = {
+            name: getBasicValues().name,
+            slug: getBasicValues().slug || null,
+            description: getBasicValues().description,
+            price: getBasicValues().price,
+            original_price: getBasicValues().original_price || null,
+            material: getBasicValues().material || '',
+            is_featured: getBasicValues().is_featured,
+            is_bestseller: getBasicValues().is_bestseller,
+            is_active: getBasicValues().is_active,
+            category: getBasicValues().category || null,
+            product_type: getBasicValues().product_type || 'clothing'
+        };
+        if (!payload.name || !payload.price) {
+            basicFeedback.textContent = 'Name and price required.';
+            basicFeedback.className = 'save-feedback err';
+            toast('Name and price required.', 'error');
+            return;
+        }
+        basicSaveBtn.classList.add('loading');
+        basicFeedback.textContent = 'Saving…';
+        basicFeedback.className = 'save-feedback';
+        showLoader();
+        fetch(urlUpdateBasic, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify(payload),
+            credentials: 'same-origin'
+        }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+        .then(function(result) {
+            if (result.ok) {
+                setBasicInitial();
+                updateBasicSaveButton();
+                basicFeedback.textContent = 'Saved.';
+                basicFeedback.className = 'save-feedback';
+                toast('Basic info saved.');
+            } else {
+                var errMsg = result.data.errors && result.data.errors.__all__ ? result.data.errors.__all__[0] : 'Error saving.';
+                basicFeedback.textContent = errMsg;
+                basicFeedback.className = 'save-feedback err';
+                toast(errMsg, 'error');
+            }
+        }).catch(function() {
+            basicFeedback.textContent = 'Network error.';
+            basicFeedback.className = 'save-feedback err';
+            toast('Network error. Please try again.', 'error');
+        }).finally(function() {
+            basicSaveBtn.classList.remove('loading');
+            hideLoader();
+        });
+    });
+
+    // --- Sections 2–4: Variants (only when product_type is clothing) ---
+    {% if product.product_type == 'clothing' %}
+    var variantsList = document.getElementById('variants-list');
+    var variantsLoading = document.getElementById('variants-loading');
+
+    function renderVariants(data) {
+        variantsLoading.style.display = 'none';
+        variantsList.innerHTML = '';
+        (data.variants || []).forEach(function(v) {
+            var card = document.createElement('div');
+            card.className = 'variant-card';
+            card.setAttribute('data-variant-id', v.id);
+            var existingSizes = (v.sizes || []).map(function(s) { return s.size; });
+            var availableSizes = standardSizes.filter(function(s) { return existingSizes.indexOf(s) === -1; });
+            var sizesHtml = (v.sizes || []).map(function(s) {
+                var initStock = (s.stock_quantity != null && s.stock_quantity !== '') ? Number(s.stock_quantity) : 0;
+                var initSku = (s.sku != null && s.sku !== '') ? String(s.sku) : '';
+                var initActive = s.is_active ? 'true' : 'false';
+                return '<div class="size-row" data-size-id="' + s.id + '" data-initial-stock="' + initStock + '" data-initial-sku="' + escapeHtml(initSku) + '" data-initial-active="' + initActive + '">' +
+                    '<span class="size-label">' + escapeHtml(s.size) + '</span>' +
+                    '<div class="size-field"><label class="size-field-label">Stock</label><input type="number" min="0" data-field="stock_quantity" value="' + (s.stock_quantity || 0) + '" placeholder="0" class="form-control"></div>' +
+                    '<div class="size-field"><label class="size-field-label">SKU</label><input type="text" data-field="sku" value="' + escapeHtml(s.sku || '') + '" placeholder="Optional" class="form-control"></div>' +
+                    '<label class="toggle-wrap size-active-wrap' + (s.is_active ? ' checked' : '') + '">' +
+                    '<input type="checkbox" class="toggle-input" data-field="is_active" ' + (s.is_active ? 'checked' : '') + '>' +
+                    '<span class="toggle-track"><span class="toggle-knob"></span></span>' +
+                    '<span class="toggle-label">Active</span>' +
+                    '<span class="toggle-status" data-on="On" data-off="Off">' + (s.is_active ? 'On' : 'Off') + '</span></label>' +
+                    '<button type="button" class="btn-save-field size-row-save-btn" title="Save" disabled><i class="fas fa-spinner"></i><span class="btn-save-text">Save</span></button>' +
+                    '</div>';
+            }).join('');
+            var imagesHtml = (v.images || []).map(function(img) {
+                return '<span class="image-item" data-image-id="' + img.id + '">' +
+                    (img.url ? '<img class="image-thumb" src="' + escapeHtml(img.url) + '" alt="">' : '<span class="image-thumb" style="background:#eee;width:80px;height:80px;border-radius:8px;"></span>') +
+                    '<button type="button" class="btn btn-sm btn-outline replace-image-btn">Replace</button>' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-image-btn">Delete</button></span>';
+            }).join('');
+            var addImageBtnHtml = (v.images || []).length < 3
+                ? '<button type="button" class="btn btn-sm btn-secondary add-image-btn">Add image</button>'
+                : '';
+            var sizeSelectOptions = availableSizes.map(function(s) { return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('');
+            var addSizeHtml = availableSizes.length
+                ? '<div class="add-size-block">' +
+                    '<p class="add-size-heading">Add new size</p>' +
+                    '<div class="add-size-inline" data-variant-id="' + v.id + '">' +
+                    '<div class="add-size-field"><label>Size</label><select class="add-size-select"><option value="">Choose size…</option>' + sizeSelectOptions + '</select></div>' +
+                    '<div class="add-size-field"><label>Stock</label><input type="number" class="add-size-stock form-control" min="0" value="0" placeholder="0"></div>' +
+                    '<div class="add-size-field"><label>SKU (optional)</label><input type="text" class="add-size-sku form-control" placeholder="Optional"></div>' +
+                    '<button type="button" class="btn-save-field add-size-submit-btn" title="Save new size and stock" disabled><i class="fas fa-spinner"></i><span class="btn-save-text">Save new Size and stock</span></button>' +
+                    '</div></div>'
+                : '<p class="nested-title" style="margin-bottom:0;">All sizes added for this color.</p>';
+            var colorSwatchStyle = v.color_code ? ' style="background:' + escapeHtml(v.color_code) + '"' : ' style="background:#94a3b8"';
+            card.innerHTML =
+                '<div class="variant-card-header" role="button" tabindex="0" aria-expanded="false">' +
+                '<span class="color-swatch" ' + colorSwatchStyle + '></span>' +
+                '<span class="variant-title">' + escapeHtml(v.name) + '</span>' +
+                '<button type="button" class="variant-delete-icon-btn" title="Delete color" aria-label="Delete color"><i class="fas fa-trash-alt"></i></button>' +
+                '<span class="variant-chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>' +
+                '</div>' +
+                '<div class="variant-card-body">' +
+                '<div class="variant-card-body-inner">' +
+                '<div class="variant-row">' +
+                '<div class="variant-field"><label class="variant-field-label">Color name</label><input type="text" class="form-control variant-name" value="' + escapeHtml(v.name) + '" placeholder="e.g. Navy"></div>' +
+                '<div class="variant-field"><label class="variant-field-label">Hex</label><input type="text" class="form-control variant-color_code" value="' + escapeHtml(v.color_code || '') + '" placeholder="#000000"></div>' +
+                '<div class="variant-field variant-field-order"><label class="variant-field-label">Order</label><input type="number" class="form-control variant-display_order" value="' + (v.display_order || 0) + '" min="0"></div>' +
+                '<label class="toggle-wrap variant-active-wrap' + (v.is_active ? ' checked' : '') + '">' +
+                '<input type="checkbox" class="toggle-input variant-is_active" ' + (v.is_active ? 'checked' : '') + '>' +
+                '<span class="toggle-track"><span class="toggle-knob"></span></span>' +
+                '<span class="toggle-label">Active</span>' +
+                '<span class="toggle-status" data-on="On" data-off="Off">' + (v.is_active ? 'On' : 'Off') + '</span></label>' +
+                '<button type="button" class="btn-save-field save-variant-btn" title="Save" disabled><i class="fas fa-spinner"></i><span class="btn-save-text">Save</span></button>' +
+                '<span class="variant-feedback save-feedback"></span>' +
+                '</div>' +
+                '<div class="nested-block images-block-wrap">' +
+                '<div class="nested-title">Photos (max 3)</div>' +
+                '<div class="image-list images-block">' + imagesHtml + '</div>' +
+                addImageBtnHtml +
+                '</div>' +
+                '<div class="nested-block">' +
+                '<div class="nested-title">Sizes & stock <span class="nested-hint">(Save enables when you change a row)</span></div>' +
+                '<div class="sizes-block">' + sizesHtml + '</div>' +
+                addSizeHtml +
+                '</div>' +
+                '</div></div>';
+            variantsList.appendChild(card);
+
+            var header = card.querySelector('.variant-card-header');
+            var body = card.querySelector('.variant-card-body');
+            function toggleExpanded() {
+                var isExp = card.classList.contains('expanded');
+                if (!isExp) {
+                    variantsList.querySelectorAll('.variant-card').forEach(function(other) {
+                        if (other !== card) {
+                            other.classList.remove('expanded');
+                            var otherHeader = other.querySelector('.variant-card-header');
+                            if (otherHeader) otherHeader.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+                card.classList.toggle('expanded', !isExp);
+                header.setAttribute('aria-expanded', !isExp);
+            }
+            header.addEventListener('click', function(e) { if (!e.target.closest('button')) toggleExpanded(); });
+            header.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpanded(); } });
+
+            var deleteVariantBtn = card.querySelector('.variant-delete-icon-btn');
+            if (deleteVariantBtn) {
+                deleteVariantBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!confirm('Remove this color variant?')) return;
+                    showLoader();
+                    fetch(urlWithId(urlVariantDelete, v.id), { method: 'POST', headers: headers(false), credentials: 'same-origin' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) { toast('Color removed.'); loadVariants(); }
+                            else toast(res.message || 'Could not remove color.', 'error');
+                        })
+                        .catch(function() { toast('Network error.', 'error'); })
+                        .finally(function() { hideLoader(); });
+                });
+            }
+
+            card.setAttribute('data-initial-name', v.name || '');
+            card.setAttribute('data-initial-color_code', v.color_code || '');
+            card.setAttribute('data-initial-display_order', String(v.display_order != null ? v.display_order : 0));
+            card.setAttribute('data-initial-is_active', v.is_active ? 'true' : 'false');
+
+            function getVariantValues(c) {
+                var nameInp = c.querySelector('.variant-name');
+                var hexInp = c.querySelector('.variant-color_code');
+                var orderInp = c.querySelector('.variant-display_order');
+                var activeInp = c.querySelector('.variant-is_active');
+                return {
+                    name: nameInp ? nameInp.value.trim() : '',
+                    color_code: hexInp ? hexInp.value.trim() || '' : '',
+                    display_order: orderInp ? (parseInt(orderInp.value, 10) || 0) : 0,
+                    is_active: activeInp ? activeInp.checked : true
+                };
+            }
+            function getVariantInitial(c) {
+                return {
+                    name: c.getAttribute('data-initial-name') || '',
+                    color_code: c.getAttribute('data-initial-color_code') || '',
+                    display_order: parseInt(c.getAttribute('data-initial-display_order'), 10) || 0,
+                    is_active: c.getAttribute('data-initial-is_active') === 'true'
+                };
+            }
+            function setVariantInitial(c, vals) {
+                c.setAttribute('data-initial-name', vals.name);
+                c.setAttribute('data-initial-color_code', vals.color_code);
+                c.setAttribute('data-initial-display_order', String(vals.display_order));
+                c.setAttribute('data-initial-is_active', vals.is_active ? 'true' : 'false');
+            }
+            function isVariantDirty(c) {
+                var cur = getVariantValues(c);
+                var init = getVariantInitial(c);
+                return cur.name !== init.name || cur.color_code !== init.color_code || cur.display_order !== init.display_order || cur.is_active !== init.is_active;
+            }
+            function updateVariantSaveButton(c) {
+                var saveBtn = c.querySelector('.save-variant-btn');
+                if (saveBtn) saveBtn.disabled = !isVariantDirty(c);
+            }
+            card.querySelectorAll('.variant-name, .variant-color_code, .variant-display_order').forEach(function(inp) {
+                inp.addEventListener('input', function() { updateVariantSaveButton(card); });
+            });
+            var variantActiveCb = card.querySelector('.variant-is_active');
+            if (variantActiveCb) variantActiveCb.addEventListener('change', function() { updateVariantSaveButton(card); });
+
+            card.querySelector('.save-variant-btn').addEventListener('click', function() {
+                var saveVariantBtn = card.querySelector('.save-variant-btn');
+                if (saveVariantBtn.disabled) return;
+                saveVariantBtn.classList.add('loading');
+                var payload = {
+                    name: card.querySelector('.variant-name').value.trim(),
+                    color_code: card.querySelector('.variant-color_code').value.trim() || '',
+                    display_order: parseInt(card.querySelector('.variant-display_order').value, 10) || 0,
+                    is_active: card.querySelector('.variant-is_active').checked
+                };
+                var fb = card.querySelector('.variant-feedback');
+                fb.textContent = 'Saving…';
+                showLoader();
+                fetch(urlWithId(urlVariantUpdate, v.id), {
+                    method: 'POST', headers: headers(true), body: JSON.stringify(payload), credentials: 'same-origin'
+                }).then(function(r) { return r.json(); }).then(function(res) {
+                    fb.textContent = res.success ? 'Saved' : (res.errors && res.errors.name ? res.errors.name[0] : 'Error');
+                    fb.className = 'variant-feedback save-feedback' + (res.success ? '' : ' err');
+                    if (res.success) {
+                        setVariantInitial(card, getVariantValues(card));
+                        updateVariantSaveButton(card);
+                        toast('Color saved.');
+                    } else {
+                        toast(res.errors && res.errors.name ? res.errors.name[0] : 'Could not save color.', 'error');
+                    }
+                }).catch(function() { fb.textContent = 'Error'; fb.className = 'variant-feedback save-feedback err'; toast('Network error.', 'error'); }).finally(function() { card.querySelector('.save-variant-btn').classList.remove('loading'); hideLoader(); });
+            });
+            function getSizeRowValues(r) {
+                var stockInp = r.querySelector('input[data-field="stock_quantity"]');
+                var skuInp = r.querySelector('input[data-field="sku"]');
+                var activeInp = r.querySelector('input[data-field="is_active"]');
+                return {
+                    stock: stockInp ? (parseInt(stockInp.value, 10) || 0) : 0,
+                    sku: skuInp ? (skuInp.value || '').trim() : '',
+                    active: activeInp ? activeInp.checked : true
+                };
+            }
+            function getSizeRowInitial(r) {
+                var rawStock = r.getAttribute('data-initial-stock');
+                var rawSku = r.getAttribute('data-initial-sku') || '';
+                var rawActive = r.getAttribute('data-initial-active');
+                return {
+                    stock: rawStock !== null && rawStock !== '' ? parseInt(rawStock, 10) : 0,
+                    sku: rawSku,
+                    active: rawActive === 'true'
+                };
+            }
+            function setSizeRowInitial(r, vals) {
+                r.setAttribute('data-initial-stock', vals.stock);
+                r.setAttribute('data-initial-sku', vals.sku);
+                r.setAttribute('data-initial-active', vals.active ? 'true' : 'false');
+            }
+            function isSizeRowDirty(r) {
+                var cur = getSizeRowValues(r);
+                var init = getSizeRowInitial(r);
+                return cur.stock !== init.stock || cur.sku !== init.sku || cur.active !== init.active;
+            }
+            function updateSizeRowSaveButton(r) {
+                var saveBtn = r.querySelector('.size-row-save-btn');
+                if (saveBtn) saveBtn.disabled = !isSizeRowDirty(r);
+            }
+            card.querySelectorAll('.sizes-block .size-row').forEach(function(row) {
+                var sizeId = row.getAttribute('data-size-id');
+                var sizeUrl = urlWithId(urlSizeStock, sizeId);
+                var saveBtn = row.querySelector('.size-row-save-btn');
+                row.querySelectorAll('input[data-field="stock_quantity"], input[data-field="sku"]').forEach(function(inp) {
+                    inp.addEventListener('input', function() { updateSizeRowSaveButton(row); });
+                });
+                var activeCb = row.querySelector('input[data-field="is_active"]');
+                if (activeCb) activeCb.addEventListener('change', function() { updateSizeRowSaveButton(row); });
+                if (saveBtn && sizeUrl) {
+                    saveBtn.addEventListener('click', function() {
+                        if (saveBtn.disabled) return;
+                        var payload = {
+                            stock_quantity: getSizeRowValues(row).stock,
+                            sku: getSizeRowValues(row).sku || null,
+                            is_active: getSizeRowValues(row).active
+                        };
+                        saveBtn.classList.add('loading');
+                        showLoader();
+                        fetch(sizeUrl, { method: 'POST', headers: headers(true), body: JSON.stringify(payload), credentials: 'same-origin' })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                if (res && (res.success !== false)) {
+                                    setSizeRowInitial(row, getSizeRowValues(row));
+                                    updateSizeRowSaveButton(row);
+                                    toast('Stock updated.');
+                                } else {
+                                    toast(res && res.errors ? (res.errors[Object.keys(res.errors)[0]] || 'Update failed.') : 'Update failed.', 'error');
+                                }
+                            })
+                            .catch(function() { toast('Could not update stock.', 'error'); })
+                            .finally(function() { saveBtn.classList.remove('loading'); hideLoader(); });
+                    });
+                }
+            });
+            card.querySelectorAll('.delete-image-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                    showLoader();
+                    fetch(urlWithId(urlImageDelete, imageId), { method: 'POST', headers: headers(false), credentials: 'same-origin' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) { toast('Image removed.'); loadVariants(v.id); }
+                            else toast(res.message || 'Could not remove image.', 'error');
+                        })
+                        .catch(function() { toast('Network error.', 'error'); })
+                        .finally(function() { hideLoader(); });
+                });
+            });
+            card.querySelectorAll('.replace-image-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = function() {
+                        if (!this.files.length) return;
+                        var fd = new FormData();
+                        fd.append('image', this.files[0]);
+                        fd.append('csrfmiddlewaretoken', csrf);
+                        showLoader();
+                        fetch(urlWithId(urlImageReplace, imageId), { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                if (res.success) { toast('Image replaced.'); loadVariants(v.id); }
+                                else toast(res.message || 'Could not replace image.', 'error');
+                            })
+                            .catch(function() { toast('Network error.', 'error'); })
+                            .finally(function() { hideLoader(); });
+                    };
+                    input.click();
+                });
+            });
+            var addImageBtn = card.querySelector('.add-image-btn');
+            if (addImageBtn) {
+                addImageBtn.addEventListener('click', function() {
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = function() {
+                        if (!this.files.length) return;
+                        var fd = new FormData();
+                        fd.append('image', this.files[0]);
+                        fd.append('csrfmiddlewaretoken', csrf);
+                        showLoader();
+                        fetch(urlWithId(urlUploadImage, v.id), { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                if (res.success) { toast('Image added.'); loadVariants(v.id); }
+                                else toast(res.message || 'Could not add image.', 'error');
+                            })
+                            .catch(function() { toast('Network error.', 'error'); })
+                            .finally(function() { hideLoader(); });
+                    };
+                    input.click();
+                });
+            }
+            var addSizeSubmit = card.querySelector('.add-size-submit-btn');
+            var addSizeInline = card.querySelector('.add-size-inline');
+            if (addSizeSubmit && addSizeInline && urlVariantAddSize) {
+                var addSizeSelect = addSizeInline.querySelector('.add-size-select');
+                function updateAddSizeButton() {
+                    addSizeSubmit.disabled = !(addSizeSelect && addSizeSelect.value);
+                }
+                if (addSizeSelect) addSizeSelect.addEventListener('change', updateAddSizeButton);
+                addSizeSubmit.addEventListener('click', function() {
+                    if (addSizeSubmit.disabled) return;
+                    var sel = addSizeInline.querySelector('.add-size-select');
+                    var size = sel ? sel.value : '';
+                    if (!size) { toast('Please select a size.', 'error'); return; }
+                    var stockInp = addSizeInline.querySelector('.add-size-stock');
+                    var skuInp = addSizeInline.querySelector('.add-size-sku');
+                    var payload = {
+                        size: size,
+                        stock_quantity: stockInp ? parseInt(stockInp.value, 10) || 0 : 0,
+                        sku: skuInp ? skuInp.value.trim() || null : null,
+                        is_active: true
+                    };
+                    addSizeSubmit.classList.add('loading');
+                    showLoader();
+                    fetch(urlWithId(urlVariantAddSize, v.id), {
+                        method: 'POST',
+                        headers: headers(true),
+                        body: JSON.stringify(payload),
+                        credentials: 'same-origin'
+                    }).then(function(r) { return r.json(); }).then(function(res) {
+                        if (res.success) { toast('Size added.'); loadVariants(v.id); }
+                        else toast(res.errors && res.errors.size ? res.errors.size[0] : 'Could not add size.', 'error');
+                    }).catch(function() { toast('Network error.', 'error'); }).finally(function() { addSizeSubmit.classList.remove('loading'); hideLoader(); });
+                });
+            }
+        });
+        syncAllToggles();
+    }
+
+    function loadVariants(expandVariantId) {
+        variantsLoading.style.display = 'block';
+        variantsList.innerHTML = '';
+        showLoader();
+        fetch(urlVariants, { headers: headers(false), credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                renderVariants(data);
+                if (expandVariantId) {
+                    var cardToExpand = variantsList.querySelector('.variant-card[data-variant-id="' + expandVariantId + '"]');
+                    if (cardToExpand) {
+                        cardToExpand.classList.add('expanded');
+                        var h = cardToExpand.querySelector('.variant-card-header');
+                        if (h) h.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            })
+            .catch(function() { variantsLoading.textContent = 'Failed to load variants.'; toast('Failed to load variants.', 'error'); })
+            .finally(function() { hideLoader(); });
+    }
+    loadVariants();
+
+    var addColorModal = document.getElementById('add-color-modal');
+    var addColorInput = document.getElementById('add-color-name-input');
+    var addColorCancel = document.getElementById('add-color-modal-cancel');
+    var addColorSubmit = document.getElementById('add-color-modal-submit');
+    function openAddColorModal() {
+        if (!addColorModal || !addColorInput) return;
+        addColorInput.value = '';
+        addColorModal.classList.add('is-open');
+        addColorModal.setAttribute('aria-hidden', 'false');
+        addColorInput.focus();
+    }
+    function closeAddColorModal() {
+        if (!addColorModal) return;
+        addColorModal.classList.remove('is-open');
+        addColorModal.setAttribute('aria-hidden', 'true');
+    }
+    function submitAddColor() {
+        var name = addColorInput ? addColorInput.value.trim() : '';
+        if (!name) { toast('Enter a color name.', 'error'); return; }
+        closeAddColorModal();
+        showLoader();
+        fetch(urlVariantAdd, {
+            method: 'POST',
+            headers: headers(true),
+            body: JSON.stringify({ name: name, is_active: true }),
+            credentials: 'same-origin'
+        }).then(function(r) { return r.json(); }).then(function(res) {
+            if (res.success) { toast('Color added.'); loadVariants(); }
+            else toast(res.errors && res.errors.name ? res.errors.name[0] : 'Could not add color.', 'error');
+        }).catch(function() { toast('Network error.', 'error'); }).finally(function() { hideLoader(); });
+    }
+    document.getElementById('add-variant-btn').addEventListener('click', openAddColorModal);
+    if (addColorCancel) addColorCancel.addEventListener('click', closeAddColorModal);
+    if (addColorSubmit) addColorSubmit.addEventListener('click', submitAddColor);
+    if (addColorModal) {
+        addColorModal.addEventListener('click', function(e) { if (e.target === addColorModal) closeAddColorModal(); });
+        addColorInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); submitAddColor(); } });
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    {% endif %}
+
+    // --- Jewellery section (when product_type is jewellery) ---
+    if (wrapper && wrapper.dataset.productType === 'jewellery') {
+        var urlJewelleryDetail = wrapper.dataset.urlJewelleryDetail || '';
+        var urlJewelleryUploadImage = wrapper.dataset.urlJewelleryUploadImage || '';
+        var urlJewelleryImageDelete = wrapper.dataset.urlJewelleryImageDelete || '';
+        var urlJewelleryImageReplace = wrapper.dataset.urlJewelleryImageReplace || '';
+        var jewelleryInitial = {};
+        var jewellerySaveBtn = document.getElementById('jewellery-save-btn');
+        var jewelleryFeedback = document.getElementById('jewellery-save-feedback');
+        var jewelleryImagesList = document.getElementById('jewellery-images-list');
+        var jewelleryAddImageBtn = document.getElementById('jewellery-add-image-btn');
+
+        function getJewelleryValues() {
+            var w = document.getElementById('jew-weight');
+            var mc = document.getElementById('jew-making_charge');
+            var adj = document.getElementById('jew-is_adjustable');
+            return {
+                metal_type: (document.getElementById('jew-metal_type') && document.getElementById('jew-metal_type').value.trim()) || '',
+                purity: (document.getElementById('jew-purity') && document.getElementById('jew-purity').value.trim()) || '',
+                weight: (w && w.value !== '') ? w.value : '',
+                gemstone: (document.getElementById('jew-gemstone') && document.getElementById('jew-gemstone').value.trim()) || '',
+                making_charge: (mc && mc.value !== '') ? mc.value : '',
+                is_adjustable: adj ? adj.checked : false,
+                stock_quantity: (document.getElementById('jew-stock_quantity') && parseInt(document.getElementById('jew-stock_quantity').value, 10)) || 1
+            };
+        }
+        function setJewelleryInitial(v) { jewelleryInitial = v; }
+        function isJewelleryDirty() {
+            var cur = getJewelleryValues();
+            return cur.metal_type !== jewelleryInitial.metal_type || cur.purity !== jewelleryInitial.purity ||
+                cur.weight !== jewelleryInitial.weight || cur.gemstone !== jewelleryInitial.gemstone ||
+                cur.making_charge !== jewelleryInitial.making_charge || cur.is_adjustable !== jewelleryInitial.is_adjustable ||
+                cur.stock_quantity !== jewelleryInitial.stock_quantity;
+        }
+        function updateJewellerySaveButton() {
+            if (jewellerySaveBtn) jewellerySaveBtn.disabled = !isJewelleryDirty();
+        }
+
+        function renderJewelleryImages(images) {
+            if (!jewelleryImagesList) return;
+            jewelleryImagesList.innerHTML = (images || []).map(function(img) {
+                var url = img.url ? escapeHtml(img.url) : '';
+                return '<span class="image-item" data-image-id="' + img.id + '">' +
+                    (url ? '<img class="image-thumb" src="' + url + '" alt="">' : '<span class="image-thumb" style="background:#eee;width:80px;height:80px;border-radius:8px;"></span>') +
+                    '<button type="button" class="btn btn-sm btn-outline replace-image-btn">Replace</button>' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-image-btn">Delete</button></span>';
+            }).join('');
+            if (jewelleryImagesList.querySelectorAll('.image-item').length < 3 && jewelleryAddImageBtn) jewelleryAddImageBtn.style.display = 'inline-block';
+            else if (jewelleryAddImageBtn) jewelleryAddImageBtn.style.display = 'none';
+            jewelleryImagesList.querySelectorAll('.delete-image-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                    showLoader();
+                    fetch(urlWithId(urlJewelleryImageDelete, imageId), { method: 'POST', headers: headers(false), credentials: 'same-origin' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) { toast('Image removed.'); loadJewelleryDetail(); }
+                            else toast(res.message || 'Could not remove image.', 'error');
+                        })
+                        .catch(function() { toast('Network error.', 'error'); })
+                        .finally(function() { hideLoader(); });
+                });
+            });
+            jewelleryImagesList.querySelectorAll('.replace-image-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = function() {
+                        if (!this.files.length) return;
+                        var fd = new FormData();
+                        fd.append('image', this.files[0]);
+                        fd.append('csrfmiddlewaretoken', csrf);
+                        showLoader();
+                        fetch(urlWithId(urlJewelleryImageReplace, imageId), { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                if (res.success) { toast('Image replaced.'); loadJewelleryDetail(); }
+                                else toast(res.message || 'Could not replace.', 'error');
+                            })
+                            .catch(function() { toast('Network error.', 'error'); })
+                            .finally(function() { hideLoader(); });
+                    };
+                    input.click();
+                });
+            });
+        }
+
+        function loadJewelleryDetail() {
+            if (!urlJewelleryDetail) return;
+            fetch(urlJewelleryDetail, { headers: headers(false), credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.success) return;
+                    var d = data.detail;
+                    if (d) {
+                        var mt = document.getElementById('jew-metal_type'); if (mt) mt.value = d.metal_type || '';
+                        var pu = document.getElementById('jew-purity'); if (pu) pu.value = d.purity || '';
+                        var we = document.getElementById('jew-weight'); if (we) we.value = d.weight || '';
+                        var ge = document.getElementById('jew-gemstone'); if (ge) ge.value = d.gemstone || '';
+                        var ma = document.getElementById('jew-making_charge'); if (ma) ma.value = d.making_charge || '';
+                        var sq = document.getElementById('jew-stock_quantity'); if (sq) sq.value = d.stock_quantity != null ? d.stock_quantity : 1;
+                        var adj = document.getElementById('jew-is_adjustable'); if (adj) { adj.checked = d.is_adjustable; var wrap = adj.closest('.toggle-wrap'); if (wrap) { wrap.classList.toggle('checked', d.is_adjustable); var st = wrap.querySelector('.toggle-status'); if (st) st.textContent = d.is_adjustable ? (st.getAttribute('data-on') || 'Yes') : (st.getAttribute('data-off') || 'No'); } }
+                        setJewelleryInitial(getJewelleryValues());
+                    } else {
+                        setJewelleryInitial({ metal_type: '', purity: '', weight: '', gemstone: '', making_charge: '', is_adjustable: false, stock_quantity: 1 });
+                    }
+                    renderJewelleryImages(data.images || []);
+                    updateJewellerySaveButton();
+                });
+        }
+
+        if (document.getElementById('jewellery-detail-form')) {
+            document.getElementById('jewellery-detail-form').addEventListener('input', updateJewellerySaveButton);
+            document.getElementById('jewellery-detail-form').addEventListener('change', updateJewellerySaveButton);
+        }
+        if (jewellerySaveBtn) {
+            jewellerySaveBtn.addEventListener('click', function() {
+                if (jewellerySaveBtn.disabled) return;
+                var payload = getJewelleryValues();
+                if (!payload.metal_type) { toast('Metal type is required.', 'error'); return; }
+                jewellerySaveBtn.classList.add('loading');
+                jewelleryFeedback.textContent = 'Saving…';
+                jewelleryFeedback.className = 'save-feedback';
+                showLoader();
+                fetch(urlJewelleryDetail, {
+                    method: 'POST',
+                    headers: headers(true),
+                    body: JSON.stringify({
+                        metal_type: payload.metal_type,
+                        purity: payload.purity || null,
+                        weight: payload.weight ? parseFloat(payload.weight) : null,
+                        gemstone: payload.gemstone || '',
+                        making_charge: payload.making_charge ? parseFloat(payload.making_charge) : null,
+                        is_adjustable: payload.is_adjustable,
+                        stock_quantity: payload.stock_quantity
+                    }),
+                    credentials: 'same-origin'
+                }).then(function(r) { return r.json(); }).then(function(res) {
+                    if (res.success) {
+                        setJewelleryInitial(getJewelleryValues());
+                        updateJewellerySaveButton();
+                        jewelleryFeedback.textContent = 'Saved.';
+                        jewelleryFeedback.className = 'save-feedback';
+                        toast('Jewellery details saved.');
+                    } else {
+                        jewelleryFeedback.textContent = (res.errors && res.errors.metal_type && res.errors.metal_type[0]) || 'Error';
+                        jewelleryFeedback.className = 'save-feedback err';
+                        toast((res.errors && res.errors.metal_type && res.errors.metal_type[0]) || 'Could not save.', 'error');
+                    }
+                }).catch(function() {
+                    jewelleryFeedback.textContent = 'Network error.';
+                    jewelleryFeedback.className = 'save-feedback err';
+                    toast('Network error.', 'error');
+                }).finally(function() { jewellerySaveBtn.classList.remove('loading'); hideLoader(); });
+            });
+        }
+        if (jewelleryAddImageBtn) {
+            jewelleryAddImageBtn.addEventListener('click', function() {
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = function() {
+                    if (!this.files.length) return;
+                    var fd = new FormData();
+                    fd.append('image', this.files[0]);
+                    fd.append('csrfmiddlewaretoken', csrf);
+                    showLoader();
+                    fetch(urlJewelleryUploadImage, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) { toast('Image added.'); loadJewelleryDetail(); }
+                            else toast(res.errors && res.errors.image ? res.errors.image[0] : 'Could not add image.', 'error');
+                        })
+                        .catch(function() { toast('Network error.', 'error'); })
+                        .finally(function() { hideLoader(); });
+                };
+                input.click();
+            });
+        }
+        loadJewelleryDetail();
+    }
+
+    // Sticky Back bar: show only when scrolling up
+    (function() {
+        var backBar = document.getElementById('sticky-back-bar');
+        if (!backBar) return;
+        var lastScrollY = window.scrollY || window.pageYOffset;
+        var ticking = false;
+        function updateBackBar() {
+            var scrollY = window.scrollY || window.pageYOffset;
+            var scrollingUp = scrollY < lastScrollY;
+            if (scrollingUp && scrollY > 60) {
+                backBar.classList.add('visible');
+                backBar.setAttribute('aria-hidden', 'false');
+            } else {
+                backBar.classList.remove('visible');
+                backBar.setAttribute('aria-hidden', 'true');
+            }
+            lastScrollY = scrollY;
+            ticking = false;
+        }
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateBackBar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+})();
+</script>
+{% endblock %}

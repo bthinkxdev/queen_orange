@@ -1,4 +1,8 @@
+import logging
+import time
+
 from django import forms
+from django.conf import settings
 from django.forms import inlineformset_factory
 from django.forms.formsets import DELETION_FIELD_NAME
 from django.forms.models import BaseInlineFormSet
@@ -14,6 +18,8 @@ from .models import (
     ProductVariant,
     SizeVariant,
 )
+
+logger = logging.getLogger(__name__)
 
 # Standard apparel sizes (from size chart) for dropdown
 STANDARD_SIZES = [
@@ -195,6 +201,7 @@ class JewelleryDetailForm(forms.ModelForm):
 
 
 class JewelleryImageForm(forms.ModelForm):
+    """Only updates image field when a new file is uploaded (avoids unnecessary S3 re-upload)."""
     class Meta:
         model = JewelleryImage
         fields = ["image", "is_primary", "display_order"]
@@ -218,6 +225,23 @@ class JewelleryImageForm(forms.ModelForm):
             return 0
         return val
 
+    def save(self, commit=True):
+        if getattr(settings, "DEBUG_TRACE", False):
+            print("[EDIT %.4fs] TRACE: entering JewelleryImageForm.save pk=%s" % (time.perf_counter(), getattr(self.instance, "pk", None)))
+            print("[EDIT %.4fs] TRACE image changed: %s" % (time.perf_counter(), bool(self.cleaned_data.get("image"))))
+        instance = super().save(commit=False)
+        # Only update image field if a new file was uploaded (prevents S3 re-upload of unchanged)
+        if not self.cleaned_data.get("image") and instance.pk and getattr(self.instance, "image", None):
+            instance.image = self.instance.image
+        if commit:
+            if getattr(settings, "DEBUG_TRACE", False):
+                print("[EDIT %.4fs] TRACE: JewelleryImage save() commit pk=%s" % (time.perf_counter(), instance.pk or "new"))
+            logger.debug("Saving image instance %s (JewelleryImage)", instance.pk or "new")
+            instance.save()
+            if hasattr(self, "_save_m2m"):
+                self._save_m2m()
+        return instance
+
 
 class SafeDeleteInlineFormSet(BaseInlineFormSet):
     """Base formset that safely handles forms without cleaned_data (empty extra forms).
@@ -236,6 +260,16 @@ JewelleryImageFormSet = inlineformset_factory(
     form=JewelleryImageForm,
     formset=SafeDeleteInlineFormSet,
     extra=3,
+    can_delete=True,
+    max_num=3,
+)
+# Edit: no extra empty image rows; "Add image" adds a row via JS to keep request size small
+JewelleryImageFormSetEdit = inlineformset_factory(
+    JewelleryDetail,
+    JewelleryImage,
+    form=JewelleryImageForm,
+    formset=SafeDeleteInlineFormSet,
+    extra=0,
     can_delete=True,
     max_num=3,
 )
@@ -302,6 +336,8 @@ class ProductForm(forms.ModelForm):
                 field.widget.attrs['required'] = 'required'
     
     def clean(self):
+        if getattr(settings, "DEBUG_TRACE", False):
+            print("[EDIT %.4fs] TRACE: entering ProductForm.clean" % time.perf_counter())
         cleaned_data = super().clean()
         price = cleaned_data.get('price')
         original_price = cleaned_data.get('original_price')
@@ -319,6 +355,56 @@ class ProductForm(forms.ModelForm):
                     "Original price must be greater than the selling price."
                 )
 
+        return cleaned_data
+
+
+# --- Product EDIT (modular AJAX): basic fields only, no multipart ---
+BASIC_EDIT_FIELDS = [
+    "name", "slug", "description", "price", "original_price",
+    "material", "is_featured", "is_bestseller", "is_active", "category", "product_type",
+]
+
+
+class ProductBasicEditForm(forms.ModelForm):
+    """Simple form for POST /admin/products/<id>/update-basic/. No images, no variants."""
+    class Meta:
+        model = Product
+        fields = BASIC_EDIT_FIELDS
+        widgets = {
+            "product_type": forms.Select(attrs={"class": "form-control"}),
+            "category": forms.Select(attrs={"class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Product Name"}),
+            "slug": forms.TextInput(attrs={"class": "form-control", "placeholder": "product-slug"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "original_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "material": forms.TextInput(attrs={"class": "form-control"}),
+            "is_featured": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_bestseller": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["slug"].required = False
+        self.fields["original_price"].required = False
+        self.fields["description"].required = False
+        self.fields["material"].required = False
+        active = Category.objects.filter(is_active=True)
+        if self.instance and self.instance.pk and self.instance.category_id:
+            current = self.instance.category
+            if current and not current.is_active:
+                active = active | Category.objects.filter(pk=current.pk)
+        self.fields["category"].queryset = active.order_by("name")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        price = cleaned_data.get("price")
+        original_price = cleaned_data.get("original_price")
+        if original_price and not price:
+            raise forms.ValidationError("Selling price is required when original price is set.")
+        if original_price and price and original_price <= price:
+            raise forms.ValidationError("Original price must be greater than the selling price.")
         return cleaned_data
 
 
@@ -475,6 +561,7 @@ def _validate_image_file(image, required=False):
 class ColorVariantImageForm(forms.ModelForm):
     """One image per ColorVariant. Always use with ColorVariantImageFormSet(instance=<ColorVariant>).
     Do not expose or set color_variant in the form; the formset binds it from the parent instance.
+    Only updates image field when a new file is uploaded (avoids unnecessary S3 re-upload).
     """
     class Meta:
         model = ColorVariantImage
@@ -492,6 +579,23 @@ class ColorVariantImageForm(forms.ModelForm):
     def clean_image(self):
         return _validate_image_file(self.cleaned_data.get("image"), required=not self.instance.pk)
 
+    def save(self, commit=True):
+        if getattr(settings, "DEBUG_TRACE", False):
+            print("[EDIT %.4fs] TRACE: entering ColorVariantImageForm.save pk=%s" % (time.perf_counter(), getattr(self.instance, "pk", None)))
+            print("[EDIT %.4fs] TRACE image changed: %s" % (time.perf_counter(), bool(self.cleaned_data.get("image"))))
+        instance = super().save(commit=False)
+        # Only update image field if a new file was uploaded (prevents S3 re-upload of unchanged)
+        if not self.cleaned_data.get("image") and instance.pk and getattr(self.instance, "image", None):
+            instance.image = self.instance.image
+        if commit:
+            if getattr(settings, "DEBUG_TRACE", False):
+                print("[EDIT %.4fs] TRACE: ColorVariantImage save() commit pk=%s" % (time.perf_counter(), instance.pk or "new"))
+            logger.debug("Saving image instance %s (ColorVariantImage)", instance.pk or "new")
+            instance.save()
+            if hasattr(self, "_save_m2m"):
+                self._save_m2m()
+        return instance
+
 
 ColorVariantFormSet = inlineformset_factory(
     Product,
@@ -502,17 +606,6 @@ ColorVariantFormSet = inlineformset_factory(
     can_delete=True,
     max_num=20,
 )
-ColorVariantFormSetEdit = inlineformset_factory(
-    Product,
-    ColorVariant,
-    form=ColorVariantForm,
-    formset=SafeDeleteInlineFormSet,
-    extra=0,
-    can_delete=True,
-    max_num=20,
-)
-
-
 # Each image is tied to a single ColorVariant. Use with instance=<ColorVariant> only.
 # Removed images (DELETE checked) are deleted by formset.save(); no shared image reuse.
 ColorVariantImageFormSet = inlineformset_factory(
@@ -528,8 +621,6 @@ ColorVariantImageFormSet = inlineformset_factory(
     can_delete=True,
     max_num=3,
 )
-
-
 class SizeVariantForm(forms.ModelForm):
     class Meta:
         model = SizeVariant
@@ -587,6 +678,8 @@ class SizeVariantForm(forms.ModelForm):
         Allow completely blank extra rows (no size, no stock, no SKU) to be ignored.
         Such rows are marked for deletion so the formset will drop them without errors.
         """
+        if getattr(settings, "DEBUG_TRACE", False):
+            print("[EDIT %.4fs] TRACE: entering SizeVariantForm.clean pk=%s" % (time.perf_counter(), getattr(self.instance, "pk", None)))
         cleaned_data = super().clean()
         size = (cleaned_data.get("size") or "").strip()
         stock = cleaned_data.get("stock_quantity")
@@ -638,17 +731,6 @@ SizeVariantFormSet = inlineformset_factory(
     form=SizeVariantForm,
     formset=SafeDeleteInlineFormSet,
     extra=1,
-    can_delete=True,
-    max_num=50,
-    min_num=0,
-    validate_min=False,
-)
-SizeVariantFormSetEdit = inlineformset_factory(
-    ColorVariant,
-    SizeVariant,
-    form=SizeVariantForm,
-    formset=SafeDeleteInlineFormSet,
-    extra=0,
     can_delete=True,
     max_num=50,
     min_num=0,

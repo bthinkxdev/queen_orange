@@ -6,1472 +6,834 @@
 
 {% block extra_css %}
 <style>
-    /* Premium Product Form Styling */
-    .product-form-wrapper {
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-    
-    .form-section {
-        background: var(--white);
-        border-radius: 10px;
-        padding: 1.5rem 1.75rem;
+    .product-create-wrapper { max-width: 900px; margin: 0 auto; padding: 0 1rem 2rem; }
+    .product-create-inner { padding: 0; }
+    .create-section {
+        padding: 1rem 0 1.5rem 0;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-        border: 1px solid var(--gray-200);
+        border-bottom: 1px solid #e5e7eb;
     }
-    
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1.25rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--gray-200);
-        position: relative;
-        flex-wrap: wrap;
-    }
-    
-    
-    .section-icon {
-        width: 36px;
-        height: 36px;
-        background: var(--gray-100);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary);
-        font-size: 0.9rem;
-    }
-    
-    .section-title {
-        flex: 1;
-    }
-    
-    .section-title h4 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--gray-900);
-    }
-    
-    .section-subtitle {
-        margin: 0.15rem 0 0;
-        font-size: 0.8125rem;
-        color: var(--gray-500);
-    }
-    
-    .section-badge {
-        padding: 0.5rem 1rem;
-        background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
-        border-radius: 8px;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #E65100;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        border: 1px solid #FFB74D;
-    }
-    
-    /* Premium Form Inputs */
-    .form-group {
-        margin-bottom: 1.75rem;
-    }
-    
-    .form-label {
-        display: block;
-        margin-bottom: 0.625rem;
-        font-weight: 600;
-        color: var(--gray-800);
-        font-size: 0.9375rem;
-        letter-spacing: 0.01em;
-    }
-    
-    .form-label small {
-        font-weight: 400;
-        color: var(--gray-500);
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 0.875rem 1rem;
-        border: 2px solid var(--gray-200);
-        border-radius: 10px;
-        font-size: 0.9375rem;
-        font-family: inherit;
-        transition: all 0.3s ease;
-        background: var(--white);
-    }
-    
-    .form-control:hover {
-        border-color: var(--gray-300);
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(109, 76, 65, 0.1);
-        background: var(--white);
-    }
-    
-    .form-control.is-invalid {
-        border-color: #e53935 !important;
-        background-color: rgba(229, 57, 53, 0.05) !important;
-        border-width: 2px;
-    }
-    
-    .form-control.is-invalid:hover {
-        border-color: #e53935;
-        background-color: rgba(229, 57, 53, 0.08);
-    }
-    
-    .form-control.is-invalid:focus {
-        border-color: #e53935 !important;
-        box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.2) !important;
-        background-color: rgba(229, 57, 53, 0.05) !important;
-    }
-    
-    .form-error-message {
-        display: block;
-        color: #e53935;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        margin-top: 0.5rem;
-        animation: slideDown 0.3s ease-out;
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-    }
-    
-    .form-error-message i {
-        font-size: 0.75rem;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-8px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    textarea.form-control {
-        min-height: 120px;
-        resize: vertical;
-        line-height: 1.6;
-    }
-    
-    /* Checkbox Styling */
-    .form-check {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem;
-        background: var(--gray-50);
-        border-radius: 10px;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .form-check:hover {
-        background: #FFF3E0;
-        border-color: var(--primary-light);
-    }
-    
-    .form-check-input {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        accent-color: var(--primary);
-    }
-    
-    .form-check-label {
-        cursor: pointer;
-        font-size: 0.9375rem;
-        font-weight: 500;
-        color: var(--gray-800);
-        margin: 0;
-    }
-    
-    /* Formset - flat, minimal boxes (no heavy nesting) */
-    .formset-container {
-        margin-top: 1rem;
-        padding: 0;
-    }
-    
-    .formset-form {
+    .create-section.hidden { display: none !important; }
+    .section-heading { margin: 0 0 0.35rem 0; font-size: 1rem; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 0.5rem; }
+    .section-num { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--primary, #6d4c41); color: #fff; font-size: 0.75rem; font-weight: 700; }
+    .section-hint { font-size: 0.8rem; color: #6b7280; margin: 0 0 0.85rem 0; }
+    .form-group { margin-bottom: 0.65rem; }
+    .form-label { display: block; margin-bottom: 0.25rem; font-weight: 600; color: #374151; font-size: 0.8125rem; }
+    .form-control { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9375rem; }
+    .form-control:focus { outline: none; border-color: var(--primary, #6d4c41); }
+    .form-check { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .form-check-input { width: 18px; height: 18px; accent-color: var(--primary, #6d4c41); }
+    .toggle-wrap { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+    .toggle-wrap .toggle-input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+    .toggle-track { position: relative; width: 44px; height: 24px; border-radius: 12px; background: #e2e8f0; border: 1px solid #cbd5e1; flex-shrink: 0; transition: background 0.2s, border-color 0.2s; }
+    .toggle-wrap.checked .toggle-track { background: var(--primary, #6d4c41); border-color: #5a3d34; }
+    .toggle-knob { position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s ease; }
+    .toggle-wrap.checked .toggle-knob { transform: translateX(20px); }
+    .toggle-label { font-weight: 500; color: #374151; font-size: 0.875rem; }
+    .toggle-status { font-size: 0.75rem; color: #6b7280; min-width: 2.2em; }
+    .toggle-wrap.checked .toggle-status { color: var(--primary, #6d4c41); font-weight: 500; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; }
+    .btn { padding: 0.5rem 0.9rem; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; font-size: 0.875rem; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary, #6d4c41) 0%, #4e342e 100%); color: #fff; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.8125rem; }
+    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+    .btn-outline:hover { background: #f9fafb; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .save-feedback { font-size: 0.75rem; margin-left: 0.5rem; }
+    .save-feedback.err { color: #dc2626; }
+
+    .nested-block { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid #f3f4f6; }
+    .nested-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-bottom: 0.4rem; }
+    .add-size-inline { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+    .add-size-inline .add-size-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .add-size-inline .add-size-field label { font-size: 0.75rem; color: #6b7280; margin: 0; }
+    .add-size-inline select, .add-size-inline input { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid #d1d5db; min-width: 100px; }
+    .image-list { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-start; }
+    .image-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .image-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9999; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.is-open { display: flex; }
+    .modal-dialog { background: #fff; border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+    .modal-dialog h3 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+    .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 10000; display: flex; flex-direction: column; gap: 0.5rem; max-width: 320px; pointer-events: none; }
+    .toast { padding: 0.65rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: toast-in 0.25s ease; }
+    .toast.success { background: #059669; color: #fff; }
+    .toast.error { background: #dc2626; color: #fff; }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+    .create-done { padding: 1rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; margin-top: 1rem; }
+
+    /* Product preview (Step 2) */
+    .product-preview-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
         padding: 1rem 1.25rem;
-        margin-bottom: 0.75rem;
-        position: relative;
-        background: var(--white);
-        border: 1px solid var(--gray-200);
-        border-radius: 8px;
-        transition: border-color 0.2s;
+        margin-bottom: 1.25rem;
     }
-    
-    .formset-form:hover {
-        border-color: var(--gray-300);
-    }
-    
-    .formset-form.deleted {
-        opacity: 0.35;
-        border-color: var(--danger);
-    }
-    
-    .formset-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    .product-preview-box .preview-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.25rem; }
+    .product-preview-box .preview-title { font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem 0; }
+    .product-preview-box .preview-meta { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; font-size: 0.8125rem; color: #475569; }
+    .product-preview-box .preview-meta span { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+    /* Color varieties section */
+    .colors-section-title { font-size: 0.85rem; font-weight: 700; color: #334155; margin: 0 0 0.35rem 0; display: flex; align-items: center; gap: 0.5rem; }
+    .colors-section-hint { font-size: 0.8rem; color: #64748b; margin: 0 0 0.75rem 0; }
+    .btn-add-color { background: var(--primary, #6d4c41); color: #fff; border: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .btn-add-color:hover { filter: brightness(1.05); }
+    .btn-add-color i { font-size: 0.9rem; }
+
+    /* Variant card = one color variety */
+    .variant-card {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
         margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--gray-100);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    
-    .formset-number {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        color: var(--gray-800);
-        font-size: 0.875rem;
-    }
-    
-    .formset-number i {
-        width: 28px;
-        height: 28px;
-        background: var(--gray-100);
-        border-radius: 6px;
-        display: flex;
+    .variant-card .variant-card-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.5rem; }
+    .variant-card .color-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); flex-shrink: 0; }
+    .variant-card .nested-block { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid #e2e8f0; }
+    .variant-card .nested-title { font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; }
+    .variant-card .size-row-create { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; font-size: 0.8125rem; color: #475569; }
+    .variant-card .size-row-create .size-name { font-weight: 600; min-width: 3rem; }
+    .variant-card .add-size-block { margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; }
+    .variant-card .add-size-heading { font-size: 0.8rem; font-weight: 700; color: #334155; margin: 0 0 0.5rem 0; }
+    .variant-card .add-size-btn { margin-top: 0.25rem; }
+    .variant-card .add-image-btn { margin-top: 0.35rem; }
+    /* Loader overlay */
+    .action-loader-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,255,0.85);
+        z-index: 10001;
         align-items: center;
         justify-content: center;
-        color: var(--primary);
-        font-size: 0.75rem;
     }
-    
-    .formset-delete {
-        position: absolute;
-        top: 0.75rem;
-        right: 0.75rem;
+    .action-loader-overlay.is-active { display: flex; }
+    .action-loader-overlay .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e5e7eb;
+        border-top-color: var(--primary, #6d4c41);
+        border-radius: 50%;
+        animation: loader-spin 0.8s linear infinite;
     }
-    
-    .add-formset-btn {
-        margin-top: 0.75rem;
-        width: 100%;
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border: 1px dashed var(--gray-300);
-        background: var(--gray-50);
-        color: var(--gray-700);
-        border-radius: 6px;
-        transition: all 0.2s;
-    }
-    
-    .add-formset-btn:hover {
-        border-color: var(--primary);
-        color: var(--primary);
-        background: rgba(233, 30, 99, 0.04);
-    }
-    
-    /* Image Preview Styling */
-    .image-preview {
-        margin-top: 1rem;
-        padding: 1rem;
-        background: var(--gray-50);
-        border-radius: 10px;
-        border: 2px solid var(--gray-200);
-    }
-    
-    .image-preview img {
-        max-width: 180px;
-        max-height: 180px;
-        object-fit: cover;
-        border-radius: 10px;
-        border: 3px solid var(--white);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: all 0.3s ease;
-    }
-    
-    .image-preview img:hover {
-        transform: scale(1.05);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    }
-
-    /* Nested sections - subtle, no heavy box */
-    .nested-section {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--gray-100);
-    }
-    .nested-title {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--gray-600);
-        margin: 0 0 0.75rem 0;
-        letter-spacing: 0.02em;
-    }
-    .nested-formset .nested-form-row {
-        padding: 0.5rem 0;
-        border-bottom: 1px solid var(--gray-100);
-    }
-    .nested-formset .nested-form-row:last-child { border-bottom: none; }
-
-    .grid-2 {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-    .color-fields-row.grid-2 {
-        grid-template-columns: 1fr 1fr minmax(70px, 1fr) auto;
-    }
-    
-    /* Button Enhancements */
-    .btn {
-        padding: 0.875rem 1.75rem;
-        font-weight: 600;
-        font-size: 0.9375rem;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-        letter-spacing: 0.02em;
-    }
-    
-    .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
-    
-    .btn:active {
-        transform: translateY(0);
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    }
-    
-    .btn-primary:hover {
-        background: linear-gradient(135deg, var(--primary-dark) 0%, #4E342E 100%);
-    }
-    
-    .btn-sm {
-        padding: 0.5rem 1.125rem;
-        font-size: 0.875rem;
-    }
-    
-    /* Action Buttons Container */
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-        margin-top: 3rem;
-        padding-top: 2rem;
-        border-top: 2px solid var(--gray-100);
-    }
-    
-    /* Empty State for Formsets */
-    .formset-empty-state {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: var(--gray-500);
-    }
-    
-    .formset-empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.3;
-    }
-    
-    /* Compact styles for color/size forms */
-    .formset-form .form-group {
-        margin-bottom: 1rem;
-    }
-    .formset-form .form-label {
-        font-size: 0.8125rem;
-        margin-bottom: 0.375rem;
-    }
-    .formset-form .form-control {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-    }
-    .formset-form .form-check {
-        padding: 0.5rem 0;
-    }
-    .formset-form .form-check-label {
-        font-size: 0.8125rem;
-    }
-    .formset-form .image-preview {
-        margin-top: 0.5rem;
-        padding: 0.5rem;
-    }
-    .formset-form .image-preview img {
-        max-width: 64px;
-        max-height: 64px;
-    }
-    
-    /* Responsive - Mobile optimized */
+    .action-loader-overlay .loader-text { margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280; }
+    @keyframes loader-spin { to { transform: rotate(360deg); } }
     @media (max-width: 768px) {
-        .form-section {
-            padding: 1rem 1.25rem;
-        }
-        
-        .section-header {
-            flex-direction: column;
-            align-items: flex-start;
-            margin-bottom: 1.25rem;
-            padding-bottom: 0.75rem;
-        }
-        
-        .section-title h4 {
-            font-size: 1.125rem;
-        }
-        
-        .section-subtitle {
-            font-size: 0.8125rem;
-        }
-        
-        .section-badge, .info-badge {
-            width: 100%;
-            justify-content: center;
-            padding: 0.4rem 0.75rem;
-            font-size: 0.75rem;
-        }
-        
-        .section-icon {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
-        }
-        
-        .grid-2 {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-        .color-fields-row.grid-2 {
-            grid-template-columns: 1fr;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-label {
-            font-size: 0.8125rem;
-        }
-        
-        .form-control {
-            padding: 0.625rem 0.75rem;
-            font-size: 16px; /* prevents zoom on iOS */
-        }
-        
-        .formset-form {
-            padding: 0.875rem 1rem;
-        }
-        
-        .formset-header {
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.5rem;
-        }
-        
-        .formset-number {
-            font-size: 0.8125rem;
-        }
-        
-        .formset-number i {
-            width: 24px;
-            height: 24px;
-        }
-        
-        .formset-delete .btn {
-            padding: 0.35rem 0.6rem;
-            font-size: 0.75rem;
-        }
-        
-        .nested-title {
-            font-size: 0.75rem;
-        }
-        
-        .form-actions {
-            flex-direction: column-reverse;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-        }
-        
-        .form-actions .btn {
-            width: 100%;
-        }
-    }
-    
-    /* File Input Styling */
-    input[type="file"].form-control {
-        padding: 0.75rem;
-        cursor: pointer;
-    }
-    
-    input[type="file"].form-control::file-selector-button {
-        padding: 0.5rem 1rem;
-        background: var(--primary);
-        color: var(--white);
-        border: none;
-        border-radius: 6px;
-        margin-right: 1rem;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    input[type="file"].form-control::file-selector-button:hover {
-        background: var(--primary-dark);
-    }
-    
-    .info-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.75rem;
-        background: #E3F2FD;
-        color: #1565C0;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 500;
+        .product-preview-box { padding: 0.85rem 1rem; }
+        .variant-card { padding: 0.85rem 1rem; }
+        .btn-add-color { width: 100%; justify-content: center; min-height: 44px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="product-form-wrapper">
-    <form method="post" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
-        
-        <!-- Basic Information Section -->
-        <div class="form-section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="section-title">
-                    <h4>Basic Information</h4>
-                    <p class="section-subtitle">Essential product details and pricing</p>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Product Type *</label>
-                {{ form.product_type }}
-                {% if form.product_type.errors %}
-                    <div class="form-error-message">
-                        {% for error in form.product_type.errors %}
-                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
+<div class="product-create-wrapper" id="create-wrapper"
+     data-url-create-basic="{% url 'admin_panel:product_create_basic' %}"
+     data-url-variant-add="{% url 'admin_panel:product_variant_add' 999 %}"
+     data-url-variants-list="{% url 'admin_panel:product_variants_list' 999 %}"
+     data-url-variant-add-size="{% url 'admin_panel:variant_add_size' 999 %}"
+     data-url-upload-image="{% url 'admin_panel:variant_upload_image' 999 %}"
+     data-url-edit-product="{% url 'admin_panel:product_edit' 999 %}"
+     data-url-jewellery-detail="{% url 'admin_panel:product_jewellery_detail' 999 %}"
+     data-url-jewellery-upload-image="{% url 'admin_panel:jewellery_upload_image' 999 %}"
+     data-url-jewellery-image-delete="{% url 'admin_panel:jewellery_image_delete' 1 %}"
+     data-url-jewellery-image-replace="{% url 'admin_panel:jewellery_image_replace' 1 %}">
+    {% csrf_token %}
+    <input type="hidden" id="created-product-id" value="">
 
+    <div class="product-create-inner">
+        <!-- Step 1: Basic info -->
+        <div class="create-section" id="section-basic">
+            <h4 class="section-heading"><span class="section-num">1</span> Basic info</h4>
+            <p class="section-hint" id="section-basic-hint">Name, price, category. Click <strong>Create product</strong> to continue.</p>
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Product type</label>
+                {{ basic_form.product_type }}
+                </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                {{ basic_form.category }}
+                    </div>
+            </div>
             <div class="grid-2">
                 <div class="form-group">
                     <label class="form-label">Name *</label>
-                    {{ form.name }}
-                    {% if form.name.errors %}
-                        <div class="form-error-message">
-                            {% for error in form.name.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
+                <input type="text" class="form-control" id="basic-name" placeholder="Product name">
                         </div>
-                    {% endif %}
-                </div>
-
                 <div class="form-group">
-                    <label class="form-label">Category *</label>
-                    {{ form.category }}
-                    {% if form.category.errors %}
-                        <div class="form-error-message">
-                            {% for error in form.category.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
+                <label class="form-label">Slug</label>
+                <input type="text" class="form-control" id="basic-slug" placeholder="product-slug (optional)">
                         </div>
-                    {% endif %}
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Slug (optional - auto-generated)</label>
-                {{ form.slug }}
-                {% if form.slug.errors %}
-                    <div class="form-error-message">
-                        {% for error in form.slug.errors %}
-                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-
             <div class="form-group">
                 <label class="form-label">Description</label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                    <div class="form-error-message">
-                        {% for error in form.description.errors %}
-                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                        {% endfor %}
+            <textarea class="form-control" id="basic-description" rows="4" placeholder="Description"></textarea>
                     </div>
-                {% endif %}
-            </div>
-
             <div class="grid-2">
                 <div class="form-group">
                     <label class="form-label">Price (₹) *</label>
-                    {{ form.price }}
-                    {% if form.price.errors %}
-                        <div class="form-error-message">
-                            {% for error in form.price.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
+                <input type="number" class="form-control" id="basic-price" step="0.01" placeholder="0">
                         </div>
-                    {% endif %}
-                </div>
-
                 <div class="form-group">
-                    <label class="form-label">Original Price (₹) - Optional</label>
-                    {{ form.original_price }}
-                    {% if form.original_price.errors %}
-                        <div class="form-error-message">
-                            {% for error in form.original_price.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
+                <label class="form-label">Original price (₹)</label>
+                <input type="number" class="form-control" id="basic-original_price" step="0.01" placeholder="">
                         </div>
-                    {% endif %}
                 </div>
-            </div>
-
             <div class="form-group">
-                <label class="form-label">Material <small>(optional, e.g. Cotton, Silk, Brass)</small></label>
-                {{ form.material }}
-                {% if form.material.errors %}
-                    <div class="form-error-message">
-                        {% for error in form.material.errors %}
-                            <i class="fas fa-exclamation-circle"></i> {{ error }}
-                        {% endfor %}
+            <label class="form-label">Material</label>
+            <input type="text" class="form-control" id="basic-material" placeholder="e.g. Cotton">
                     </div>
-                {% endif %}
-            </div>
-
             <div class="grid-2">
                 <div class="form-check">
-                    {{ form.is_featured }}
-                    <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
-                        <strong>⭐ Featured Product</strong>
-                        <small style="display: block; color: var(--gray-600); font-weight: 400;">Show on homepage</small>
+                <input type="checkbox" class="form-check-input" id="basic-is_featured">
+                <label class="form-label" for="basic-is_featured" style="margin:0;">Featured</label>
+                </div>
+                <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="basic-is_bestseller">
+                <label class="form-label" for="basic-is_bestseller" style="margin:0;">Bestseller</label>
+                </div>
+                <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="basic-is_active" checked>
+                <label class="form-label" for="basic-is_active" style="margin:0;">Active</label>
+                </div>
+            </div>
+            <button type="button" id="btn-create-basic" class="btn btn-primary">Create product</button>
+            <span id="basic-feedback" class="save-feedback"></span>
+        </div>
+
+        <!-- Step 2: Variants (clothing only; shown after basic create) -->
+        <div class="create-section hidden" id="section-variants">
+        <h4 class="section-heading"><span class="section-num">2</span> Colors &amp; sizes</h4>
+        <p class="section-hint">Add at least one color. Then add sizes and images per color.</p>
+
+        <!-- Product basic info preview -->
+        <div id="product-preview-create" class="product-preview-box hidden">
+            <div class="preview-label">Product created</div>
+            <div class="preview-title" id="product-preview-name">—</div>
+            <div class="preview-meta">
+                <span id="product-preview-price">—</span>
+                <span id="product-preview-category">—</span>
+                <span id="product-preview-type">—</span>
+                </div>
+            <p class="section-hint" style="margin:0.5rem 0 0 0;">You are adding color varieties, sizes and photos for this product.</p>
+            </div>
+
+        <!-- Color varieties (highlighted) -->
+        <p class="colors-section-title"><i class="fas fa-palette"></i> Color varieties</p>
+        <p class="colors-section-hint">Each color can have its own sizes (stock) and up to 3 photos. Tap <strong>Add color</strong> to add one.</p>
+        <div id="variants-list-create"></div>
+        <button type="button" id="btn-add-color" class="btn-add-color"><i class="fas fa-plus"></i> Add color</button>
+
+        <div class="create-done hidden" id="create-done-box">
+            <p style="margin:0 0 0.5rem 0;"><strong>All set.</strong> You can add more later from the edit page.</p>
+            <a href="#" id="link-edit-product" class="btn btn-primary btn-sm">Edit product</a>
+            <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary btn-sm">Back to products</a>
+        </div>
+        </div>
+
+        <!-- Step 2: Jewellery details (jewellery only; shown after basic create) -->
+        <div class="create-section hidden" id="section-jewellery">
+            <h4 class="section-heading"><span class="section-num">2</span> Jewellery details</h4>
+            <p class="section-hint">Enter metal, purity, weight, and photos. Tap <strong>Save details</strong> when done.</p>
+            <div id="product-preview-jewellery" class="product-preview-box hidden">
+                <div class="preview-label">Product created</div>
+                <div class="preview-title" id="jewellery-preview-name">—</div>
+                <div class="preview-meta">
+                    <span id="jewellery-preview-price">—</span>
+                    <span id="jewellery-preview-category">—</span>
+                </div>
+            </div>
+            <div id="jewellery-detail-form-create">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-metal_type">Metal type *</label>
+                        <input type="text" class="form-control" id="jew-create-metal_type" placeholder="e.g. Gold, Silver">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-purity">Purity</label>
+                        <input type="text" class="form-control" id="jew-create-purity" placeholder="e.g. 18K, 22K, 92.5%">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-weight">Weight (grams)</label>
+                        <input type="number" class="form-control" id="jew-create-weight" step="0.001" min="0" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-gemstone">Gemstone</label>
+                        <input type="text" class="form-control" id="jew-create-gemstone" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-making_charge">Making charge (₹)</label>
+                        <input type="number" class="form-control" id="jew-create-making_charge" step="0.01" min="0" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="jew-create-stock_quantity">Stock quantity</label>
+                        <input type="number" class="form-control" id="jew-create-stock_quantity" min="0" value="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="toggle-wrap" for="jew-create-is_adjustable">
+                        <input type="checkbox" class="toggle-input" id="jew-create-is_adjustable">
+                        <span class="toggle-track"><span class="toggle-knob"></span></span>
+                        <span class="toggle-label">Adjustable</span>
+                        <span class="toggle-status" data-on="Yes" data-off="No">No</span>
                     </label>
                 </div>
-
-                <div class="form-check">
-                    {{ form.is_bestseller }}
-                    <label class="form-check-label" for="{{ form.is_bestseller.id_for_label }}">
-                        <strong>🔥 Bestseller</strong>
-                        <small style="display: block; color: var(--gray-600); font-weight: 400;">Highlight as top seller</small>
-                    </label>
+                <div class="nested-block" style="margin-top:1rem;">
+                    <div class="nested-title">Photos (max 3)</div>
+                    <div id="jewellery-images-create" class="image-list"></div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="jewellery-add-image-create" style="margin-top:0.5rem;">Add image</button>
                 </div>
+                <button type="button" id="jewellery-save-details-btn" class="btn btn-primary" style="margin-top:1rem;">Save details</button>
+                <span id="jewellery-save-feedback-create" class="save-feedback"></span>
             </div>
-
-            <div class="grid-2">
-                <div class="form-check">
-                    {{ form.is_active }}
-                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                        <strong>✅ Active</strong>
-                        <small style="display: block; color: var(--gray-600); font-weight: 400;">Available for purchase</small>
-                    </label>
-                </div>
+            <div class="create-done hidden" id="jewellery-done-box" style="margin-top:1rem;">
+                <p style="margin:0 0 0.5rem 0;"><strong>Details saved.</strong> You can edit this product anytime.</p>
+                <a href="#" id="link-edit-product-jewellery" class="btn btn-primary btn-sm">Edit product</a>
+                <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary btn-sm">Back to products</a>
             </div>
         </div>
 
-        <!-- Jewellery Details Section (shown when product_type == jewellery) -->
-        <div id="jewellery-section" class="form-section" style="display: none;">
-            <div class="section-header">
-                <div class="section-icon">
-                    <i class="fas fa-gem"></i>
-                </div>
-                <div class="section-title">
-                    <h4>Jewellery Details</h4>
-                    <p class="section-subtitle">Metal, purity, weight, and other jewellery-specific fields</p>
-                </div>
-            </div>
-            {% if jewellery_form %}
-            {% if jewellery_form.non_field_errors %}
-            <div class="form-group">
-                <div class="form-error-message">
-                    {% for error in jewellery_form.non_field_errors %}
-                    <i class="fas fa-exclamation-circle"></i> {{ error }}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-            <div class="grid-2">
-                <div class="form-group">
-                    <label class="form-label">Metal Type *</label>
-                    {{ jewellery_form.metal_type }}
-                    {% if jewellery_form.metal_type.errors %}
-                        <div class="form-error-message">{{ jewellery_form.metal_type.errors }}</div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Purity <small>(optional, e.g. 18K, 22K)</small></label>
-                    {{ jewellery_form.purity }}
-                    {% if jewellery_form.purity.errors %}
-                        <div class="form-error-message">{{ jewellery_form.purity.errors }}</div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label class="form-label">Weight (g) <small>(optional)</small></label>
-                    {{ jewellery_form.weight }}
-                    {% if jewellery_form.weight.errors %}
-                        <div class="form-error-message">{{ jewellery_form.weight.errors }}</div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Gemstone (optional)</label>
-                    {{ jewellery_form.gemstone }}
-                </div>
-            </div>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label class="form-label">Making Charge (₹) <small>(optional)</small></label>
-                    {{ jewellery_form.making_charge }}
-                    {% if jewellery_form.making_charge.errors %}
-                    <div class="form-error-message">{{ jewellery_form.making_charge.errors }}</div>
-                    {% endif %}
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Stock Quantity</label>
-                    {{ jewellery_form.stock_quantity }}
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="form-check">
-                    {{ jewellery_form.is_adjustable }}
-                    <label class="form-check-label" for="{{ jewellery_form.is_adjustable.id_for_label }}">Adjustable</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Images (max 3)</label>
-                <small class="d-block text-muted mb-2">Add up to 3 product images. You can leave slots empty.</small>
-                {% if jewellery_image_formset %}
-                {% if jewellery_image_formset.non_form_errors %}
-                <div class="form-error-message mb-2">
-                    {% for error in jewellery_image_formset.non_form_errors %}
-                    <i class="fas fa-exclamation-circle"></i> {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {{ jewellery_image_formset.management_form }}
-                <div class="formset-container">
-                    {% for img_form in jewellery_image_formset %}
-                    <div class="formset-form">
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label class="form-label">Image {{ forloop.counter }}</label>
-                                {{ img_form.image }}
-                                {% if img_form.image.errors %}
-                                    <div class="form-error-message">{{ img_form.image.errors }}</div>
-                                {% endif %}
-                                {% if img_form.instance.image %}
-                                    <div class="image-preview"><img src="{{ img_form.instance.image.url }}" alt="" style="max-height: 60px;"></div>
-                                {% endif %}
-                            </div>
-                            <div class="form-check">
-                                {{ img_form.is_primary }}
-                                <label class="form-check-label">Primary</label>
-                            </div>
-                        </div>
-                        <div class="form-group" style="display:none;">
-                            {{ img_form.display_order }}
-                        </div>
-                        {% if img_form.instance.pk %}{{ img_form.DELETE }} <label>Delete</label>{% endif %}
-                        {{ img_form.id }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
+        <div style="margin-top:1.5rem;">
+            <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancel</a>
         </div>
-        
-        <!-- Color Variants Section (shown when product_type == clothing) -->
-        <div id="clothing-section" class="form-section">
-            <div class="section-header">
-                <div class="section-icon">
-                    <i class="fas fa-palette"></i>
-                </div>
-                <div class="section-title">
-                    <h4>Color Variants</h4>
-                    <p class="section-subtitle">Add colors with images and sizes per color</p>
-                </div>
-                <span class="info-badge">
-                    <i class="fas fa-info-circle"></i>
-                    At least one color with images
-                </span>
+    </div>
+
+    <!-- Add color modal -->
+    <div id="add-color-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-dialog">
+            <h3>Add color</h3>
+            <label class="form-label">Color name</label>
+            <input type="text" id="add-color-name-input" class="form-control" placeholder="e.g. Navy">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="add-color-modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="add-color-modal-submit">Add</button>
+                                        </div>
+                                        </div>
             </div>
 
-            {{ color_formset.management_form }}
-            <div id="color-formset" class="formset-container">
-                {% for item in color_formsets_data %}
-                    <div class="formset-form color-variant-block" data-form-index="{{ forloop.counter0 }}">
-                        <div class="color-variant-header formset-header">
-                            <span class="formset-number">
-                                <i class="fas fa-palette"></i>
-                                <span>Color #<span class="form-number">{{ forloop.counter }}</span></span>
-                            </span>
-                            <div class="formset-delete">
-                                {% if item.color_form.instance.pk %}
-                                    {{ item.color_form.DELETE }}
-                                    <label for="{{ item.color_form.DELETE.id_for_label }}" class="btn btn-sm btn-danger remove-link" style="cursor: pointer; margin: 0;">
-                                        <i class="fas fa-times"></i> Remove
-                                    </label>
-                                {% else %}
-                                    <button type="button" class="btn btn-sm btn-danger remove-color-btn">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="color-fields-row grid-2">
-                            <div class="form-group">
-                                <label class="form-label">Color name *</label>
-                                {{ item.color_form.name }}
-                                {% if item.color_form.name.errors %}
-                                    <div class="form-error-message">{% for e in item.color_form.name.errors %}{{ e }}{% endfor %}</div>
-                                {% endif %}
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Color code <small>(#hex)</small></label>
-                                {{ item.color_form.color_code }}
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Order</label>
-                                {{ item.color_form.display_order }}
-                            </div>
-                            <div class="form-check" style="align-items: center;">
-                                {{ item.color_form.is_active }}
-                                <label class="form-check-label" for="{{ item.color_form.is_active.id_for_label }}">Active</label>
-                            </div>
-                        </div>
-                        {{ item.color_form.id }}
-
-                        <div class="nested-section">
-                            <h5 class="nested-title"><i class="fas fa-images"></i> Images (3 recommended, max 10, 5MB)</h5>
-                            {{ item.image_formset.management_form }}
-                            <div class="nested-formset">
-                                {% for img_form in item.image_formset %}
-                                    <div class="nested-form-row">
-                                        <div class="form-group">
-                                            <label class="form-label">Image</label>
-                                            {{ img_form.image }}
-                                            {% if img_form.instance.image %}
-                                                <div class="image-preview"><img src="{{ img_form.instance.image.url }}" alt="" style="max-height: 60px;"></div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label">Alt text</label>
-                                            {{ img_form.alt_text }}
-                                        </div>
-                                        <div class="form-check">
-                                            {{ img_form.is_primary }}
-                                            <label class="form-check-label">Primary</label>
-                                        </div>
-                                        {% if img_form.instance.pk %}{{ img_form.DELETE }} <label>Delete</label>{% endif %}
-                                        {{ img_form.id }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="nested-section sizes-section" data-color-index="{{ forloop.counter0 }}">
-                            <h5 class="nested-title"><i class="fas fa-ruler"></i> Sizes &amp; stock (XS–10XL)</h5>
-                            {{ item.size_formset.management_form }}
-                            <div class="nested-formset sizes-formset">
-                                {% for sz_form in item.size_formset %}
-                                    <div class="nested-form-row size-row grid-2{% if not item.color_form.instance.pk and forloop.first %} size-row-hidden{% endif %}"{% if not item.color_form.instance.pk and forloop.first %} style="display:none"{% endif %}>
-                                        <div class="form-group">
-                                            <label class="form-label">Size *</label>
-                                            {{ sz_form.size }}
-                                            {% if sz_form.size.errors %}<div class="form-error-message">{{ sz_form.size.errors }}</div>{% endif %}
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label">Stock (≥ 0)</label>
-                                            {{ sz_form.stock_quantity }}
-                                            {% if sz_form.stock_quantity.errors %}<div class="form-error-message">{{ sz_form.stock_quantity.errors }}</div>{% endif %}
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label">SKU <small>(optional)</small></label>
-                                            {{ sz_form.sku }}
-                                        </div>
-                                        <div class="form-check">
-                                            {{ sz_form.is_active }}
-                                            <label class="form-check-label">Active</label>
-                                        </div>
-                                        <div class="form-group" style="display:none;">
-                                            {{ sz_form.DELETE }}
-                                            {{ sz_form.id }}
-                                        </div>
-                                        <div class="form-group" style="align-self: flex-end;">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger size-delete-btn"
-                                                    data-existing="{{ sz_form.instance.pk|yesno:'1,0' }}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <button type="button" class="btn btn-sm btn-secondary add-size-btn">
-                                <i class="fas fa-plus"></i> Add size
-                            </button>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-
-            <button type="button" id="add-color-btn" class="btn btn-secondary add-formset-btn">
-                <i class="fas fa-plus-circle"></i> Add another color
-            </button>
+    <div id="action-loader-create" class="action-loader-overlay" aria-hidden="true">
+        <div style="text-align:center;">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Saving…</div>
         </div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-            <a href="{% url 'admin_panel:product_list' %}" class="btn btn-secondary">
-                <i class="fas fa-times-circle"></i> Cancel
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-check-circle"></i> Save Product
-            </button>
         </div>
-    </form>
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
 </div>
+
+{{ standard_sizes|json_script:"standard-sizes" }}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Product type toggle: show/hide clothing vs jewellery sections
-    var productTypeSelect = document.getElementById('id_product_type');
-    var clothingSection = document.getElementById('clothing-section');
-    var jewellerySection = document.getElementById('jewellery-section');
-    function toggleProductTypeSections() {
-        var pt = productTypeSelect ? productTypeSelect.value : 'clothing';
-        if (pt === 'jewellery') {
-            if (clothingSection) clothingSection.style.display = 'none';
-            if (jewellerySection) jewellerySection.style.display = 'block';
-        } else {
-            if (clothingSection) clothingSection.style.display = 'block';
-            if (jewellerySection) jewellerySection.style.display = 'none';
+(function() {
+    var wrapper = document.getElementById('create-wrapper');
+    var urlCreateBasic = wrapper ? wrapper.dataset.urlCreateBasic : '';
+    var urlVariantAddTpl = wrapper ? wrapper.dataset.urlVariantAdd : '';
+    var urlVariantsListTpl = wrapper ? wrapper.dataset.urlVariantsList : '';
+    var urlVariantAddSizeTpl = wrapper ? wrapper.dataset.urlVariantAddSize : '';
+    var urlUploadImageTpl = wrapper ? wrapper.dataset.urlUploadImage : '';
+    var urlJewelleryDetailTpl = wrapper ? wrapper.dataset.urlJewelleryDetail : '';
+    var urlJewelleryUploadImageTpl = wrapper ? wrapper.dataset.urlJewelleryUploadImage : '';
+    var urlJewelleryImageDeleteTpl = wrapper ? wrapper.dataset.urlJewelleryImageDelete : '';
+    var urlJewelleryImageReplaceTpl = wrapper ? wrapper.dataset.urlJewelleryImageReplace : '';
+    var urlEditProductTpl = wrapper ? wrapper.dataset.urlEditProduct : '';
+    var standardSizes = [];
+    try {
+        var se = document.getElementById('standard-sizes');
+        if (se) standardSizes = JSON.parse(se.textContent || '[]');
+    } catch (e) {}
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+    function urlPid(url, pid) { return url.replace('999', String(pid)); }
+    function urlVid(url, vid) { return url.replace('999', String(vid)); }
+    function urlImageId(url, imageId) { return url.replace(/\/1\//, '/' + String(imageId) + '/'); }
+
+    function toast(message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toast-container');
+        if (!container) return;
+        var el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.setAttribute('role', 'alert');
+        el.textContent = message || 'Done.';
+        container.appendChild(el);
+        setTimeout(function() {
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 0.2s';
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+        }, 3500);
+    }
+
+    var loaderCount = 0;
+    function showLoader() {
+        loaderCount++;
+        var el = document.getElementById('action-loader-create');
+        if (el) { el.classList.add('is-active'); el.setAttribute('aria-hidden', 'false'); }
+    }
+    function hideLoader() {
+        loaderCount = Math.max(0, loaderCount - 1);
+        if (loaderCount === 0) {
+            var el = document.getElementById('action-loader-create');
+            if (el) { el.classList.remove('is-active'); el.setAttribute('aria-hidden', 'true'); }
         }
     }
-    if (productTypeSelect) {
-        productTypeSelect.addEventListener('change', toggleProductTypeSections);
-        toggleProductTypeSections();
+
+    function getProductId() {
+        var inp = document.getElementById('created-product-id');
+        return inp ? inp.value : '';
     }
-    // Prevent double form submission (avoids duplicate S3 uploads)
-    const productFormEl = document.querySelector('.product-form-wrapper form');
-    if (productFormEl) {
-        productFormEl.addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn && submitBtn.dataset.submitting === 'true') {
-                e.preventDefault();
-                return false;
-            }
-            if (submitBtn) {
-                submitBtn.dataset.submitting = 'true';
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            }
+    function setProductId(pid) {
+        var inp = document.getElementById('created-product-id');
+        if (inp) inp.value = String(pid);
+    }
+
+    function showProductPreview(info) {
+        var box = document.getElementById('product-preview-create');
+        if (!box) return;
+        var nameEl = document.getElementById('product-preview-name');
+        var priceEl = document.getElementById('product-preview-price');
+        var catEl = document.getElementById('product-preview-category');
+        var typeEl = document.getElementById('product-preview-type');
+        if (nameEl) nameEl.textContent = info.name || '—';
+        if (priceEl) priceEl.innerHTML = '<i class="fas fa-tag"></i> ₹' + (info.price != null && info.price !== '' ? Number(info.price).toFixed(2) : '—');
+        if (catEl) catEl.innerHTML = '<i class="fas fa-folder"></i> ' + (info.categoryName || '—');
+        if (typeEl) typeEl.innerHTML = '<i class="fas fa-tshirt"></i> ' + (info.product_type === 'jewellery' ? 'Jewellery' : 'Clothing');
+        box.classList.remove('hidden');
+    }
+
+    function updateCreateButtonAndHint() {
+        var ptSel = document.querySelector('#section-basic select[name="product_type"]');
+        var btn = document.getElementById('btn-create-basic');
+        var hint = document.getElementById('section-basic-hint');
+        var isJewellery = ptSel && ptSel.value === 'jewellery';
+        if (btn) btn.textContent = isJewellery ? 'Save and enter more details' : 'Create product';
+        if (hint) hint.innerHTML = isJewellery
+            ? 'Name, price, category. Click <strong>Save and enter more details</strong> to continue to jewellery details.'
+            : 'Name, price, category. Click <strong>Create product</strong> to continue.';
+    }
+
+    (function initProductTypeUI() {
+        updateCreateButtonAndHint();
+        var ptSel = document.querySelector('#section-basic select[name="product_type"]');
+        if (ptSel) ptSel.addEventListener('change', updateCreateButtonAndHint);
+    })();
+
+    // Toggle wrap: sync .toggle-status with checkbox (create form)
+    if (wrapper) {
+        wrapper.addEventListener('change', function(e) {
+            if (!e.target || !e.target.classList.contains('toggle-input')) return;
+            var wrap = e.target.closest('.toggle-wrap');
+            if (!wrap) return;
+            var status = wrap.querySelector('.toggle-status');
+            if (status) status.textContent = e.target.checked ? (status.getAttribute('data-on') || 'Yes') : (status.getAttribute('data-off') || 'No');
+            wrap.classList.toggle('checked', e.target.checked);
         });
     }
 
-    // File size validation constants
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
-    
-    // Helper function to format file size
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    }
-    
-    // Validate file size
-    function validateFileSize(fileInput) {
-        const file = fileInput.files[0];
-        if (file) {
-            if (file.size > MAX_FILE_SIZE) {
-                alert(`Image file size cannot exceed 5MB.\n\nSelected file: ${file.name}\nFile size: ${formatFileSize(file.size)}\n\nPlease choose a smaller image or compress it before uploading.`);
-                fileInput.value = ''; // Clear the input
-                return false;
+    // --- Step 1: Create basic product ---
+    document.getElementById('btn-create-basic').addEventListener('click', function() {
+        var catSel = document.querySelector('#section-basic select[name="category"]');
+        var ptSel = document.querySelector('#section-basic select[name="product_type"]');
+        var payload = {
+            name: (document.getElementById('basic-name').value || '').trim(),
+            slug: (document.getElementById('basic-slug').value || '').trim() || null,
+            description: (document.getElementById('basic-description').value || '').trim(),
+            price: document.getElementById('basic-price').value,
+            original_price: document.getElementById('basic-original_price').value || null,
+            material: (document.getElementById('basic-material').value || '').trim() || '',
+            is_featured: document.getElementById('basic-is_featured').checked,
+            is_bestseller: document.getElementById('basic-is_bestseller').checked,
+            is_active: document.getElementById('basic-is_active').checked,
+            category: catSel ? catSel.value : null,
+            product_type: ptSel ? ptSel.value : 'clothing'
+        };
+        if (!payload.name || !payload.price) {
+            toast('Name and price required.', 'error');
+                    return;
+                }
+        if (!payload.category || payload.category === '') {
+            toast('Please select a category.', 'error');
+                    return;
+                }
+        var btn = this;
+        var feedback = document.getElementById('basic-feedback');
+        btn.disabled = true;
+        feedback.textContent = 'Creating…';
+        feedback.className = 'save-feedback';
+        showLoader();
+        fetch(urlCreateBasic, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'same-origin'
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            btn.disabled = false;
+            if (data.success && data.product_id) {
+                setProductId(data.product_id);
+                document.getElementById('section-basic').classList.add('hidden');
+                feedback.textContent = '';
+                var categoryName = (catSel && catSel.options[catSel.selectedIndex]) ? catSel.options[catSel.selectedIndex].text.trim() : '';
+                if (payload.product_type === 'jewellery') {
+                    document.getElementById('section-variants').classList.add('hidden');
+                    document.getElementById('section-jewellery').classList.remove('hidden');
+                    var prevName = document.getElementById('jewellery-preview-name');
+                    var prevPrice = document.getElementById('jewellery-preview-price');
+                    var prevCat = document.getElementById('jewellery-preview-category');
+                    if (prevName) prevName.textContent = payload.name || '—';
+                    if (prevPrice) prevPrice.innerHTML = '<i class="fas fa-tag"></i> ₹' + (payload.price != null && payload.price !== '' ? Number(payload.price).toFixed(2) : '—');
+                    if (prevCat) prevCat.innerHTML = '<i class="fas fa-folder"></i> ' + (categoryName || '—');
+                    document.getElementById('product-preview-jewellery').classList.remove('hidden');
+                    var linkEdit = document.getElementById('link-edit-product-jewellery');
+                    if (linkEdit && urlEditProductTpl) linkEdit.href = urlEditProductTpl.replace('999', String(data.product_id));
+                    loadJewelleryDetailCreate();
+                    toast('Product created. Enter jewellery details and photos.');
+                } else {
+                    document.getElementById('section-variants').classList.remove('hidden');
+                    showProductPreview({ name: payload.name, price: payload.price, original_price: payload.original_price, product_type: payload.product_type, categoryName: categoryName });
+                    toast('Product created. Add colors, sizes and images.');
+                    loadVariants();
+                    showDoneBox(data.product_id);
+                }
+            } else {
+                var errMsg = 'Error creating product.';
+                if (data.errors) {
+                    if (data.errors.__all__ && data.errors.__all__[0]) errMsg = data.errors.__all__[0];
+                    else {
+                        for (var key in data.errors) {
+                            if (data.errors[key] && data.errors[key][0]) {
+                                errMsg = data.errors[key][0];
+                                break;
+                            }
+                        }
+                    }
+                }
+                feedback.textContent = errMsg;
+                feedback.className = 'save-feedback err';
+                toast(errMsg, 'error');
             }
-            
-            // Check if it's an image file
-            if (!file.type.startsWith('image/')) {
-                alert(`Please upload a valid image file.\n\nSelected file: ${file.name}\nFile type: ${file.type}\n\nAccepted formats: JPG, PNG, GIF, WebP`);
-                fileInput.value = ''; // Clear the input
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    // Helper function to update form numbers
-    function updateFormNumbers(container, className) {
-        const forms = container.querySelectorAll('.' + className + ':not(.deleted)');
-        forms.forEach((form, index) => {
-            const numberSpan = form.querySelector('.form-number');
-            if (numberSpan) {
-                numberSpan.textContent = index + 1;
-            }
-        });
-    }
-    
-    // Add file size validation to all existing file inputs
-    document.querySelectorAll('input[type="file"]').forEach(input => {
-        input.addEventListener('change', function() {
-            validateFileSize(this);
-        });
+        }).catch(function() {
+            btn.disabled = false;
+            feedback.textContent = 'Network error.';
+            feedback.className = 'save-feedback err';
+            toast('Network error.', 'error');
+        }).finally(function() { hideLoader(); });
     });
 
-    // Color variant block: remove button and Add another color
-    const colorFormset = document.getElementById('color-formset');
-    const addColorBtn = document.getElementById('add-color-btn');
-    const productForm = colorFormset ? colorFormset.closest('form') : productFormEl;
-    const totalFormsInput = productForm ? productForm.querySelector('input[name="colors-TOTAL_FORMS"]') : null;
-
-    // Remove new color block (event delegation so it works for dynamically added blocks)
-    if (colorFormset) {
-        colorFormset.addEventListener('click', function(e) {
-            const btn = e.target.closest('.remove-color-btn');
-            if (!btn) return;
-            e.preventDefault();
-            const block = btn.closest('.color-variant-block');
-            if (!block || !totalFormsInput) return;
-            block.parentNode && block.parentNode.removeChild(block);
-            const remaining = colorFormset.querySelectorAll('.color-variant-block');
-            totalFormsInput.value = String(remaining.length);
-            remaining.forEach(function(blk, newIdx) {
-                const oldIdx = blk.getAttribute('data-form-index');
-                blk.setAttribute('data-form-index', newIdx);
-                const numSpan = blk.querySelector('.form-number');
-                if (numSpan) numSpan.textContent = newIdx + 1;
-                if (String(oldIdx) !== String(newIdx)) {
-                    function repl(s) {
-                        return s.replace(new RegExp('colors-' + oldIdx + '-', 'g'), 'colors-' + newIdx + '-')
-                                .replace(new RegExp('color-' + oldIdx + '-', 'g'), 'color-' + newIdx + '-');
-                    }
-                    blk.querySelectorAll('[name]').forEach(function(el) {
-                        const n = el.getAttribute('name');
-                        if (n) el.setAttribute('name', repl(n));
-                    });
-                    blk.querySelectorAll('[id]').forEach(function(el) {
-                        const id = el.getAttribute('id');
-                        if (id) el.setAttribute('id', repl(id));
-                    });
-                    blk.querySelectorAll('[for]').forEach(function(el) {
-                        const f = el.getAttribute('for');
-                        if (f) el.setAttribute('for', repl(f));
-                    });
-                    const szSection = blk.querySelector('.sizes-section');
-                    if (szSection) szSection.setAttribute('data-color-index', newIdx);
-                }
-            });
-        });
+    function loadVariants() {
+        var pid = getProductId();
+        if (!pid) return;
+        var listEl = document.getElementById('variants-list-create');
+        listEl.innerHTML = '<p class="section-hint">Loading…</p>';
+        showLoader();
+        fetch(urlPid(urlVariantsListTpl, pid), { headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) { renderVariantsList(data.variants || []); })
+            .catch(function() { listEl.innerHTML = '<p class="section-hint">Failed to load.</p>'; })
+            .finally(function() { hideLoader(); });
     }
 
-    if (addColorBtn && colorFormset && totalFormsInput) {
-        addColorBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const visibleBlocks = colorFormset.querySelectorAll('.color-variant-block:not(.deleted)');
-            if (visibleBlocks.length === 0) return;
-            const lastBlock = visibleBlocks[visibleBlocks.length - 1];
-            const oldIndex = parseInt(lastBlock.getAttribute('data-form-index'), 10);
-            const newIndex = parseInt(totalFormsInput.value, 10);
-
-            const clone = lastBlock.cloneNode(true);
-            clone.setAttribute('data-form-index', newIndex);
-            clone.classList.remove('deleted');
-            clone.style.display = '';
-
-            function repl(s) {
-                // Always replace the numeric color index dynamically to avoid hardcoded indices.
-                return s
-                    .replace(/colors-(\d+)-/g, 'colors-' + newIndex + '-')
-                    .replace(/color-(\d+)-images-/g, 'color-' + newIndex + '-images-')
-                    .replace(/color-(\d+)-sizes-/g, 'color-' + newIndex + '-sizes-');
-            }
-            clone.querySelectorAll('[name]').forEach(function(el) {
-                var n = el.getAttribute('name');
-                if (n) el.setAttribute('name', repl(n));
-            });
-            clone.querySelectorAll('[id]').forEach(function(el) {
-                var id = el.getAttribute('id');
-                if (id) el.setAttribute('id', repl(id));
-            });
-            clone.querySelectorAll('[for]').forEach(function(el) {
-                var f = el.getAttribute('for');
-                if (f) el.setAttribute('for', repl(f));
-            });
-
-            clone.querySelectorAll('input').forEach(function(inp) {
-                var nameAttr = inp.getAttribute('name') || '';
-
-                // Always reset DELETE flags on cloned forms
-                if (nameAttr.indexOf('DELETE') !== -1) {
-                    inp.checked = false;
-                    return;
-                }
-
-                // Critical: clear any hidden primary-key fields so the cloned
-                // color becomes a brand new instance instead of overwriting
-                // the source color (this was causing only the first color to save).
-                if (nameAttr && nameAttr.match(/^colors-\d+-id$/)) {
-                    inp.value = '';
-                    return;
-                }
-
-                // For other inputs, reset values while keeping management fields intact.
-                if (inp.type === 'checkbox' || inp.type === 'radio') {
-                    // New color variants must default to is_active=True so they appear on the detail page
-                    if (nameAttr && nameAttr.match(/^colors-\d+-is_active$/)) {
-                        inp.checked = true;
-                    } else {
-                        inp.checked = false;
-                    }
-                } else if (inp.type !== 'hidden') {
-                    inp.value = '';
-                }
-            });
-            clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
-            clone.querySelectorAll('.image-preview').forEach(function(el) { el.remove(); });
-
-            var formNumSpan = clone.querySelector('.form-number');
-            if (formNumSpan) formNumSpan.textContent = newIndex + 1;
-
-            var removeBtn = clone.querySelector('.remove-color-btn');
-            if (removeBtn) {
-                removeBtn.addEventListener('click', function(ev) {
-                    ev.preventDefault();
-                    // Removing a newly-added color: drop the DOM node but keep TOTAL_FORMS as-is.
-                    clone.parentNode && clone.parentNode.removeChild(clone);
-                    if (colorFormset) {
-                        updateFormNumbers(colorFormset, 'color-variant-block');
-                    }
-                });
-            }
-
-            // Reset nested size formset for the new color: 0 visible rows initially (1 hidden template for Add size).
-            const sizesSection = clone.querySelector('.sizes-section');
-            if (sizesSection) {
-                const sizeFormset = sizesSection.querySelector('.sizes-formset');
-                const sizeTotalInput = sizesSection.querySelector('input[name*="sizes-TOTAL_FORMS"]');
-                const sizeInitialInput = sizesSection.querySelector('input[name*="sizes-INITIAL_FORMS"]');
-                if (sizeFormset && sizeTotalInput) {
-                    const sizeRows = sizeFormset.querySelectorAll('.size-row');
-                    let templateRow = null;
-                    if (sizeRows.length > 0) {
-                        templateRow = sizeRows[0].cloneNode(true);
-                    }
-                    sizeFormset.innerHTML = '';
-                    if (templateRow) {
-                        templateRow.classList.add('size-row-hidden');
-                        templateRow.style.display = 'none';
-                        templateRow.querySelectorAll('input, select').forEach(function(el) {
-                            const name = el.getAttribute('name') || '';
-                            if (name.indexOf('DELETE') !== -1) { el.checked = false; return; }
-                            if (name.endsWith('-id')) { el.value = ''; return; }
-                            if (el.tagName === 'SELECT') { el.selectedIndex = 0; return; }
-                            if (el.type === 'checkbox' || el.type === 'radio') {
-                                el.checked = (name.indexOf('is_active') !== -1);
-                            } else if (el.type !== 'hidden') {
-                                el.value = '';
-                            }
-                        });
-                        sizeFormset.appendChild(templateRow);
-                    }
-                    sizeTotalInput.value = '1';
-                    if (sizeInitialInput) sizeInitialInput.value = '0';
-                }
-            }
-
-            colorFormset.appendChild(clone);
-            // Increment TOTAL_FORMS monotonically so Django management form stays consistent.
-            totalFormsInput.value = String(newIndex + 1);
-
-            clone.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
+    function escapeHtml(s) {
+        if (s == null) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
     }
 
-    // Add size button and delete size button handler
-var colorFormsetEl = document.getElementById('color-formset');
-if (colorFormsetEl) {
-    colorFormsetEl.addEventListener('click', function(e) {
-        const addBtn = e.target.closest('.add-size-btn');
-        const deleteBtn = e.target.closest('.size-delete-btn');
-
-        // Handle "Add size"
-        if (addBtn) {
-            e.preventDefault();
-            
-            var section = addBtn.closest('.sizes-section');
-            if (!section) return;
-            
-            var formset = section.querySelector('.sizes-formset');
-            var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
-            
-            if (!formset || !totalInput) return;
-            
-            var rows = formset.querySelectorAll('.size-row');
-            var hiddenRows = formset.querySelectorAll('.size-row.size-row-hidden');
-            
-            // Check if all rows are hidden - if so, unhide the first one
-            if (rows.length > 0 && hiddenRows.length === rows.length) {
-                hiddenRows[0].classList.remove('size-row-hidden');
-                hiddenRows[0].style.display = '';
-                return;
-            }
-            
-            if (rows.length === 0) return;
-            
-            var lastRow = rows[rows.length - 1];
-            var newIndex = parseInt(totalInput.value, 10);
-
-            var clone = lastRow.cloneNode(true);
-            clone.classList.remove('size-row-hidden');
-            clone.classList.remove('deleted');
-            clone.style.display = '';
-            clone.style.opacity = '';
-            
-            function repl(str) {
-                return str.replace(/-sizes-(\d+)-/g, '-sizes-' + newIndex + '-');
-            }
-            
-            clone.querySelectorAll('[name]').forEach(function(el) {
-                var n = el.getAttribute('name');
-                if (n) el.setAttribute('name', repl(n));
-            });
-            
-            clone.querySelectorAll('[id]').forEach(function(el) {
-                var id = el.getAttribute('id');
-                if (id) el.setAttribute('id', repl(id));
-            });
-            
-            clone.querySelectorAll('[for]').forEach(function(el) {
-                var f = el.getAttribute('for');
-                if (f) el.setAttribute('for', repl(f));
-            });
-
-            clone.querySelectorAll('input').forEach(function(inp) {
-                var name = inp.name || '';
-                if (name && name.indexOf('DELETE') === -1) {
-                    if (name.endsWith('-id')) {
-                        inp.value = '';
+    function renderVariantsList(variants) {
+        var listEl = document.getElementById('variants-list-create');
+        listEl.innerHTML = '';
+        if (!variants.length) {
+            listEl.innerHTML = '<p class="colors-section-hint" style="margin:0.5rem 0; padding:0.75rem; background:#f8fafc; border-radius:8px; border:1px dashed #e2e8f0;">No colors yet. Tap <strong>Add color</strong> bellow to add one.</p>';
                         return;
                     }
-                    if (inp.type === 'checkbox' || inp.type === 'radio') {
-                        inp.checked = name.indexOf('is_active') !== -1;
-                    } else if (inp.type !== 'hidden') {
-                        inp.value = '';
-                    }
-                }
-                if (name && name.indexOf('DELETE') !== -1) inp.checked = false;
-            });
-            
-            clone.querySelectorAll('select').forEach(function(sel) { 
-                sel.selectedIndex = 0; 
-            });
-            
-            // Reset delete button for new row
-            var cloneDeleteBtn = clone.querySelector('.size-delete-btn');
-            if (cloneDeleteBtn) {
-                cloneDeleteBtn.setAttribute('data-existing', '0');
+        variants.forEach(function(v) {
+            var card = document.createElement('div');
+            card.className = 'variant-card';
+            card.setAttribute('data-variant-id', v.id);
+            var existingSizes = (v.sizes || []).map(function(s) { return s.size; });
+            var availableSizes = standardSizes.filter(function(s) { return existingSizes.indexOf(s) === -1; });
+            var sizesHtml = (v.sizes || []).map(function(s) {
+                return '<div class="size-row-create"><span class="size-name">' + escapeHtml(s.size) + '</span><span>Stock: ' + (s.stock_quantity || 0) + '</span></div>';
+            }).join('');
+            var addSizeHtml = availableSizes.length
+                ? '<div class="add-size-block"><p class="add-size-heading">Add size &amp; stock</p><div class="add-size-inline" data-variant-id="' + v.id + '">' +
+                    '<div class="add-size-field"><label>Size</label><select class="add-size-select form-control"><option value="">Choose size…</option>' +
+                    availableSizes.map(function(s) { return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>' +
+                    '<div class="add-size-field"><label>Stock</label><input type="number" class="add-size-stock form-control" min="0" value="0" placeholder="0"></div>' +
+                    '<button type="button" class="btn btn-primary btn-sm add-size-btn add-size-btn-inline">Add size</button></div></div>'
+                : '<p class="nested-title" style="margin-bottom:0;">All sizes added for this color.</p>';
+            var imagesHtml = (v.images || []).map(function(img) {
+                return '<span class="image-item"><img class="image-thumb" src="' + escapeHtml(img.url || '') + '" alt=""></span>';
+            }).join('');
+            var addImageHtml = (v.images || []).length < 3
+                ? '<button type="button" class="btn btn-primary btn-sm add-image-btn">Add image</button>'
+                : '';
+            var swatch = v.color_code ? ' style="background:' + escapeHtml(v.color_code) + '"' : ' style="background:#94a3b8"';
+            card.innerHTML =
+                '<div class="variant-card-title"><span class="color-swatch" ' + swatch + '></span> ' + escapeHtml(v.name) + '</div>' +
+                '<div class="nested-block"><div class="nested-title">Photos (max 3)</div><div class="image-list">' + imagesHtml + '</div>' + addImageHtml + '</div>' +
+                '<div class="nested-block"><div class="nested-title">Sizes &amp; stock</div>' + (sizesHtml ? '<div class="sizes-list-create">' + sizesHtml + '</div>' : '') + addSizeHtml + '</div>';
+            listEl.appendChild(card);
+
+            var addSizeBtn = card.querySelector('.add-size-btn');
+            if (addSizeBtn) {
+                addSizeBtn.addEventListener('click', function() {
+                    var inline = addSizeBtn.closest('.add-size-inline');
+                    var sel = inline.querySelector('.add-size-select');
+                    var size = sel ? sel.value : '';
+                    if (!size) { toast('Select a size.', 'error'); return; }
+                    var stockInp = inline.querySelector('.add-size-stock');
+                    var stock = stockInp ? parseInt(stockInp.value, 10) || 0 : 0;
+                    showLoader();
+                    fetch(urlVid(urlVariantAddSizeTpl, v.id), {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ size: size, stock_quantity: stock, is_active: true }),
+                        credentials: 'same-origin'
+                    }).then(function(r) { return r.json(); }).then(function(res) {
+                        if (res.success) { toast('Size added.'); loadVariants(); }
+                        else toast(res.errors && res.errors.size ? res.errors.size[0] : 'Error', 'error');
+                    }).catch(function() { toast('Network error.', 'error'); }).finally(function() { hideLoader(); });
+                });
             }
-
-            formset.appendChild(clone);
-            totalInput.value = newIndex + 1;
-            return;
-        }
-
-        // Handle "Delete size"
-        if (deleteBtn) {
-            e.preventDefault();
-            
-            var row = deleteBtn.closest('.size-row');
-            if (!row) return;
-            
-            var section = deleteBtn.closest('.sizes-section');
-            if (!section) return;
-            
-            var formset = section.querySelector('.sizes-formset');
-            var totalInput = section.querySelector('input[name*="sizes-TOTAL_FORMS"]');
-            
-            if (!formset || !totalInput) return;
-
-            var isExisting = deleteBtn.getAttribute('data-existing') === '1';
-            var deleteCheckbox = row.querySelector('input[type="checkbox"][name*="-DELETE"]');
-
-            if (isExisting) {
-                // Existing size: mark for deletion (soft delete)
-                if (deleteCheckbox) {
-                    deleteCheckbox.checked = true;
-                }
-                row.classList.add('deleted');
-                row.style.opacity = '0.5';
-            } else {
-                // New size: remove from DOM completely
-                var wasHidden = row.classList.contains('size-row-hidden');
-                
-                row.parentNode && row.parentNode.removeChild(row);
-                
-                if (!wasHidden) {
-                    var total = parseInt(totalInput.value, 10) || 0;
-                    total = Math.max(total - 1, 0);
-                    totalInput.value = String(total);
-
-                    // Reindex remaining visible rows
-                    var visibleRows = formset.querySelectorAll('.size-row:not(.size-row-hidden)');
-                    
-                    visibleRows.forEach(function(r, idx) {
-                        r.querySelectorAll('[name]').forEach(function(el) {
-                            var n = el.getAttribute('name');
-                            if (!n) return;
-                            var newName = n.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-');
-                            el.setAttribute('name', newName);
-                        });
-                        r.querySelectorAll('[id]').forEach(function(el) {
-                            var id = el.getAttribute('id');
-                            if (!id) return;
-                            el.setAttribute('id', id.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-'));
-                        });
-                        r.querySelectorAll('[for]').forEach(function(el) {
-                            var f = el.getAttribute('for');
-                            if (!f) return;
-                            el.setAttribute('for', f.replace(/-sizes-\d+-/g, '-sizes-' + idx + '-'));
-                        });
-                    });
-                }
-            }
+            var addImgBtn = card.querySelector('.add-image-btn');
+            if (addImgBtn) {
+                addImgBtn.addEventListener('click', function() {
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = function() {
+                        if (!this.files || !this.files.length) return;
+                        var fd = new FormData();
+                        fd.append('image', this.files[0]);
+                        fd.append('csrfmiddlewaretoken', csrf);
+                        showLoader();
+                        fetch(urlVid(urlUploadImageTpl, v.id), {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': csrf },
+                            body: fd,
+                            credentials: 'same-origin'
+                        }).then(function(r) { return r.json(); }).then(function(res) {
+                            if (res.success) { toast('Image added.'); loadVariants(); }
+                            else toast(res.errors && res.errors.image ? res.errors.image[0] : 'Error', 'error');
+                        }).catch(function() { toast('Network error.', 'error'); }).finally(function() { hideLoader(); });
+                    };
+                    input.click();
+                });
         }
     });
 }
 
-    // Field Validation
-    document.querySelectorAll('.form-section .form-group').forEach(formGroup => {
-        const errorMessage = formGroup.querySelector('.form-error-message');
-        if (errorMessage) {
-            
-            const field = formGroup.querySelector('input[type="text"], input[type="number"], input[type="email"], textarea, select, input[type="file"]');
-            if (field) {
-                field.classList.add('is-invalid');
-                
-                
-                if (!document.querySelector('input.is-invalid.scrolled, textarea.is-invalid.scrolled, select.is-invalid.scrolled')) {
-                    setTimeout(() => {
-                        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        field.focus();
-                        field.classList.add('scrolled');
-                    }, 100);
-                }
-                
-                field.addEventListener('input', function() {
-                    this.classList.remove('is-invalid');
-                    const errorMsg = formGroup.querySelector('.form-error-message');
-                    if (errorMsg) {
-                        errorMsg.style.display = 'none';
-                    }
-                });
-                
-                field.addEventListener('change', function() {
-                    this.classList.remove('is-invalid');
-                    const errorMsg = formGroup.querySelector('.form-error-message');
-                    if (errorMsg) {
-                        errorMsg.style.display = 'none';
-                    }
-                });
-            }
-        }
-    });
+    function showDoneBox(pid) {
+        var box = document.getElementById('create-done-box');
+        var link = document.getElementById('link-edit-product');
+        var editTpl = wrapper ? wrapper.dataset.urlEditProduct : '';
+        if (box) box.classList.remove('hidden');
+        if (link && pid && editTpl) link.href = editTpl.replace('999', String(pid));
+    }
 
-    // Mark invalid fields in color/size forms
-    if (colorFormset) {
-        colorFormset.querySelectorAll('.form-group').forEach(formGroup => {
-            const errorMessage = formGroup.querySelector('.form-error-message');
-            if (errorMessage) {
-                const field = formGroup.querySelector('input, select, textarea');
-                if (field) {
-                    field.classList.add('is-invalid');
-                    field.addEventListener('input', function() {
-                        this.classList.remove('is-invalid');
-                        const err = formGroup.querySelector('.form-error-message');
-                        if (err) err.style.display = 'none';
-                    });
+    // --- Jewellery section (create flow) ---
+    function loadJewelleryDetailCreate() {
+        var pid = getProductId();
+        if (!pid || !urlJewelleryDetailTpl) return;
+        var url = urlPid(urlJewelleryDetailTpl, pid);
+        fetch(url, { headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var d = data.detail;
+                if (d) {
+                    var mt = document.getElementById('jew-create-metal_type'); if (mt) mt.value = d.metal_type || '';
+                    var pu = document.getElementById('jew-create-purity'); if (pu) pu.value = d.purity || '';
+                    var we = document.getElementById('jew-create-weight'); if (we) we.value = d.weight !== null && d.weight !== '' ? d.weight : '';
+                    var ge = document.getElementById('jew-create-gemstone'); if (ge) ge.value = d.gemstone || '';
+                    var ma = document.getElementById('jew-create-making_charge'); if (ma) ma.value = d.making_charge !== null && d.making_charge !== '' ? d.making_charge : '';
+                    var sq = document.getElementById('jew-create-stock_quantity'); if (sq) sq.value = d.stock_quantity != null ? d.stock_quantity : 1;
+                    var adj = document.getElementById('jew-create-is_adjustable');
+                    if (adj) {
+                        adj.checked = d.is_adjustable;
+                        var wrap = adj.closest('.toggle-wrap');
+                        if (wrap) {
+                            wrap.classList.toggle('checked', d.is_adjustable);
+                            var st = wrap.querySelector('.toggle-status');
+                            if (st) st.textContent = d.is_adjustable ? (st.getAttribute('data-on') || 'Yes') : (st.getAttribute('data-off') || 'No');
+                        }
+                    }
                 }
-            }
+                renderJewelleryImagesCreate(data.images || []);
+            });
+    }
+
+    function renderJewelleryImagesCreate(images) {
+        var listEl = document.getElementById('jewellery-images-create');
+        var addBtn = document.getElementById('jewellery-add-image-create');
+        if (!listEl) return;
+        listEl.innerHTML = (images || []).map(function(img) {
+            var url = img.url ? escapeHtml(img.url) : '';
+            return '<span class="image-item" data-image-id="' + img.id + '">' +
+                (url ? '<img class="image-thumb" src="' + url + '" alt="">' : '<span class="image-thumb" style="background:#eee;width:64px;height:64px;border-radius:6px;"></span>') +
+                '<button type="button" class="btn btn-sm btn-outline replace-image-btn">Replace</button>' +
+                '<button type="button" class="btn btn-sm btn-danger delete-image-btn">Delete</button></span>';
+        }).join('');
+        if (addBtn) addBtn.style.display = (images || []).length < 3 ? 'inline-block' : 'none';
+        listEl.querySelectorAll('.delete-image-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                showLoader();
+                fetch(urlImageId(urlJewelleryImageDeleteTpl, imageId), { method: 'POST', headers: { 'X-CSRFToken': csrf }, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.success) { toast('Image removed.'); loadJewelleryDetailCreate(); }
+                        else toast(res.message || 'Could not remove image.', 'error');
+                    })
+                    .catch(function() { toast('Network error.', 'error'); })
+                    .finally(function() { hideLoader(); });
+            });
+        });
+        listEl.querySelectorAll('.replace-image-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var imageId = this.closest('.image-item').getAttribute('data-image-id');
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = function() {
+                    if (!this.files || !this.files.length) return;
+                    var fd = new FormData();
+                    fd.append('image', this.files[0]);
+                    fd.append('csrfmiddlewaretoken', csrf);
+                    showLoader();
+                    fetch(urlImageId(urlJewelleryImageReplaceTpl, imageId), { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) { toast('Image replaced.'); loadJewelleryDetailCreate(); }
+                            else toast(res.message || 'Could not replace.', 'error');
+                        })
+                        .catch(function() { toast('Network error.', 'error'); })
+                        .finally(function() { hideLoader(); });
+                };
+                input.click();
+            });
         });
     }
-    
-    // Original price validation - must be greater than selling price
-    const priceInput = document.getElementById('{{ form.price.id_for_label }}');
-    const originalPriceInput = document.getElementById('{{ form.original_price.id_for_label }}');
-    
-    function validatePrices() {
-        if (!priceInput || !originalPriceInput) return;
-        
-        const price = parseFloat(priceInput.value) || 0;
-        const originalPrice = parseFloat(originalPriceInput.value) || 0;
-        
-        const originalPriceGroup = originalPriceInput.closest('.form-group');
-        let errorDiv = originalPriceGroup.querySelector('.price-error-message');
-        
-        if (originalPrice > 0 && originalPrice <= price) {
-            // Show error
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.className = 'form-error-message price-error-message';
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Original price must be greater than the selling price.';
-                originalPriceGroup.appendChild(errorDiv);
-            }
-            originalPriceInput.classList.add('is-invalid');
-        } else {
-            // Hide error
-            if (errorDiv) {
-                errorDiv.remove();
-            }
-            originalPriceInput.classList.remove('is-invalid');
-        }
-    }
-    
-    // Add event listeners for real-time validation
-    if (priceInput) {
-        priceInput.addEventListener('input', validatePrices);
-        priceInput.addEventListener('change', validatePrices);
-    }
-    if (originalPriceInput) {
-        originalPriceInput.addEventListener('input', validatePrices);
-        originalPriceInput.addEventListener('change', validatePrices);
-    }
-    
-    // Also hide error when user starts typing in original price field
-    if (originalPriceInput) {
-        originalPriceInput.addEventListener('input', function() {
-            const errorDiv = this.closest('.form-group').querySelector('.form-error-message');
-            if (errorDiv && !errorDiv.classList.contains('price-error-message')) {
-                errorDiv.style.display = 'none';
-            }
+
+    var jewellerySaveBtn = document.getElementById('jewellery-save-details-btn');
+    var jewelleryFeedback = document.getElementById('jewellery-save-feedback-create');
+    if (jewellerySaveBtn) {
+        jewellerySaveBtn.addEventListener('click', function() {
+            var metal = (document.getElementById('jew-create-metal_type') && document.getElementById('jew-create-metal_type').value.trim()) || '';
+            if (!metal) { toast('Metal type is required.', 'error'); return; }
+            var pid = getProductId();
+            if (!pid || !urlJewelleryDetailTpl) return;
+            var payload = {
+                metal_type: metal,
+                purity: (document.getElementById('jew-create-purity') && document.getElementById('jew-create-purity').value.trim()) || null,
+                weight: (function() { var w = document.getElementById('jew-create-weight'); return (w && w.value !== '') ? parseFloat(w.value) : null; })(),
+                gemstone: (document.getElementById('jew-create-gemstone') && document.getElementById('jew-create-gemstone').value.trim()) || '',
+                making_charge: (function() { var mc = document.getElementById('jew-create-making_charge'); return (mc && mc.value !== '') ? parseFloat(mc.value) : null; })(),
+                is_adjustable: document.getElementById('jew-create-is_adjustable') ? document.getElementById('jew-create-is_adjustable').checked : false,
+                stock_quantity: (document.getElementById('jew-create-stock_quantity') && parseInt(document.getElementById('jew-create-stock_quantity').value, 10)) || 1
+            };
+            jewellerySaveBtn.disabled = true;
+            if (jewelleryFeedback) { jewelleryFeedback.textContent = 'Saving…'; jewelleryFeedback.className = 'save-feedback'; }
+            showLoader();
+            fetch(urlPid(urlJewelleryDetailTpl, pid), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            }).then(function(r) { return r.json(); }).then(function(res) {
+                jewellerySaveBtn.disabled = false;
+                if (res.success) {
+                    if (jewelleryFeedback) { jewelleryFeedback.textContent = 'Saved.'; jewelleryFeedback.className = 'save-feedback'; }
+                    toast('Jewellery details saved.');
+                    document.getElementById('jewellery-done-box').classList.remove('hidden');
+                } else {
+                    if (jewelleryFeedback) {
+                        jewelleryFeedback.textContent = (res.errors && res.errors.metal_type && res.errors.metal_type[0]) || 'Error';
+                        jewelleryFeedback.className = 'save-feedback err';
+                    }
+                    toast((res.errors && res.errors.metal_type && res.errors.metal_type[0]) || 'Could not save.', 'error');
+                }
+            }).catch(function() {
+                jewellerySaveBtn.disabled = false;
+                if (jewelleryFeedback) { jewelleryFeedback.textContent = 'Network error.'; jewelleryFeedback.className = 'save-feedback err'; }
+                toast('Network error.', 'error');
+            }).finally(function() { hideLoader(); });
         });
     }
-});
+    var jewelleryAddImageBtn = document.getElementById('jewellery-add-image-create');
+    if (jewelleryAddImageBtn) {
+        jewelleryAddImageBtn.addEventListener('click', function() {
+            var pid = getProductId();
+            if (!pid || !urlJewelleryUploadImageTpl) return;
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function() {
+                if (!this.files || !this.files.length) return;
+                var fd = new FormData();
+                fd.append('image', this.files[0]);
+                fd.append('csrfmiddlewaretoken', csrf);
+                showLoader();
+                fetch(urlPid(urlJewelleryUploadImageTpl, pid), { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.success) { toast('Image added.'); loadJewelleryDetailCreate(); }
+                        else toast(res.errors && res.errors.image ? res.errors.image[0] : 'Could not add image.', 'error');
+                    })
+                    .catch(function() { toast('Network error.', 'error'); })
+                    .finally(function() { hideLoader(); });
+            };
+            input.click();
+        });
+    }
+
+    // Add color modal
+    var modal = document.getElementById('add-color-modal');
+    var nameInput = document.getElementById('add-color-name-input');
+    document.getElementById('btn-add-color').addEventListener('click', function() {
+        if (!nameInput) return;
+        nameInput.value = '';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        nameInput.focus();
+    });
+    document.getElementById('add-color-modal-cancel').addEventListener('click', function() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+    });
+    document.getElementById('add-color-modal-submit').addEventListener('click', function() {
+        var name = (nameInput.value || '').trim();
+        if (!name) { toast('Enter a color name.', 'error'); return; }
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        var pid = getProductId();
+        if (!pid) return;
+        showLoader();
+        fetch(urlPid(urlVariantAddTpl, pid), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, is_active: true }),
+            credentials: 'same-origin'
+        }).then(function(r) { return r.json(); }).then(function(res) {
+            if (res.success) { toast('Color added.'); loadVariants(); }
+            else toast(res.errors && res.errors.name ? res.errors.name[0] : 'Error', 'error');
+        }).catch(function() { toast('Network error.', 'error'); }).finally(function() { hideLoader(); });
+    });
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('is-open'); });
+    nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-color-modal-submit').click(); } });
+})();
 </script>
 {% endblock %}
-

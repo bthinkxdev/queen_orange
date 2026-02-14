@@ -1,8 +1,13 @@
+import json
+import logging
+import time
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.decorators import user_passes_test
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Count, Max, Sum, Q, F, ProtectedError
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
@@ -20,7 +25,6 @@ from django.views.generic import (
     UpdateView,
     View,
 )
-from datetime import timedelta
 
 from .models import (
     Banner,
@@ -37,22 +41,39 @@ from .models import (
     Review,
     SizeVariant,
 )
+from django.conf import settings
+
 from .admin_forms import (
     AdminLoginForm,
     BannerForm,
     CategoryForm,
-    ColorVariantFormSet,
-    ColorVariantFormSetEdit,
-    ColorVariantImageFormSet,
-    JewelleryDetailForm,
-    JewelleryImageFormSet,
-    ProductForm,
-    ProductVariantFormSet,
-    SizeVariantFormSet,
-    SizeVariantFormSetEdit,
-    validate_product_type_requirements,
+    JewelleryImageFormSetEdit,
+    ProductBasicEditForm,
+    STANDARD_SIZES,
     _validate_image_file,
 )
+from .utils.debug_trace import Trace
+from .admin_product_edit_views import (
+    ProductCreateBasicView as BaseProductCreateBasicView,
+    ProductEditView as BaseProductEditView,
+    ProductUpdateBasicView as BaseProductUpdateBasicView,
+    ProductToggleActiveView as BaseProductToggleActiveView,
+    ProductVariantsListApiView as BaseProductVariantsListApiView,
+    ProductVariantAddApiView as BaseProductVariantAddApiView,
+    VariantUpdateApiView as BaseVariantUpdateApiView,
+    VariantDeleteApiView as BaseVariantDeleteApiView,
+    VariantAddSizeApiView as BaseVariantAddSizeApiView,
+    SizeVariantUpdateStockView as BaseSizeVariantUpdateStockView,
+    VariantUploadImageView as BaseVariantUploadImageView,
+    ProductImageDeleteView as BaseProductImageDeleteView,
+    ProductImageReplaceView as BaseProductImageReplaceView,
+    ProductJewelleryDetailApiView as BaseProductJewelleryDetailApiView,
+    JewelleryUploadImageView as BaseJewelleryUploadImageView,
+    JewelleryImageDeleteView as BaseJewelleryImageDeleteView,
+    JewelleryImageReplaceView as BaseJewelleryImageReplaceView,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -66,6 +87,75 @@ class StaffRequiredMixin(UserPassesTestMixin):
             return redirect("admin_panel:login")
         messages.error(self.request, "You don't have permission to access this area.")
         return redirect("store:home")
+
+
+# Product edit modular API (wrappers with StaffRequiredMixin)
+class ProductCreateBasicView(StaffRequiredMixin, BaseProductCreateBasicView):
+    """POST create-basic/ — staff only."""
+
+
+class ProductEditView(StaffRequiredMixin, BaseProductEditView):
+    pass
+
+
+class ProductUpdateBasicView(StaffRequiredMixin, BaseProductUpdateBasicView):
+    pass
+
+
+class ProductToggleActiveView(StaffRequiredMixin, BaseProductToggleActiveView):
+    pass
+
+
+class ProductVariantsListApiView(StaffRequiredMixin, BaseProductVariantsListApiView):
+    pass
+
+
+class ProductVariantAddApiView(StaffRequiredMixin, BaseProductVariantAddApiView):
+    pass
+
+
+class VariantUpdateApiView(StaffRequiredMixin, BaseVariantUpdateApiView):
+    pass
+
+
+class VariantDeleteApiView(StaffRequiredMixin, BaseVariantDeleteApiView):
+    pass
+
+
+class VariantAddSizeApiView(StaffRequiredMixin, BaseVariantAddSizeApiView):
+    pass
+
+
+class SizeVariantUpdateStockView(StaffRequiredMixin, BaseSizeVariantUpdateStockView):
+    pass
+
+
+class VariantUploadImageView(StaffRequiredMixin, BaseVariantUploadImageView):
+    pass
+
+
+class ProductImageDeleteView(StaffRequiredMixin, BaseProductImageDeleteView):
+    pass
+
+
+class ProductImageReplaceView(StaffRequiredMixin, BaseProductImageReplaceView):
+    pass
+
+
+class ProductJewelleryDetailApiView(StaffRequiredMixin, BaseProductJewelleryDetailApiView):
+    pass
+
+
+class JewelleryUploadImageView(StaffRequiredMixin, BaseJewelleryUploadImageView):
+    pass
+
+
+class JewelleryImageDeleteView(StaffRequiredMixin, BaseJewelleryImageDeleteView):
+    pass
+
+
+class JewelleryImageReplaceView(StaffRequiredMixin, BaseJewelleryImageReplaceView):
+    pass
 
 
 # Authentication Views
@@ -658,389 +748,17 @@ class AddVariantView(StaffRequiredMixin, View):
         })
 
 
-class ProductCreateView(StaffRequiredMixin, CreateView):
-    model = Product
-    form_class = ProductForm
+class ProductCreateView(StaffRequiredMixin, TemplateView):
+    """GET only. Renders wizard-style create page. Create is done via AJAX (create-basic, then variants/sizes/images)."""
     template_name = "admin/product_form.html"
-    success_url = reverse_lazy("admin_panel:product_list")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Jewellery image formset: use unsaved JewelleryDetail() for create so we can render 3 image slots
-        jd_instance = JewelleryDetail()
-        if self.request.POST:
-            context["color_formset"] = ColorVariantFormSet(
-                self.request.POST, self.request.FILES, prefix="colors"
-            )
-            context["jewellery_form"] = JewelleryDetailForm(
-                self.request.POST, self.request.FILES, prefix="jewellery"
-            )
-            context["jewellery_image_formset"] = JewelleryImageFormSet(
-                self.request.POST, self.request.FILES, instance=jd_instance, prefix="jewellery_images"
-            )
-            # Run validation so errors display when form_invalid re-renders (product_type=jewellery)
-            if self.request.POST.get("product_type") == "jewellery":
-                context["jewellery_form"].is_valid()
-        else:
-            context["color_formset"] = ColorVariantFormSet(prefix="colors")
-            context["jewellery_form"] = JewelleryDetailForm(prefix="jewellery")
-            context["jewellery_image_formset"] = JewelleryImageFormSet(
-                instance=jd_instance, prefix="jewellery_images"
-            )
-        color_formset = context["color_formset"]
-        context["color_formsets_data"] = []
-        for i, cf in enumerate(color_formset.forms):
-            prefix_img = "color-%s-images" % i
-            prefix_sz = "color-%s-sizes" % i
-            if self.request.POST:
-                context["color_formsets_data"].append({
-                    "color_form": cf,
-                    "image_formset": ColorVariantImageFormSet(
-                        self.request.POST, self.request.FILES, prefix=prefix_img
-                    ),
-                    "size_formset": SizeVariantFormSet(self.request.POST, prefix=prefix_sz),
-                })
-            else:
-                cv = getattr(cf, "instance", None)
-                inst = cv if (cv and cv.pk) else None
-                context["color_formsets_data"].append({
-                    "color_form": cf,
-                    "image_formset": ColorVariantImageFormSet(instance=inst, prefix=prefix_img),
-                    "size_formset": SizeVariantFormSet(instance=inst, prefix=prefix_sz),
-                })
         context["active_menu"] = "products"
-        context["form_title"] = "Create Product"
+        context["form_title"] = "Add Product"
+        context["basic_form"] = ProductBasicEditForm(instance=None)
+        context["standard_sizes"] = STANDARD_SIZES
         return context
-
-    @transaction.atomic
-    def form_valid(self, form):
-        product_type = form.cleaned_data.get("product_type", "clothing")
-        jewellery_form = JewelleryDetailForm(
-            self.request.POST, self.request.FILES, prefix="jewellery"
-        )
-
-        # STEP 1 — Validate before saving (avoid orphan products)
-        if product_type == "jewellery":
-            if not jewellery_form.is_valid():
-                messages.error(self.request, "Please correct the jewellery details: %s" % jewellery_form.errors.as_text())
-                return self.form_invalid(form)
-            # Use placeholder product for validation (form.save() not yet called)
-            validate_product_type_requirements(
-                form, form.instance, ColorVariantFormSet(prefix="colors"), jewellery_form
-            )
-        else:
-            color_formset = ColorVariantFormSet(
-                self.request.POST, self.request.FILES, instance=form.instance, prefix="colors"
-            )
-            if not color_formset.is_valid():
-                return self.form_invalid(form)
-            validate_product_type_requirements(form, form.instance, color_formset, None)
-
-        # STEP 2 — Save product first, then nested data
-        self.object = form.save()
-        color_formset = ColorVariantFormSet(
-            self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
-        )
-
-        # STEP 3 — Validate all nested image/size formsets before saving anything (clothing only).
-        nested_valid = True
-        if product_type == "clothing":
-            for i, cf in enumerate(color_formset.forms):
-                cleaned = getattr(cf, "cleaned_data", None)
-                if cleaned is None or cleaned.get("DELETE"):
-                    continue
-                prefix_img = "color-%s-images" % i
-                prefix_sz = "color-%s-sizes" % i
-                image_fs = ColorVariantImageFormSet(
-                    self.request.POST, self.request.FILES, prefix=prefix_img
-                )
-                size_fs = SizeVariantFormSet(self.request.POST, prefix=prefix_sz)
-                if not image_fs.is_valid() or not size_fs.is_valid():
-                    nested_valid = False
-        # Log nested state (images/sizes)
-        print("Nested image/size formsets valid (create):", nested_valid)
-
-        if product_type == "clothing" and not nested_valid:
-            return self.form_invalid(form)
-
-        # STEP 4 — Save jewellery or colors
-        if product_type == "jewellery":
-            jd = jewellery_form.save(commit=False)
-            jd.product = self.object
-            jd.save()
-            # Save image formset (validate here; no pre-validation with unsaved parent)
-            if "jewellery_images-TOTAL_FORMS" in self.request.POST:
-                jd_img_formset = JewelleryImageFormSet(
-                    self.request.POST, self.request.FILES, instance=jd, prefix="jewellery_images"
-                )
-                if jd_img_formset.is_valid():
-                    jd_img_formset.save()
-                else:
-                    err_parts = list(jd_img_formset.non_form_errors())
-                    for i, f in enumerate(jd_img_formset.forms):
-                        if f.errors:
-                            err_parts.append("Image %s: %s" % (i + 1, f.errors.as_text()))
-                    if err_parts:
-                        messages.warning(
-                            self.request,
-                            "Product saved, but images could not be saved: %s" % " | ".join(err_parts)
-                        )
-        else:
-            color_formset.save()
-
-        # Only update images and sizes for each saved color variant (clothing only)
-        if product_type == "clothing":
-            for i, cf in enumerate(color_formset.forms):
-                cleaned = getattr(cf, "cleaned_data", None)
-                if cleaned is None or cleaned.get("DELETE"):
-                    continue
-                cv = cf.instance
-                if not cv.pk:
-                    continue
-                prefix_img = "color-%s-images" % i
-                prefix_sz = "color-%s-sizes" % i
-                image_fs = ColorVariantImageFormSet(
-                    self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
-                )
-                size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
-                if image_fs.is_valid():
-                    image_fs.save()
-                if size_fs.is_valid():
-                    size_fs.save()
-
-        messages.success(self.request, "Product created successfully!")
-        return redirect(self.success_url)
-
-
-class ProductUpdateView(StaffRequiredMixin, UpdateView):
-    model = Product
-    form_class = ProductForm
-    template_name = "admin/product_form.html"
-    success_url = reverse_lazy("admin_panel:product_list")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        product = self.object
-        jd = getattr(product, "jewellery_detail", None)
-        if self.request.POST:
-            context["color_formset"] = ColorVariantFormSetEdit(
-                self.request.POST, self.request.FILES, instance=product, prefix="colors"
-            )
-            context["jewellery_form"] = JewelleryDetailForm(
-                self.request.POST, self.request.FILES, instance=jd, prefix="jewellery"
-            )
-            context["jewellery_image_formset"] = JewelleryImageFormSet(
-                self.request.POST, self.request.FILES, instance=jd, prefix="jewellery_images"
-            ) if jd else None
-        else:
-            context["color_formset"] = ColorVariantFormSetEdit(
-                instance=product, prefix="colors"
-            )
-            context["jewellery_form"] = JewelleryDetailForm(
-                instance=jd, prefix="jewellery"
-            )
-            context["jewellery_image_formset"] = JewelleryImageFormSet(
-                instance=jd, prefix="jewellery_images"
-            ) if jd else None
-        color_formset = context["color_formset"]
-        context["color_formsets_data"] = []
-        for i, cf in enumerate(color_formset.forms):
-            prefix_img = "color-%s-images" % i
-            prefix_sz = "color-%s-sizes" % i
-            cv = getattr(cf, "instance", None)
-            inst = cv if (cv and cv.pk) else None
-            if self.request.POST:
-                context["color_formsets_data"].append({
-                    "color_form": cf,
-                    "image_formset": ColorVariantImageFormSet(
-                        self.request.POST, self.request.FILES, instance=inst, prefix=prefix_img
-                    ),
-                    "size_formset": SizeVariantFormSet(
-                        self.request.POST, instance=inst, prefix=prefix_sz
-                    ),
-                })
-            else:
-                context["color_formsets_data"].append({
-                    "color_form": cf,
-                    "image_formset": ColorVariantImageFormSet(instance=inst, prefix=prefix_img),
-                    "size_formset": SizeVariantFormSet(instance=inst, prefix=prefix_sz),
-                })
-        context["active_menu"] = "products"
-        context["form_title"] = "Edit Product"
-        return context
-
-    @transaction.atomic
-    def form_valid(self, form):
-        product_type = form.cleaned_data.get("product_type", "clothing")
-        jd = getattr(self.object, "jewellery_detail", None)
-        jewellery_form = JewelleryDetailForm(
-            self.request.POST, self.request.FILES, instance=jd, prefix="jewellery"
-        )
-
-        self.object = form.save()
-        color_formset = ColorVariantFormSetEdit(
-            self.request.POST, self.request.FILES, instance=self.object, prefix="colors"
-        )
-
-        if product_type == "jewellery":
-            if not jewellery_form.is_valid():
-                return self.form_invalid(form)
-            validate_product_type_requirements(
-                form, self.object, ColorVariantFormSetEdit(instance=self.object, prefix="colors"),
-                jewellery_form,
-            )
-            jd_save = jewellery_form.save(commit=False)
-            jd_save.product = self.object
-            jd_save.save()
-            if "jewellery_images-TOTAL_FORMS" in self.request.POST:
-                jd_img_formset = JewelleryImageFormSet(
-                    self.request.POST, self.request.FILES, instance=jd_save, prefix="jewellery_images"
-                )
-                if jd_img_formset.is_valid():
-                    jd_img_formset.save()
-                else:
-                    err_parts = list(jd_img_formset.non_form_errors())
-                    for i, f in enumerate(jd_img_formset.forms):
-                        if f.errors:
-                            err_parts.append("Image %s: %s" % (i + 1, f.errors.as_text()))
-                    if err_parts:
-                        messages.warning(
-                            self.request,
-                            "Product saved, but images could not be saved: %s" % " | ".join(err_parts)
-                        )
-            messages.success(self.request, "Product updated successfully!")
-            return redirect(self.success_url)
-
-        # Clothing flow
-        color_valid = color_formset.is_valid()
-        if not color_valid:
-            return self.form_invalid(form)
-        validate_product_type_requirements(form, self.object, color_formset, None)
-        # Handle color variants in a way that respects order/cart history:
-        # - If a color (or its sizes) has existing orders/carts, we *deactivate* it instead of hard-deleting.
-        # - Otherwise, we allow real deletion.
-        colors = color_formset.save(commit=False)
-
-        # STEP 3 — Validate all nested image/size formsets for non-deleted colors
-        nested_valid = True
-        for i, cf in enumerate(color_formset.forms):
-            cleaned = getattr(cf, "cleaned_data", None)
-            if cleaned is None or cleaned.get("DELETE"):
-                continue
-            cv = cf.instance
-            if not cv.pk:
-                # New color being added in update; still validate its nested data.
-                prefix_img = "color-%s-images" % i
-                prefix_sz = "color-%s-sizes" % i
-                image_fs_tmp = ColorVariantImageFormSet(
-                    self.request.POST, self.request.FILES, prefix=prefix_img
-                )
-                size_fs_tmp = SizeVariantFormSet(self.request.POST, prefix=prefix_sz)
-                if not image_fs_tmp.is_valid() or not size_fs_tmp.is_valid():
-                    nested_valid = False
-                continue
-
-            prefix_img = "color-%s-images" % i
-            prefix_sz = "color-%s-sizes" % i
-            image_fs_tmp = ColorVariantImageFormSet(
-                self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
-            )
-            size_fs_tmp = SizeVariantFormSet(
-                self.request.POST, instance=cv, prefix=prefix_sz
-            )
-            if not image_fs_tmp.is_valid() or not size_fs_tmp.is_valid():
-                nested_valid = False
-
-        print("Nested image/size formsets valid (update):", nested_valid)
-        if not nested_valid:
-            return self.form_invalid(form)
-
-        # First handle deletions explicitly to avoid ProtectedError from PROTECT FKs (OrderItem/CartItem).
-        for cv in color_formset.deleted_objects:
-            # Any size under this color that is referenced by orders or carts?
-            has_protected_links = SizeVariant.objects.filter(
-                color_variant=cv
-            ).filter(
-                Q(order_items__isnull=False) | Q(cart_items__isnull=False)
-            ).exists()
-
-            if has_protected_links:
-                # Soft-delete: deactivate color + its sizes, but keep history intact.
-                cv.is_active = False
-                cv.save(update_fields=["is_active"])
-                SizeVariant.objects.filter(color_variant=cv).update(is_active=False)
-                messages.warning(
-                    self.request,
-                    f"Color '{cv.name}' has existing orders or carts and was deactivated instead of deleted.",
-                )
-            else:
-                try:
-                    cv.delete()
-                except ProtectedError:
-                    # Fallback safety: if DB still blocks, deactivate instead.
-                    cv.is_active = False
-                    cv.save(update_fields=["is_active"])
-                    SizeVariant.objects.filter(color_variant=cv).update(is_active=False)
-                    messages.warning(
-                        self.request,
-                        f"Color '{cv.name}' is linked to existing data and was deactivated instead of deleted.",
-                    )
-
-        # Save/update remaining (non-deleted) colors.
-        for cv in colors:
-            cv.save()
-
-        # Only update images and sizes for each non-deleted color variant; never overwrite sibling variants.
-        for i, cf in enumerate(color_formset.forms):
-            cleaned = getattr(cf, "cleaned_data", None)
-            if cleaned is None or cleaned.get("DELETE"):
-                continue
-            cv = cf.instance
-            if not cv.pk:
-                continue
-            prefix_img = "color-%s-images" % i
-            prefix_sz = "color-%s-sizes" % i
-            image_fs = ColorVariantImageFormSet(
-                self.request.POST, self.request.FILES, instance=cv, prefix=prefix_img
-            )
-            size_fs = SizeVariantFormSet(self.request.POST, instance=cv, prefix=prefix_sz)
-            if image_fs.is_valid():
-                image_fs.save()
-            if size_fs.is_valid():
-                # Handle size variants similarly: deactivate instead of hard-delete when referenced.
-                size_variants = size_fs.save(commit=False)
-
-                # Deletions first.
-                for sv in size_fs.deleted_objects:
-                    has_links = (
-                        OrderItem.objects.filter(size_variant=sv).exists()
-                        or CartItem.objects.filter(size_variant=sv).exists()
-                    )
-                    if has_links:
-                        sv.is_active = False
-                        sv.save(update_fields=["is_active"])
-                        messages.warning(
-                            self.request,
-                            f"Size '{sv.size}' for color '{sv.color_variant.name}' has existing orders or carts "
-                            "and was deactivated instead of deleted.",
-                        )
-                    else:
-                        try:
-                            sv.delete()
-                        except ProtectedError:
-                            sv.is_active = False
-                            sv.save(update_fields=["is_active"])
-                            messages.warning(
-                                self.request,
-                                f"Size '{sv.size}' for color '{sv.color_variant.name}' is linked to existing data "
-                                "and was deactivated instead of deleted.",
-                            )
-
-                # Save/update remaining sizes
-                for sv in size_variants:
-                    sv.save()
-        messages.success(self.request, "Product updated successfully!")
-        return redirect(self.success_url)
 
 
 class ProductDeleteView(StaffRequiredMixin, DeleteView):

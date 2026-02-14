@@ -4,6 +4,24 @@
 {% block title %}Products{% endblock %}
 {% block page_title %}Products{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Toggle on listing cards (same as edit page) */
+    .toggle-wrap { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+    .toggle-wrap .toggle-input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+    .toggle-track { position: relative; width: 40px; height: 22px; border-radius: 11px; background: #e2e8f0; border: 1px solid #cbd5e1; flex-shrink: 0; transition: background 0.2s, border-color 0.2s; }
+    .toggle-wrap.checked .toggle-track { background: #3b82f6; border-color: #2563eb; }
+    .toggle-knob { position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s ease; }
+    .toggle-wrap.checked .toggle-knob { transform: translateX(18px); }
+    .toggle-label { font-weight: 500; color: #374151; font-size: 0.8125rem; }
+    .toggle-status { font-size: 0.7rem; color: #6b7280; min-width: 2em; }
+    .toggle-wrap.checked .toggle-status { color: #2563eb; font-weight: 500; }
+    /* Add Variant: clear secondary style (no weird outline) */
+    .btn-add-variant { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-add-variant:hover { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="product-listing-card">
     <div class="product-listing-header">
@@ -102,13 +120,14 @@
                                     <div style="font-size: 0.8rem; color: var(--gray-600);">{{ product.category.name }}</div>
                                 </div>
                             </div>
-                            <div>
-                                {% if product.is_active %}
-                                    <span class="badge badge-success">Live</span>
-                                {% else %}
-                                    <span class="badge badge-secondary">Inactive</span>
-                                {% endif %}
-                                {% if product.is_featured %}<span class="badge badge-warning" style="font-size: 0.7rem;">Featured</span>{% endif %}
+                            <div class="list-card-status-cell">
+                                <label class="toggle-wrap product-active-toggle{% if product.is_active %} checked{% endif %}" data-product-id="{{ product.pk }}" data-url="{% url 'admin_panel:product_toggle_active' product.pk %}" title="Toggle product active">
+                                    <input type="checkbox" class="toggle-input" {% if product.is_active %}checked{% endif %}>
+                                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                                    <span class="toggle-label">Active</span>
+                                    <span class="toggle-status" data-on="On" data-off="Off">{% if product.is_active %}On{% else %}Off{% endif %}</span>
+                                </label>
+                                {% if product.is_featured %}<span class="badge badge-warning" style="font-size: 0.7rem; margin-left: 0.35rem;">Featured</span>{% endif %}
                             </div>
                         </div>
                         <div class="list-card-meta">
@@ -121,7 +140,7 @@
                         </div>
                         <div class="list-card-actions">
                             {% if product.product_type == "clothing" %}
-                            <button type="button" class="btn btn-outline-primary add-variant-btn" data-product-id="{{ product.pk }}" title="Add variant">
+                            <button type="button" class="btn btn-add-variant add-variant-btn" data-product-id="{{ product.pk }}" title="Add variant">
                                 <i class="fas fa-palette"></i> Add Variant
                             </button>
                             {% endif %}
@@ -198,15 +217,15 @@
                             {% endif %}
                         </div>
                         <div class="product-col product-col-status">
-                            {% if product.is_active %}
-                                <span class="product-status product-status-live">Live</span>
-                            {% else %}
-                                <span class="product-status product-status-inactive">Inactive</span>
-                            {% endif %}
+                            <label class="toggle-wrap product-active-toggle{% if product.is_active %} checked{% endif %}" data-product-id="{{ product.pk }}" data-url="{% url 'admin_panel:product_toggle_active' product.pk %}" title="Toggle product active">
+                                <input type="checkbox" class="toggle-input" {% if product.is_active %}checked{% endif %}>
+                                <span class="toggle-track"><span class="toggle-knob"></span></span>
+                                <span class="toggle-status" data-on="On" data-off="Off">{% if product.is_active %}On{% else %}Off{% endif %}</span>
+                            </label>
                         </div>
                         <div class="product-col product-col-actions">
                             {% if product.product_type == "clothing" %}
-                            <button type="button" class="product-action-link add-variant-btn" data-product-id="{{ product.pk }}" title="Add variant">Add Variant</button>
+                            <button type="button" class="product-action-link add-variant-btn desktop-add-variant" data-product-id="{{ product.pk }}" title="Add variant">Add Variant</button>
                             <span class="product-action-divider">|</span>
                             {% endif %}
                             <a href="{% url 'admin_panel:product_edit' product.pk %}" class="product-action-link">Edit</a>
@@ -281,5 +300,48 @@
 <script src="{% static 'js/product_list.js' %}"></script>
 <script src="{% static 'js/admin_product_delete.js' %}"></script>
 <script src="{% static 'js/admin_add_variant.js' %}"></script>
+<script>
+(function() {
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]') && document.querySelector('[name=csrfmiddlewaretoken]').value;
+    function syncToggleWrap(wrap) {
+        var inp = wrap.querySelector('.toggle-input');
+        var status = wrap.querySelector('.toggle-status');
+        if (inp && status) {
+            wrap.classList.toggle('checked', inp.checked);
+            status.textContent = inp.checked ? (status.getAttribute('data-on') || 'On') : (status.getAttribute('data-off') || 'Off');
+        }
+    }
+    document.addEventListener('change', function(e) {
+        if (!e.target.classList.contains('toggle-input')) return;
+        var wrap = e.target.closest('.toggle-wrap');
+        if (!wrap || !wrap.classList.contains('product-active-toggle')) return;
+        syncToggleWrap(wrap);
+        var url = wrap.getAttribute('data-url');
+        if (!url || !csrf) return;
+        var isActive = e.target.checked;
+        var prevChecked = !isActive;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body: JSON.stringify({ is_active: isActive }),
+            credentials: 'same-origin'
+        }).then(function(r) { return r.json(); }).then(function(res) {
+            if (!res.success) {
+                wrap.querySelector('.toggle-input').checked = prevChecked;
+                syncToggleWrap(wrap);
+                if (typeof showAdminToast === 'function') showAdminToast(res.errors && res.errors.__all__ ? res.errors.__all__[0] : 'Could not update.', 'error');
+            } else {
+                if (typeof showAdminToast === 'function') showAdminToast(res.is_active ? 'Product is now live.' : 'Product is now inactive.');
+                window.location.reload();
+            }
+        }).catch(function() {
+            wrap.querySelector('.toggle-input').checked = prevChecked;
+            syncToggleWrap(wrap);
+            if (typeof showAdminToast === 'function') showAdminToast('Network error.', 'error');
+        });
+    });
+    document.querySelectorAll('.product-active-toggle').forEach(syncToggleWrap);
+})();
+</script>
 {% endblock %}
 

@@ -134,6 +134,48 @@
     min-width: 44px;
 }
 
+/* Product listing cards: clearer alignment and spacing */
+@media (max-width: 768px) {
+    .product-listing-body .list-cards {
+        margin: 0;
+        padding: 0.5rem 0;
+    }
+    .product-listing-body .list-card {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 10px;
+    }
+    .product-listing-body .list-card-header {
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .product-listing-body .list-card-header > div:first-child {
+        flex: 1;
+        min-width: 0;
+    }
+    .product-listing-body .list-card-header > div:last-child {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        justify-content: flex-end;
+    }
+    .product-listing-body .list-card-meta {
+        margin-bottom: 0.75rem;
+    }
+    .product-listing-body .list-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: stretch;
+    }
+    .product-listing-body .list-card-actions .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+    }
+}
+
 /* --------------------------------------
    FILTERS - Mobile bottom sheet
    -------------------------------------- */
@@ -372,9 +414,13 @@
    STICKY HEADER / BOTTOM BAR
    -------------------------------------- */
 .topbar {
+    position: -webkit-sticky;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 200;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 @media (max-width: 768px) {
     .content-area {
