@@ -3351,6 +3351,8 @@ input, textarea, select {
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Reserve space for .color-option-name below so it doesn't overlap next row when wrapped */
+    margin-bottom: 28px;
 }
 
 .color-option-inner {
@@ -4792,6 +4794,7 @@ input, textarea, select {
         width: 36px;
         height: 36px;
         border-width: 1px;
+        margin-bottom: 26px;
     }
     
     .color-option-inner {
@@ -5125,6 +5128,7 @@ input, textarea, select {
     .color-option {
         width: 34px;
         height: 34px;
+        margin-bottom: 24px;
     }
     
     .color-option-inner {
