@@ -174,6 +174,15 @@
         max-height: 2000px;
         opacity: 1;
     }
+    /* Prevent clipping of add-size block and Save button on mobile */
+    @media (max-width: 768px) {
+        .variant-card.expanded .variant-card-body {
+            overflow: visible;
+        }
+        .variant-card.expanded {
+            overflow: visible;
+        }
+    }
     .variant-card-body-inner {
         padding: 0 0 1.25rem 0;
         padding-top: 0.5rem;
@@ -429,7 +438,7 @@
 
     /* Mobile: single outer box per section and per variant for clarity */
     @media (max-width: 768px) {
-        .product-edit-wrapper { padding: 0 0 4rem 0; max-width: 100%; }
+        .product-edit-wrapper { padding: 0 0 6rem 0; max-width: 100%; }
         .edit-section {
             padding: 1rem 1rem 1.25rem;
             margin-bottom: 1.25rem;
@@ -478,14 +487,14 @@
         .size-row input[type="number"], .size-row input[type="text"] { width: 100%; min-width: 0; flex: none; padding: 0.5rem; font-size: 16px; }
         .size-row .size-active-wrap { width: 100%; margin-top: 0.25rem; font-size: 0.8rem; }
 
-        .add-size-block { margin-top: 0.6rem; padding-top: 0.6rem; }
+        .add-size-block { margin-top: 0.6rem; padding-top: 0.6rem; margin-bottom: 1.25rem; scroll-margin-bottom: 5.5rem; }
         .add-size-block .add-size-heading { font-size: 0.85rem; margin-bottom: 0.5rem; }
-        .add-size-inline { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+        .add-size-inline { flex-direction: column; align-items: stretch; gap: 0.5rem; position: relative; z-index: 1; }
         .add-size-inline .add-size-field label { font-size: 0.8rem; }
         .add-size-inline select, .add-size-inline input[type="number"], .add-size-inline input[type="text"] {
             width: 100%; min-width: 0; padding: 0.5rem 0.65rem; font-size: 16px;
         }
-        .add-size-inline .add-size-submit-btn { width: 100%; min-height: 44px; }
+        .add-size-inline .add-size-submit-btn { width: 100%; min-height: 44px; scroll-margin-bottom: 5.5rem; flex-shrink: 0; }
 
         .image-list { gap: 0.5rem; }
         .image-thumb { width: 64px; height: 64px; }
@@ -497,7 +506,7 @@
     }
 
     @media (max-width: 480px) {
-        .product-edit-wrapper { padding: 0 0 4rem 0; }
+        .product-edit-wrapper { padding: 0 0 6rem 0; }
         .section-heading { font-size: 0.9rem; }
         .variant-row .save-variant-btn { width: 100%; }
         .size-row { flex-direction: column; align-items: stretch; gap: 0.5rem; }
