@@ -3512,6 +3512,30 @@ input, textarea, select {
     box-shadow: var(--shadow-md);
 }
 
+/* Out-of-stock size: red X between the four edges */
+.size-option {
+    position: relative;
+}
+.size-option.disabled {
+    pointer-events: none;
+}
+.size-option.disabled::before,
+.size-option.disabled::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 140%;
+    background: #dc2626;
+    border-radius: 1px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    pointer-events: none;
+}
+.size-option.disabled::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
 .quantity-controls {
     display: flex;
     align-items: center;
