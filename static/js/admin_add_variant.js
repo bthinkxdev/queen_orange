@@ -172,9 +172,37 @@
     function bindSizes(formEl) {
         var container = formEl.querySelector("#add-variant-sizes-container");
         var addBtn = formEl.querySelector("#add-variant-add-size");
+        var submitBtn = formEl.querySelector("#add-variant-submit");
+        var sizesErrorEl = formEl.querySelector("#add-variant-sizes-error");
+
+        function updateSizesState() {
+            var result = collectSizes(formEl);
+            if (result.error) {
+                if (sizesErrorEl) {
+                    sizesErrorEl.style.display = "block";
+                    sizesErrorEl.textContent = result.error;
+                }
+                if (submitBtn) submitBtn.disabled = true;
+            } else {
+                if (sizesErrorEl) {
+                    sizesErrorEl.style.display = "none";
+                    sizesErrorEl.textContent = "";
+                }
+                // Do not force-enable submit here; let overall validation control it
+            }
+        }
+
         if (addBtn && container) {
             addBtn.addEventListener("click", function() {
                 addSizeRow(container);
+                updateSizesState();
+            });
+        }
+        if (container) {
+            container.addEventListener("change", function(e) {
+                if (e.target.classList.contains("add-variant-size-select") || e.target.classList.contains("add-variant-stock")) {
+                    updateSizesState();
+                }
             });
         }
         formEl.querySelectorAll(".add-variant-remove-size").forEach(function(btn) {
@@ -182,9 +210,11 @@
                 var row = btn.closest(".add-variant-size-row");
                 if (row && container && container.querySelectorAll(".add-variant-size-row").length > 1) {
                     row.remove();
+                    updateSizesState();
                 }
             });
         });
+        updateSizesState();
     }
 
     function collectSizes(formEl) {
@@ -223,7 +253,17 @@
         if (fileCount > 3) errors.push({ field: "images", msg: "Maximum 3 images allowed." });
 
         var sizeResult = collectSizes(formEl);
-        if (sizeResult.error) errors.push({ field: "sizes", msg: sizeResult.error });
+        var sizesErrorEl = formEl.querySelector("#add-variant-sizes-error");
+        if (sizeResult.error) {
+            errors.push({ field: "sizes", msg: sizeResult.error });
+            if (sizesErrorEl) {
+                sizesErrorEl.style.display = "block";
+                sizesErrorEl.textContent = sizeResult.error;
+            }
+        } else if (sizesErrorEl) {
+            sizesErrorEl.style.display = "none";
+            sizesErrorEl.textContent = "";
+        }
 
         return errors;
     }

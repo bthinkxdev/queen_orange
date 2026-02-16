@@ -1160,7 +1160,7 @@
                         fetch(sizeUrl, { method: 'POST', headers: headers(true), body: JSON.stringify(payload), credentials: 'same-origin' })
                             .then(function(r) { return r.json(); })
                             .then(function(res) {
-                                if (res && (res.success !== false)) {
+                                if (res && res.success === true) {
                                     setSizeRowInitial(row, getSizeRowValues(row));
                                     updateSizeRowSaveButton(row);
                                     toast('Stock updated.');

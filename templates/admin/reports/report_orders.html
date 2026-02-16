@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
         exportCsvUrl: '{% url "admin_panel:report_export" "orders" "csv" %}',
         exportXlsxUrl: '{% url "admin_panel:report_export" "orders" "xlsx" %}'
     };
+});
 </script>
 <script src="{% static 'js/admin-reports.js' %}"></script>
 {% endblock %}

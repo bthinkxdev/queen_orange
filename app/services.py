@@ -140,9 +140,9 @@ class CartService:
     def compute_totals(cart):
         try:
             subtotal = sum(item.line_total for item in cart.items.select_related("product"))
-            shipping_threshold = getattr(settings, "FREE_SHIPPING_THRESHOLD", 999)
-            shipping_fee = getattr(settings, "FLAT_SHIPPING_FEE", 50)
-            shipping = 0 if subtotal >= shipping_threshold else shipping_fee
+            # Constant ₹80 delivery charge for all orders (any amount)
+            delivery_charge = getattr(settings, "FLAT_DELIVERY_CHARGE", 80)
+            shipping = delivery_charge
             total = subtotal + shipping
             return CartTotals(subtotal=subtotal, shipping=shipping, total=total)
         except Exception:
