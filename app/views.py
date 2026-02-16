@@ -1588,11 +1588,12 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
             # Store form data in session for later order creation
             self.request.session["pending_checkout_data"] = form.cleaned_data
             
-            # Validate cart and stock before payment
+            # Lightweight cart + stock validation before redirecting to Razorpay.
+            # We intentionally avoid select_for_update here; the authoritative
+            # stock check and locking happen inside OrderService.create_order().
             try:
                 items = (
                     cart.items.select_related("variant", "size_variant", "product")
-                    .select_for_update(of=("self",))
                     .all()
                 )
                 if not items:
@@ -1601,7 +1602,7 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
                     sellable = item.get_sellable()
                     if not sellable:
                         raise CartError("Invalid cart item.")
-                    if item.quantity > sellable.stock_quantity:
+                    if item.quantity > getattr(sellable, "stock_quantity", 0):
                         raise StockError(f"{item.product.name} is out of stock.")
             except (CartError, StockError) as exc:
                 messages.error(self.request, str(exc))
