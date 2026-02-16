@@ -142,6 +142,7 @@
                         <div class="form-section">
                             <h3>Payment Method</h3>
                             <div class="payment-options">
+                                {% comment %} COD option - commented out
                                 <label class="payment-option {% if form.payment.value == 'cod' %}selected{% endif %}">
                                     <input type="radio" name="payment" value="cod" {% if form.payment.value == 'cod' %}checked{% endif %}>
                                     <div class="payment-option-content">
@@ -156,6 +157,7 @@
                                         </div>
                                     </div>
                                 </label>
+                                {% endcomment %}
 
                                 {% comment %} <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
                                     <input type="radio" name="payment" value="whatsapp" {% if form.payment.value == 'whatsapp' %}checked{% endif %}>
