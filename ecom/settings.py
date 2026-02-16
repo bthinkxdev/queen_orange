@@ -164,8 +164,8 @@ SESSION_COOKIE_SECURE = False  # Set True in production with HTTPS
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
-FREE_SHIPPING_THRESHOLD = 0
-FLAT_SHIPPING_FEE = 0
+# Delivery charge: constant ₹80 for all orders (1 rupee to 1 lakh or any amount)
+FLAT_DELIVERY_CHARGE = 80
 MAX_CART_QTY = 10
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
