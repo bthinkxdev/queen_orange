@@ -1593,17 +1593,32 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
             # stock check and locking happen inside OrderService.create_order().
             try:
                 items = (
-                    cart.items.select_related("variant", "size_variant", "product")
+                    cart.items.select_related("variant", "size_variant", "product", "product__jewellery_detail")
                     .all()
                 )
                 if not items:
                     raise CartError("Cart is empty.")
                 for item in items:
                     sellable = item.get_sellable()
-                    if not sellable:
-                        raise CartError("Invalid cart item.")
-                    if item.quantity > getattr(sellable, "stock_quantity", 0):
-                        raise StockError(f"{item.product.name} is out of stock.")
+                    if sellable:
+                        stock = getattr(sellable, "stock_quantity", 0) or 0
+                        product = sellable.product
+                    else:
+                        # Jewellery: product-only cart line
+                        if not item.product_id:
+                            raise CartError("Invalid cart item.")
+                        product = item.product
+                        if getattr(product, "product_type", None) == "jewellery":
+                            jd = getattr(product, "jewellery_detail", None)
+                            stock = (getattr(jd, "stock_quantity", 0) or 0) if jd else 0
+                        else:
+                            # Non-jewellery line without a sellable variant is invalid
+                            raise CartError("Invalid cart item.")
+
+                    if stock <= 0:
+                        raise StockError(f"{product.name} is out of stock.")
+                    if item.quantity > stock:
+                        raise StockError(f"{product.name} is out of stock.")
             except (CartError, StockError) as exc:
                 messages.error(self.request, str(exc))
                 return redirect("store:checkout")
