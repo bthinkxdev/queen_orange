@@ -1,8 +1,23 @@
 """
-STEP 4: When DEBUG_TRACE is True, enable query logging so TRACE QUERIES can be logged.
+Middleware: DebugTrace and guest session handling.
 """
 from django.conf import settings
 from django.db import connection
+
+
+class EnsureGuestSessionMiddleware:
+    """
+    For unauthenticated requests, ensure request.session has a session_key
+    so guest cart and wishlist (session-based) work reliably.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not getattr(request, "user", None) or not request.user.is_authenticated:
+            if not request.session.session_key:
+                request.session.create()
+        return self.get_response(request)
 
 
 class DebugTraceMiddleware:

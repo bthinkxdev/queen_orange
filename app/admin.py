@@ -62,9 +62,31 @@ class CartItemAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("order_number", "user", "status", "total", "created_at")
+    list_display = ("order_number", "display_customer", "display_email", "display_phone", "status", "total", "payment_status", "created_at")
     list_filter = ("status",)
-    search_fields = ("order_number", "user__username")
+    search_fields = ("order_number", "user__email", "user__username", "address__email", "address__phone", "address__full_name")
+    list_select_related = ("address", "user")
+
+    def display_customer(self, obj):
+        if obj.user_id is None:
+            return "Guest Order"
+        return getattr(obj.user, "email", None) or getattr(obj.user, "username", str(obj.user))
+    display_customer.short_description = "Customer"
+
+    def display_email(self, obj):
+        return (obj.address.email or "—") if obj.address_id else "—"
+    display_email.short_description = "Email"
+
+    def display_phone(self, obj):
+        return (obj.address.phone or "—") if obj.address_id else "—"
+    display_phone.short_description = "Phone"
+
+    def payment_status(self, obj):
+        try:
+            return obj.payment.get_status_display() if getattr(obj, "payment", None) else "—"
+        except Exception:
+            return "—"
+    payment_status.short_description = "Payment"
 
 
 @admin.register(OrderItem)
@@ -80,6 +102,7 @@ class AddressAdmin(admin.ModelAdmin):
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ("order", "method", "status", "amount", "processed_at")
+    list_select_related = ("order", "order__address", "order__user")
 
 
 @admin.register(ContactMessage)

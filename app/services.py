@@ -12,6 +12,7 @@ from .models import (
     Address,
     Cart,
     CartItem,
+    ColorVariant,
     JewelleryDetail,
     Order,
     OrderItem,
@@ -19,6 +20,7 @@ from .models import (
     Product,
     ProductVariant,
     SizeVariant,
+    Wishlist,
 )
 
 
@@ -115,7 +117,12 @@ class CartService:
             cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
             return cart
         session_key = cls._ensure_session_key(request)
-        cart, _ = Cart.objects.get_or_create(session_key=session_key, status=Cart.Status.ACTIVE)
+        # Guest: only use ACTIVE cart with this session_key and no user (no duplicate per session)
+        cart = Cart.objects.filter(
+            session_key=session_key, status=Cart.Status.ACTIVE, user__isnull=True
+        ).first()
+        if not cart:
+            cart = Cart.objects.create(session_key=session_key, status=Cart.Status.ACTIVE)
         return cart
 
     @classmethod
@@ -135,6 +142,35 @@ class CartService:
                 cls.add_item(user_cart, item.product, item.quantity)
         session_cart.status = Cart.Status.ABANDONED
         session_cart.save(update_fields=["status"])
+
+    @staticmethod
+    def merge_session_wishlist_to_user(request, user):
+        """Merge session wishlist (color_variant_ids) into user's DB wishlist. Call after login."""
+        if not user or not user.is_authenticated:
+            return
+        variant_ids = list(request.session.get("wishlist") or [])
+        if not variant_ids:
+            return
+        seen = set()
+        for vid in variant_ids[:50]:  # respect max
+            try:
+                vid = int(vid)
+            except (TypeError, ValueError):
+                continue
+            if vid in seen:
+                continue
+            seen.add(vid)
+            cv = (
+                ColorVariant.objects.filter(
+                    pk=vid, is_active=True, product__is_active=True
+                ).first()
+            )
+            if not cv:
+                continue
+            Wishlist.objects.get_or_create(
+                user=user, color_variant=cv, defaults={"product": None}
+            )
+        request.session.pop("wishlist", None)
 
     @staticmethod
     def compute_totals(cart):
@@ -270,6 +306,8 @@ class OrderService:
     @classmethod
     @transaction.atomic
     def create_order(cls, cart, form_data, user=None, clear_cart=True):
+        if cart.status != Cart.Status.ACTIVE:
+            raise CartError("This cart has already been used for an order.")
         items = (
             cart.items.select_related("variant", "size_variant", "product")
             .select_for_update(of=("self",))
@@ -279,6 +317,8 @@ class OrderService:
             raise CartError("Cart is empty.")
 
         for item in items:
+            if not getattr(item.product, "is_active", True):
+                raise CartError(f"{item.product.name} is no longer available.")
             sellable = item.get_sellable()
             if sellable:
                 if item.quantity > sellable.stock_quantity:
@@ -291,11 +331,11 @@ class OrderService:
                 else:
                     raise CartError("Invalid cart item.")
 
-        # Handle address - either use existing or create snapshot
+        # Handle address - either use existing or create snapshot (guest always uses new address)
         selected_address_id = form_data.get('selected_address')
         use_new_address = form_data.get('use_new_address', False)
-        
-        if selected_address_id and not use_new_address:
+
+        if selected_address_id and not use_new_address and user:
             # Create snapshot of existing address
             try:
                 existing_address = Address.objects.get(pk=selected_address_id, user=user, is_snapshot=False)

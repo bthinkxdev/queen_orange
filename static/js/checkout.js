@@ -7,7 +7,20 @@ document.addEventListener('DOMContentLoaded', function() {
     initAddressSelection();
     initPaymentSelection();
     initAddressToggle();
+    initCheckoutRemoveItems();
 });
+
+// Order summary: remove item (x) button – confirm before submit
+function initCheckoutRemoveItems() {
+    document.querySelectorAll('.checkout-remove-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            var msg = form.getAttribute('data-confirm');
+            if (msg && !window.confirm(msg)) {
+                e.preventDefault();
+            }
+        });
+    });
+}
 
 // Address Selection
 function initAddressSelection() {

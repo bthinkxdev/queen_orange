@@ -18,6 +18,7 @@ from django.views.generic import FormView, ListView, TemplateView
 from .auth_service import AuthenticationService, OTPService, RateLimitError
 from .forms import AddressForm, EmailOTPRequestForm, OTPVerificationForm, UserProfileForm
 from .models import Address, Order
+from .services import CartService
 
 
 def get_client_ip(request):
@@ -149,9 +150,10 @@ class OTPLoginView(View):
             request.session.pop('otp_email', None)
             request.session.pop('otp_next', None)
             
-            # Transfer session cart to user
-            self.transfer_cart_to_user(request, user)
-            
+            # Merge session cart into user cart (and abandon session cart)
+            CartService.merge_carts(user, request.session.session_key)
+            CartService.merge_session_wishlist_to_user(request, user)
+
             messages.success(request, 'Login successful!')
             
             # Redirect to next URL or default
@@ -169,21 +171,6 @@ class OTPLoginView(View):
                 'next': next_url,
             }
             return render(request, self.template_name, context)
-    
-    def transfer_cart_to_user(self, request, user):
-        """Transfer session cart to authenticated user"""
-        from .models import Cart
-        
-        session_key = request.session.session_key
-        if session_key:
-            # Find session cart
-            try:
-                cart = Cart.objects.get(session_key=session_key, status=Cart.Status.ACTIVE)
-                # Assign to user
-                cart.user = user
-                cart.save()
-            except Cart.DoesNotExist:
-                pass
     
     def get_success_url(self):
         """Get redirect URL after login"""
@@ -269,9 +256,9 @@ class OTPLoginAjaxView(View):
             user, created = AuthenticationService.get_or_create_user(email)
             login(request, user)
             
-            # Transfer cart
-            self.transfer_cart_to_user(request, user)
-            
+            CartService.merge_carts(user, request.session.session_key)
+            CartService.merge_session_wishlist_to_user(request, user)
+
             request.session.pop('otp_email', None)
             
             next_url = request.POST.get('next', '/')
@@ -287,20 +274,6 @@ class OTPLoginAjaxView(View):
                 'error': message,
             }, status=400)
     
-    def transfer_cart_to_user(self, request, user):
-        """Transfer session cart to authenticated user"""
-        from .models import Cart
-        
-        session_key = request.session.session_key
-        if session_key:
-            try:
-                cart = Cart.objects.get(session_key=session_key, status=Cart.Status.ACTIVE)
-                cart.user = user
-                cart.save()
-            except Cart.DoesNotExist:
-                pass
-
-
 class LogoutView(View):
     """Handle user logout"""
     

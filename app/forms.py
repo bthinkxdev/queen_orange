@@ -69,9 +69,16 @@ class CheckoutForm(forms.Form):
             cleaned_data = super().clean()
             selected_address = cleaned_data.get('selected_address')
             use_new_address = cleaned_data.get('use_new_address')
-            
-            # If using existing address
-            if selected_address and not use_new_address:
+            is_guest = not self.user
+
+            # Guest: must use new address and email is required
+            if is_guest:
+                use_new_address = True
+                cleaned_data['use_new_address'] = True
+                selected_address = None
+
+            # If using existing address (authenticated only)
+            if selected_address and not use_new_address and self.user:
                 try:
                     address = Address.objects.get(pk=selected_address, user=self.user, is_snapshot=False)
                     # Populate form data from selected address
@@ -103,6 +110,8 @@ class CheckoutForm(forms.Form):
                 # Validate new address fields
                 if use_new_address:
                     required_fields = ['full_name', 'phone', 'address_line', 'city', 'state', 'pincode']
+                    if is_guest:
+                        required_fields = ['full_name', 'email', 'phone', 'address_line', 'city', 'state', 'pincode']
                     for field in required_fields:
                         if not cleaned_data.get(field):
                             self.add_error(field, 'This field is required.')
