@@ -198,6 +198,15 @@ class HomeView(TemplateView):
                 Prefetch("variants", queryset=variant_qs)
             )[:8]
         )
+        context["new_arrivals_products"] = (
+            Product.objects.active()
+            .order_by("-created_at")
+            .select_related("category")
+            .prefetch_related(
+                Prefetch("images", queryset=image_qs),
+                Prefetch("variants", queryset=variant_qs)
+            )[:20]
+        )
         context["active_page"] = "home"
         return context
 

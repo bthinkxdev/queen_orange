@@ -1,11 +1,12 @@
 /**
- * Banner Slider – horizontal sliding (no fade)
+ * Banner Slider – horizontal sliding, wrapper height adapts to active slide image
  */
 document.addEventListener('DOMContentLoaded', function () {
+    const wrapper = document.querySelector('.banner-slider-wrapper');
     const slider = document.getElementById('bannerSlider');
     const slides = slider ? slider.querySelectorAll('.banner-slide') : [];
     
-    if (slides.length === 0) return;
+    if (slides.length === 0 || !wrapper) return;
     
     const total = slides.length;
     slider.style.width = (total * 100) + '%';
@@ -16,18 +17,31 @@ document.addEventListener('DOMContentLoaded', function () {
     
     let current = 0;
     
+    function setWrapperHeight() {
+        const img = slides[current];
+        if (!img || !img.naturalWidth) return;
+        const w = wrapper.offsetWidth;
+        const h = (img.naturalHeight / img.naturalWidth) * w;
+        wrapper.style.height = h + 'px';
+    }
+    
     function goTo(index) {
         current = (index + total) % total;
         const offset = (100 / total) * current;
         slider.style.transform = 'translateX(-' + offset + '%)';
+        setWrapperHeight();
     }
     
     function next() {
-        // Always move one slide to the left (next), looping at the end
         goTo(current + 1);
     }
     
-    // Start at the first slide, then advance every 5 seconds
     goTo(0);
+    slides.forEach(function (img) {
+        if (img.complete) setWrapperHeight();
+        else img.addEventListener('load', setWrapperHeight);
+    });
+    window.addEventListener('resize', setWrapperHeight);
+    
     setInterval(next, 5000);
 });

@@ -12,6 +12,8 @@
                 <div class="banner-slider" id="bannerSlider">
                     <img src="{% static 'images/banner1.png' %}" alt="Golden Elegance - Slide 1" class="banner-slide">
                     <img src="{% static 'images/banner2.png' %}" alt="Golden Elegance - Slide 2" class="banner-slide">
+                    <img src="{% static 'images/banner3.jpeg' %}" alt="Golden Elegance - Slide 3" class="banner-slide">
+                    <img src="{% static 'images/banner4.jpeg' %}" alt="Golden Elegance - Slide 4" class="banner-slide">
                 </div>
             </div>
         </div>
@@ -176,6 +178,74 @@
         </div>
     </section>
 
+    <!-- New Arrivals -->
+    <section class="section section-new-arrivals">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">New Arrivals</h2>
+                <p class="section-subtitle">Fresh picks, just for you</p>
+            </div>
+            <div class="featured-products-grid new-arrivals-grid">
+                {% for product in new_arrivals_products %}
+                    <div class="featured-product-card">
+                        {% if product.discount_percent %}
+                            <span class="featured-product-badge">{{ product.discount_percent }}% OFF</span>
+                        {% endif %}
+                        <a href="{% url 'store:product_detail' product.slug %}" class="featured-product-link">
+                            <div class="featured-product-image">
+                                {% with image=product.images.first %}
+                                    {% if image %}
+                                        <img src="{{ image.image.url }}" alt="{{ product.name }}" loading="lazy">
+                                    {% else %}
+                                        <img src="{% static 'images/banner.png' %}" alt="{{ product.name }}" loading="lazy">
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <div class="featured-product-info">
+                                <div class="featured-product-category">{{ product.category.name }}</div>
+                                {% with variant=product.variants.first %}
+                                    {% if variant %}
+                                        <div style="font-size: 0.75em; color: #666;">
+                                            <span style="font-weight: 500;">Default:</span>
+                                            <span>Color: {{ variant.color|default:'N/A' }}, Size: {{ variant.size|default:'N/A' }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <h3 class="featured-product-name">{{ product.name }}</h3>
+                                <div class="featured-product-price">
+                                    <span class="current-price">₹{{ product.price }}</span>
+                                    {% if product.original_price %}
+                                        <span class="original-price">₹{{ product.original_price }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        {% with variant=product.variants.first %}
+                            {% if variant %}
+                                <button class="featured-add-to-cart js-add-to-cart"
+                                        data-product-id="{{ product.id }}"
+                                        data-size="{{ variant.size }}"
+                                        data-color="{{ variant.color }}">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 2L7.17 4M16.84 4L15 2M12 10V14M8 14H16"/>
+                                    </svg>
+                                    Add to Cart
+                                </button>
+                            {% else %}
+                                <span class="featured-add-to-cart" style="opacity: 0.6; cursor: not-allowed;">Out of Stock</span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                {% empty %}
+                    <p>No new arrivals yet.</p>
+                {% endfor %}
+            </div>
+            <div class="section-actions">
+                <a href="{% url 'store:product_list' %}" class="btn btn-secondary">View All</a>
+            </div>
+        </div>
+    </section>
+
     <!-- Bestsellers -->
     <section class="section section-bestsellers">
         <div class="container">
@@ -253,7 +323,7 @@
         </div>
     </section>
 
-    <!-- Customer Stories Section -->
+    {% comment %} VIDEO SECTION - Customer Stories / Golden Elegance Jewellery Showcase
     <section class="section section-stories">
         <div class="container">
             <div class="section-header">
@@ -266,152 +336,35 @@
                         <img src="https://img.youtube.com/vi/bsSgYvrtW8k/hqdefault.jpg" alt="Customer video" loading="lazy">
                         <span class="story-play">▶</span>
                     </a>
-                    {% comment %} <div class="story-content">
-                        <div class="story-user">
-                            <div class="story-avatar">👗</div>
-                            <div class="story-user-info">
-                                <h4>Priya Sharma</h4>
-                                <p>Verified Customer</p>
-                            </div>
-                        </div>
-                    </div> {% endcomment %}
                 </div>
                 <div class="story-card">
                     <a class="story-video" href="https://youtube.com/shorts/6_PccKtpDnE?si=k36weO0bup9v_xWK" target="_blank" rel="noopener noreferrer" aria-label="Watch customer video on YouTube">
                         <img src="https://img.youtube.com/vi/6_PccKtpDnE/hqdefault.jpg" alt="Customer video" loading="lazy">
                         <span class="story-play">▶</span>
                     </a>
-                    {% comment %} <div class="story-content">
-                        <div class="story-user">
-                            <div class="story-avatar">🌸</div>
-                            <div class="story-user-info">
-                                <h4>Ananya Kapoor</h4>
-                                <p>Verified Customer</p>
-                            </div>
-                        </div>
-                    </div> {% endcomment %}
                 </div>
                 <div class="story-card">
                     <a class="story-video" href="https://youtube.com/shorts/FJmdLB999NY?si=1IFxm7kzAhV6yWbN" target="_blank" rel="noopener noreferrer" aria-label="Watch customer video on YouTube">
                         <img src="https://img.youtube.com/vi/FJmdLB999NY/hqdefault.jpg" alt="Customer video" loading="lazy">
                         <span class="story-play">▶</span>
                     </a>
-                    {% comment %} <div class="story-content">
-                        <div class="story-user">
-                            <div class="story-avatar">💕</div>
-                            <div class="story-user-info">
-                                <h4>Meera Patel</h4>
-                                <p>Verified Customer</p>
-                            </div>
-                        </div>
-                    </div> {% endcomment %}
                 </div>
                 <div class="story-card">
                     <a class="story-video" href="https://youtube.com/shorts/FVmuoYSKsug?si=96YqQd9ubsGlVG65" target="_blank" rel="noopener noreferrer" aria-label="Watch customer video on YouTube">
                         <img src="https://img.youtube.com/vi/FVmuoYSKsug/hqdefault.jpg" alt="Customer video" loading="lazy">
                         <span class="story-play">▶</span>
                     </a>
-                    {% comment %} <div class="story-content">
-                        <div class="story-user">
-                            <div class="story-avatar">✨</div>
-                            <div class="story-user-info">
-                                <h4>Sneha Reddy</h4>
-                                <p>Verified Customer</p>
-                            </div>
-                        </div>
-                    </div> {% endcomment %}
                 </div>
                 <div class="story-card">
                     <a class="story-video" href="https://youtube.com/shorts/yby8I90ay64?si=oyVVErsq-YAo1EbR" target="_blank" rel="noopener noreferrer" aria-label="Watch customer video on YouTube">
                         <img src="https://img.youtube.com/vi/yby8I90ay64/hqdefault.jpg" alt="Customer video" loading="lazy">
                         <span class="story-play">▶</span>
                     </a>
-                    {% comment %} <div class="story-content">
-                        <div class="story-user">
-                            <div class="story-avatar">👑</div>
-                            <div class="story-user-info">
-                                <h4>Kavya Singh</h4>
-                                <p>Verified Customer</p>
-                            </div>
-                        </div>
-                    </div> {% endcomment %}
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- Testimonials Section -->
-    <section class="section section-testimonials">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Testimonials That Sparkle Like Our Jewelry</h2>
-            </div>
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                    </div>
-                    <div class="testimonial-author">
-                        <strong>Nithya joseph</strong>
-                        <span class="verified-badge">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                            </svg>
-                            Verified Buyer
-                        </span>
-                    </div>
-                    <p class="testimonial-text">Absolutely loved my bridal jewelry set! Stunning finish, great quality, and helpful team. Highly recommend!</p>
-                </div>
-                
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                    </div>
-                    <div class="testimonial-author">
-                        <strong>Aleena Ann Thomas</strong>
-                        <span class="verified-badge">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                            </svg>
-                            Verified Buyer
-                        </span>
-                    </div>
-                    <p class="testimonial-text">Beautiful, authentic-looking jewelry and great customer service. Golden Elegance is my top choice!</p>
-                </div>
-                
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                        <span class="star">⭐</span>
-                    </div>
-                    <div class="testimonial-author">
-                        <strong>Riya Menon</strong>
-                        <span class="verified-badge">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                            </svg>
-                            Verified Buyer
-                        </span>
-                    </div>
-                    <p class="testimonial-text">Stunning bangles, excellent quality, and fast delivery. Highly recommend!</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    {% endcomment %}
 
     <!-- CTA Section -->
     <section class="section cta-section">

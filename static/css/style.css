@@ -1217,6 +1217,15 @@ input, textarea, select {
     font-weight: 400;
 }
 
+.section-actions {
+    text-align: center;
+    margin-top: var(--space-8);
+}
+
+.section-actions .btn {
+    min-width: 140px;
+}
+
 .section-featured {
     background: var(--cream);
 }
