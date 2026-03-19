@@ -45,8 +45,16 @@
                             </div>
                             <div class="order-items-list">
                                 {% for item in order.items.all %}
-                                    <div class="order-item-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F5F5F5;">
-                                        <span class="order-item-name" style="color: #212121;">{{ item.product_name }} ({{ item.variant_snapshot }}) × {{ item.quantity }}</span>
+                                    <div class="order-item-row" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #F5F5F5;">
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span class="order-item-name" style="color: #212121; font-weight: 500;">
+                                                {{ item.product_name }} ({{ item.variant_snapshot }}) × {{ item.quantity }}
+                                            </span>
+                                            <a href="{% url 'store:product_detail' item.product.slug %}"
+                                               style="font-size: 13px; color: #FF9800; text-decoration: none; margin-top: 2px;">
+                                                View product →
+                                            </a>
+                                        </div>
                                         <span class="order-item-price" style="font-weight: 600; color: #FF9800;">₹{{ item.line_total }}</span>
                                     </div>
                                 {% endfor %}

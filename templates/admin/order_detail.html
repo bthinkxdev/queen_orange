@@ -145,16 +145,27 @@
                         <th>Unit Price</th>
                         <th>Quantity</th>
                         <th>Total</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in order.items.all %}
                         <tr>
-                            <td style="font-weight: 500;">{{ item.product_name }}</td>
+                            <td style="font-weight: 500;">
+                                <a href="{% url 'store:product_detail' item.product.slug %}"
+                                   style="color: var(--primary); text-decoration: none;">
+                                    {{ item.product_name }}
+                                </a>
+                            </td>
                             <td>{{ item.variant_snapshot }}</td>
                             <td>₹{{ item.unit_price }}</td>
                             <td>{{ item.quantity }}</td>
                             <td style="font-weight: 600;">₹{{ item.line_total }}</td>
+                            <td>
+                                <a href="{% url 'store:product_detail' item.product.slug %}" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-external-link-alt"></i> View Product
+                                </a>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

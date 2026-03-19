@@ -512,7 +512,7 @@ class OrderHistoryView(LoginRequiredMixin, ListView):
         return (
             Order.objects.filter(user=self.request.user)
             .select_related("address")
-            .prefetch_related("items")
+            .prefetch_related("items__product")
         )
 
     def get_context_data(self, **kwargs):
