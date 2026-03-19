@@ -432,10 +432,6 @@
                     <td class="total-label">Subtotal:</td>
                     <td class="total-value">₹{{ order.subtotal }}</td>
                 </tr>
-                <tr>
-                    <td class="total-label">Shipping:</td>
-                    <td class="total-value">{% if order.shipping == 0 %}FREE{% else %}₹{{ order.shipping }}{% endif %}</td>
-                </tr>
                 <tr class="total-row">
                     <td class="total-label">TOTAL:</td>
                     <td class="total-value">₹{{ order.total }}</td>

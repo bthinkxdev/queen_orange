@@ -44,10 +44,6 @@
                             <span>Subtotal:</span>
                             <span>₹{{ order.subtotal }}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span>Shipping:</span>
-                            <span>{% if order.shipping == 0 %}FREE{% else %}₹{{ order.shipping }}{% endif %}</span>
-                        </div>
                         <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 700;">
                             <span>Total:</span>
                             <span style="color: var(--primary-color);">₹{{ order.total }}</span>

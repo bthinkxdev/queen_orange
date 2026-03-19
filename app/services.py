@@ -111,10 +111,9 @@ class CartService:
     @staticmethod
     def compute_totals(cart):
         subtotal = sum(item.line_total for item in cart.items.select_related("product"))
-        shipping_threshold = getattr(settings, "FREE_SHIPPING_THRESHOLD", 999)
-        shipping_fee = getattr(settings, "FLAT_SHIPPING_FEE", 50)
-        shipping = 0 if subtotal >= shipping_threshold else shipping_fee
-        total = subtotal + shipping
+        # Free shipping on all orders – shipping charge removed globally
+        shipping = 0
+        total = subtotal
         return CartTotals(subtotal=subtotal, shipping=shipping, total=total)
 
     @staticmethod
