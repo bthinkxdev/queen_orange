@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Prefetch, Q
@@ -5,12 +6,20 @@ from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
+from django.utils import timezone
+
+import json
+import razorpay
+import hmac
+import hashlib
 
 from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
-from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant
+from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment
 from .services import CartError, CartService, OrderService, StockError
 
+import logging
+logger = logging.getLogger(__name__)
 
 class ProductListView(ListView):
     template_name = "category.html"
@@ -468,7 +477,10 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
             messages.error(self.request, str(exc))
             return redirect("store:checkout")
         self.request.session["last_order_number"] = order.order_number
-        if form.cleaned_data.get("payment") == "whatsapp":
+        payment_method = form.cleaned_data.get("payment")
+        if payment_method == "razorpay":
+            return redirect("store:razorpay_payment", order_number=order.order_number)
+        if payment_method == "whatsapp":
             messages.info(self.request, "We will contact you on WhatsApp to confirm your order.")
         return redirect("store:order_success", order_number=order.order_number)
 
@@ -566,3 +578,234 @@ class NewsletterSubscribeView(FormView):
     def form_invalid(self, form):
         messages.error(self.request, "Please enter a valid email.")
         return redirect(self.get_success_url())
+
+def _can_access_order(request, order):
+    """Allow access if order belongs to user or guest session matches."""
+    if order.user is None:
+        return request.session.get("last_order_number") == order.order_number
+    return request.user.is_authenticated and order.user == request.user
+
+
+class RazorpayPaymentView(View):
+    """Handle Razorpay payment initialization."""
+
+    def get(self, request, *args, **kwargs):
+        try:
+            order_number = kwargs.get('order_number')
+            order = Order.objects.select_related('address', 'user').get(order_number=order_number)
+            if not _can_access_order(request, order):
+                return HttpResponseForbidden()
+            context = {'order': order, 'razorpay_key_id': settings.RZP_CLIENT_ID}
+            from django.shortcuts import render
+            return render(request, 'razorpay_payment.html', context)
+        except Order.DoesNotExist:
+            return redirect('store:checkout')
+
+    def post(self, request, *args, **kwargs):
+        try:
+            order_number = request.POST.get('order_number')
+            if not order_number or not str(order_number).strip():
+                return JsonResponse({'status': 'error', 'message': 'Order number required'}, status=400)
+            order_number = str(order_number).strip()
+            order = Order.objects.select_related('address', 'user').get(order_number=order_number)
+            if not _can_access_order(request, order):
+                return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+            payment, created = Payment.objects.get_or_create(
+                order=order,
+                defaults={
+                    'method': Payment.Method.RAZORPAY,
+                    'amount': order.total,
+                    'status': Payment.Status.PENDING
+                }
+            )
+            client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
+            base_url = request.build_absolute_uri('/').rstrip('/')
+
+            razorpay_order = client.order.create({
+                'amount': int(order.total * 100),
+                'currency': 'INR',
+                'payment_capture': 1,
+            })
+
+            payment.razorpay_order_id = razorpay_order['id']
+            payment.save(update_fields=['razorpay_order_id'])
+
+            customer_email = order.address.email or (getattr(request.user, 'email', '') or '')
+
+            return JsonResponse({
+                'status': 'success',
+                'razorpay_order_id': razorpay_order['id'],
+                'razorpay_key_id': settings.RZP_CLIENT_ID,
+                'amount': int(order.total * 100),
+                'order_number': order.order_number,
+                'customer_name': order.address.full_name,
+                'customer_email': customer_email,
+                'customer_phone': order.address.phone,
+                'callback_url': f"{base_url}/payment/razorpay/callback/?order={order.order_number}",  # ← new
+            })
+        except Order.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
+        except Exception as e:
+            logger.error("Payment initialization error: %s", e, exc_info=True)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+class RazorpayPaymentVerifyView(View):
+    """Verify Razorpay payment signature."""
+
+    def post(self, request, *args, **kwargs):
+        try:
+            if not request.body:
+                return JsonResponse({'status': 'error', 'message': 'Request body required'}, status=400)
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+            razorpay_order_id = data.get('razorpay_order_id') or ''
+            razorpay_payment_id = data.get('razorpay_payment_id') or ''
+            razorpay_signature = data.get('razorpay_signature') or ''
+
+            if not razorpay_order_id or not razorpay_payment_id or not razorpay_signature:
+                return JsonResponse({'status': 'error', 'message': 'Missing payment verification data'}, status=400)
+
+            payment = Payment.objects.select_related('order').get(razorpay_order_id=razorpay_order_id)
+
+            signature_data = f"{razorpay_order_id}|{razorpay_payment_id}"
+            signature_check = hmac.new(
+                settings.RZP_CLIENT_SECRET.encode(),
+                signature_data.encode(),
+                hashlib.sha256
+            ).hexdigest()
+
+            if signature_check == razorpay_signature:
+                if payment.status != Payment.Status.PAID:
+                    payment.razorpay_payment_id = razorpay_payment_id
+                    payment.razorpay_signature = razorpay_signature
+                    payment.status = Payment.Status.PAID
+                    payment.processed_at = timezone.now()
+                    payment.save(update_fields=[
+                        'status', 'processed_at', 'razorpay_payment_id', 'razorpay_signature'
+                    ])
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Payment verified successfully',
+                    'order_number': payment.order.order_number
+                })
+
+            payment.status = Payment.Status.FAILED
+            payment.save(update_fields=['status'])
+            return JsonResponse({'status': 'error', 'message': 'Payment verification failed'}, status=400)
+
+        except Payment.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Payment record not found'}, status=404)
+        except Exception as e:
+            logger.error("Payment verification error: %s", e, exc_info=True)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        
+class RazorpayCallbackView(View):
+    """
+    Handles UPI intent return — works for success, failure AND dismiss.
+    Razorpay may send GET or POST depending on the scenario.
+    """
+
+    def get(self, request, *args, **kwargs):
+        return self.handle(request, request.GET)
+
+    def post(self, request, *args, **kwargs):
+        return self.handle(request, request.POST)
+
+    def handle(self, request, data):
+        try:
+            razorpay_payment_id = data.get('razorpay_payment_id', '')
+            razorpay_order_id   = data.get('razorpay_order_id', '')
+            razorpay_signature  = data.get('razorpay_signature', '')
+
+            # Fallback order number from URL param (set by us for dismiss case)
+            fallback_order_number = request.GET.get('order', '')
+
+            # ── No payment ID = dismissed or failed ──
+            if not razorpay_payment_id:
+                error_reason = (
+                    data.get('error[description]')
+                    or data.get('error_description')
+                    or 'Payment cancelled'
+                )
+                logger.warning("UPI callback — no payment: %s", error_reason)
+
+                # Try razorpay_order_id first
+                if razorpay_order_id:
+                    try:
+                        payment = Payment.objects.select_related('order').get(
+                            razorpay_order_id=razorpay_order_id
+                        )
+                        if payment.status == Payment.Status.PENDING:
+                            payment.status = Payment.Status.FAILED
+                            payment.save(update_fields=['status'])
+                        return redirect(
+                            reverse('store:razorpay_payment',
+                                    kwargs={'order_number': payment.order.order_number})
+                        )
+                    except Payment.DoesNotExist:
+                        pass
+
+                # Fallback — use order number from URL param
+                if fallback_order_number:
+                    return redirect(
+                        reverse('store:razorpay_payment',
+                                kwargs={'order_number': fallback_order_number})
+                    )
+
+                return redirect('store:cart')
+
+            # ── Signature verification ──
+            signature_data  = f"{razorpay_order_id}|{razorpay_payment_id}"
+            signature_check = hmac.new(
+                settings.RZP_CLIENT_SECRET.encode(),
+                signature_data.encode(),
+                hashlib.sha256
+            ).hexdigest()
+
+            payment = Payment.objects.select_related('order').get(
+                razorpay_order_id=razorpay_order_id
+            )
+
+            if signature_check == razorpay_signature:
+                if payment.status != Payment.Status.PAID:
+                    payment.razorpay_payment_id = razorpay_payment_id
+                    payment.razorpay_signature  = razorpay_signature
+                    payment.status              = Payment.Status.PAID
+                    payment.processed_at        = timezone.now()
+                    payment.save(update_fields=[
+                        'status', 'processed_at',
+                        'razorpay_payment_id', 'razorpay_signature'
+                    ])
+                    logger.info("UPI callback success: %s", razorpay_payment_id)
+
+                # ── Set session so OrderSuccessView allows access ──
+                request.session['last_order_number'] = payment.order.order_number
+
+                return redirect(
+                    reverse('store:order_success',
+                            kwargs={'order_number': payment.order.order_number})
+                )
+
+            payment.status = Payment.Status.FAILED
+            payment.save(update_fields=['status'])
+            logger.warning("UPI callback — signature mismatch: %s", razorpay_order_id)
+            return redirect(
+                reverse('store:razorpay_payment',
+                        kwargs={'order_number': payment.order.order_number})
+            )
+
+        except Payment.DoesNotExist:
+            logger.error("UPI callback — payment not found")
+            if fallback_order_number:
+                return redirect(
+                    reverse('store:razorpay_payment',
+                            kwargs={'order_number': fallback_order_number})
+                )
+            return redirect('store:cart')
+        except Exception as e:
+            logger.error("UPI callback error: %s", e, exc_info=True)
+            return redirect('store:cart')

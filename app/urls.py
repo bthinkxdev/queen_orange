@@ -1,5 +1,5 @@
 from django.urls import path
-
+from django.views.decorators.csrf import csrf_exempt
 from . import views
 
 app_name = "store"
@@ -16,6 +16,9 @@ urlpatterns = [
     path("checkout/place-order/", views.OrderCreateView.as_view(), name="order_create"),
     path("orders/<slug:order_number>/", views.OrderSuccessView.as_view(), name="order_success"),
     path("orders/", views.OrderHistoryView.as_view(), name="order_history"),
+    path("payment/razorpay/verify/", views.RazorpayPaymentVerifyView.as_view(), name="razorpay_verify"),
+    path("payment/razorpay/callback/", csrf_exempt(views.RazorpayCallbackView.as_view()), name="razorpay_callback"),
+    path("payment/razorpay/<slug:order_number>/", views.RazorpayPaymentView.as_view(), name="razorpay_payment"),
     path("about/", views.StaticPageView.as_view(template_name="about.html", extra_context={"active_page": "about"}), name="about"),
     path("contact/", views.ContactView.as_view(), name="contact"),
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter_subscribe"),

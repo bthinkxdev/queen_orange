@@ -52,6 +52,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'ecom.urls'
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://votively-uxorial-jaydon.ngrok-free.dev",
+]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -128,7 +132,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = False
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
@@ -158,3 +162,7 @@ EMAIL_HOST_USER = 'goldeneleganceindia@gmail.com'
 EMAIL_HOST_PASSWORD = 'rmfxkeyseogkysuy'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_NOTIFICATION_EMAILS = ['goldenelegancekerala@gmail.com']
+
+# Razorpay configuration
+RZP_CLIENT_ID = 'rzp_test_SCsCy383HkUzqx'
+RZP_CLIENT_SECRET = 'lV4IdUmBYEfmOh8B3TPuhSnJ'

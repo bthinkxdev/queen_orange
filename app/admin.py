@@ -91,6 +91,9 @@ class AddressAdmin(admin.ModelAdmin):
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ("order", "method", "status", "amount", "processed_at")
+    list_filter = ("method", "status")
+    search_fields = ("order__order_number", "razorpay_order_id", "razorpay_payment_id")
+    readonly_fields = ("razorpay_order_id", "razorpay_payment_id", "razorpay_signature", "processed_at")
 
 
 @admin.register(ContactMessage)
