@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#vquy*q!&4dze*=i@oui3c687a7j%3unoz_nz*%*k5du_is%3i'
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DJANGO_DEBUG', cast=bool)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -131,7 +132,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = False
 SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "Lax"
 
 FREE_SHIPPING_THRESHOLD = 999
 FLAT_SHIPPING_FEE = 50
@@ -155,11 +156,11 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = 'goldeneleganceindia@gmail.com' 
-EMAIL_HOST_PASSWORD = 'rmfxkeyseogkysuy'  
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_NOTIFICATION_EMAILS = ['goldenelegancekerala@gmail.com']
 
 # Razorpay configuration
-RZP_CLIENT_ID = 'rzp_test_SCsCy383HkUzqx'
-RZP_CLIENT_SECRET = 'lV4IdUmBYEfmOh8B3TPuhSnJ'
+RZP_CLIENT_ID = config('RZP_CLIENT_ID')
+RZP_CLIENT_SECRET = config('RZP_CLIENT_SECRET')
