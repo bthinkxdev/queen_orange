@@ -7,7 +7,7 @@ from .models import Address, ContactMessage, NewsletterSubscription
 
 class CartAddForm(forms.Form):
     product_id = forms.IntegerField(min_value=1)
-    size = forms.CharField(max_length=20)
+    size = forms.CharField(max_length=20, required=False, initial="")
     color = forms.CharField(max_length=30, required=False)
     quantity = forms.IntegerField(min_value=1)
 
