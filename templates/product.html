@@ -54,12 +54,16 @@
                         {% endif %}
                     </div>
 
-                    {% if sizes %}
+                    {% if has_variants %}
                     <form method="post" action="{% url 'store:cart_add' %}">
                         {% csrf_token %}
                         <input type="hidden" name="product_id" value="{{ product.id }}">
                         <input type="hidden" name="color" id="selectedColor" value="{% if colors %}{{ colors.0 }}{% endif %}">
-                        <input type="hidden" name="size" id="selectedSize" value="{% if sizes %}{{ sizes.0 }}{% endif %}">
+                        {% if sizes %}
+                        <input type="hidden" name="size" id="selectedSize" value="{{ sizes.0 }}">
+                        {% else %}
+                        <input type="hidden" name="size" value="">
+                        {% endif %}
 
                         {% if colors %}
                             <div class="color-selector">
@@ -75,6 +79,7 @@
                             </div>
                         {% endif %}
 
+                        {% if sizes %}
                         <div class="size-selector">
                             <label>Select Size</label>
                             <div class="size-options">
@@ -83,6 +88,7 @@
                                 {% endfor %}
                             </div>
                         </div>
+                        {% endif %}
 
                         <div class="quantity-selector">
                             <label>Quantity</label>

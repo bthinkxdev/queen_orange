@@ -214,9 +214,12 @@ function initQuickAddToCart() {
             event.preventDefault();
             event.stopPropagation();
             const productId = button.dataset.productId;
-            const size = button.dataset.size;
+            const size = button.dataset.size || "";
             const color = button.dataset.color || "";
-            if (!productId || !size) {
+            const requiresSize = button.dataset.requiresSize === "true";
+            if (!productId) return;
+            // Only block if this product actually has sizes
+            if (requiresSize && !size) {
                 showNotification("Please select a size on the product page.", "error");
                 return;
             }

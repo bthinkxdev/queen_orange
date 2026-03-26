@@ -240,7 +240,8 @@ class ProductDetailView(DetailView):
         product = context["product"]
         variants = list(product.variants.all())
         context["variants"] = variants
-        context["sizes"] = sorted({variant.size for variant in variants})
+        context["has_variants"] = len(variants) > 0
+        context["sizes"] = sorted({variant.size for variant in variants if variant.size})
         context["colors"] = sorted({variant.color for variant in variants if variant.color})
         context["related_products"] = (
             Product.objects.active()
@@ -301,12 +302,24 @@ class AddToCartView(LoginRequiredForActionMixin, View):
                 if is_ajax:
                     return JsonResponse({"success": False, "error": "Please select a color."}, status=400)
                 return redirect("store:product_detail", slug=product.slug)
-        variant = ProductVariant.objects.filter(
-            product=product,
-            size=data["size"],
-            color=data.get("color", ""),
-            is_active=True,
-        ).first()
+        size_value = data.get("size") or ""
+        color_value = data.get("color") or ""
+
+        if not size_value:
+            variant = ProductVariant.objects.filter(
+                product=product,
+                is_active=True,
+                stock_quantity__gt=0,
+            ).first()
+        else:
+            variant = ProductVariant.objects.filter(
+                product=product,
+                size=size_value,
+                color=color_value,
+                is_active=True,
+                stock_quantity__gt=0,
+            ).first()
+
         if not variant:
             messages.error(request, "Selected variant is unavailable.")
             if is_ajax:

@@ -145,7 +145,7 @@ class ProductVariant(TimeStampedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     sku = models.CharField(max_length=64, unique=True, blank=True, null=True, help_text="Optional unique SKU")
     size_type = models.CharField(max_length=20, choices=SIZE_TYPES, default='none', help_text="Type of size measurement")
-    size = models.CharField(max_length=20, blank=True, help_text="Size value: 2.4, 7, 18 inches, etc.")
+    size = models.CharField(max_length=20, blank=True, default="", help_text="Size value: 2.4, 7, 18 inches, etc.")
     color = models.CharField(max_length=30, blank=True, help_text="Color tone: Gold, Rose Gold, etc.")
     design = models.CharField(max_length=50, blank=True, help_text="Design variant if applicable")
     stock_quantity = models.PositiveIntegerField(default=0)

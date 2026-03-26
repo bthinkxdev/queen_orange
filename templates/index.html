@@ -155,7 +155,8 @@
                                 <button class="featured-add-to-cart js-add-to-cart"
                                         data-product-id="{{ product.id }}"
                                         data-size="{{ variant.size }}"
-                                        data-color="{{ variant.color }}">
+                                        data-color="{{ variant.color }}"
+                                        data-requires-size="{% if variant.size %}true{% else %}false{% endif %}">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 2L7.17 4M16.84 4L15 2M12 10V14M8 14H16"/>
                                     </svg>
@@ -220,7 +221,8 @@
                                 <button class="featured-add-to-cart js-add-to-cart"
                                         data-product-id="{{ product.id }}"
                                         data-size="{{ variant.size }}"
-                                        data-color="{{ variant.color }}">
+                                        data-color="{{ variant.color }}"
+                                        data-requires-size="{% if variant.size %}true{% else %}false{% endif %}">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 2L7.17 4M16.84 4L15 2M12 10V14M8 14H16"/>
                                     </svg>
@@ -304,7 +306,8 @@
                                     <button class="bestseller-add-to-cart js-add-to-cart"
                                             data-product-id="{{ product.id }}"
                                             data-size="{{ variant.size }}"
-                                            data-color="{{ variant.color }}">
+                                            data-color="{{ variant.color }}"
+                                            data-requires-size="{% if variant.size %}true{% else %}false{% endif %}">
                                         Add to Cart
                                     </button>
                                 {% else %}
