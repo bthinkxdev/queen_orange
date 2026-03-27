@@ -623,6 +623,8 @@ class RazorpayPaymentView(View):
             )
             client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
             base_url = request.build_absolute_uri('/').rstrip('/')
+            if not settings.DEBUG:
+                base_url = base_url.replace('http://', 'https://')
 
             razorpay_order = client.order.create({
                 'amount': int(order.total * 100),
