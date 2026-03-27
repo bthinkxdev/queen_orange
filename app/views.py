@@ -340,14 +340,10 @@ class AddToCartView(LoginRequiredForActionMixin, View):
                 action = request.POST.get("action", "add")
                 if action == "buy":
                     payload["redirect"] = reverse("store:checkout")
-                elif action == "whatsapp":
-                    payload["redirect"] = f"{reverse('store:checkout')}?payment=whatsapp"
                 return JsonResponse(payload)
         action = request.POST.get("action", "add")
         if action == "buy":
             return redirect("store:checkout")
-        if action == "whatsapp":
-            return redirect(f"{reverse_lazy('store:checkout')}?payment=whatsapp")
         url = reverse("store:cart") + "?added=1"
         return redirect(url)
 
@@ -412,13 +408,7 @@ class CheckoutView(LoginRequiredForActionMixin, TemplateView):
         default_address = addresses.filter(is_default=True).first()
         
         # Prepare initial form data
-        payment_method = self.request.GET.get("payment")
-        if payment_method not in {"cod", "whatsapp"}:
-            payment_method = None
-        
-        initial = {"payment": payment_method} if payment_method else {}
-        
-        # If default address exists, pre-select it
+        initial = {}
         if default_address:
             initial['selected_address'] = default_address.id
         
