@@ -302,6 +302,7 @@
 <script>
     const orderNumber = "{{ order.order_number }}";
     const csrfToken = "{{ csrf_token }}";
+    const accessToken = "{{ request.GET.access_token|default:''|escapejs }}";
 
     function initializePayment() {
         const btn = document.getElementById('payBtn');
@@ -318,7 +319,7 @@
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': csrfToken
             },
-            body: 'order_number=' + orderNumber
+            body: 'order_number=' + encodeURIComponent(orderNumber) + '&access_token=' + encodeURIComponent(accessToken)
         })
         .then(res => res.json())
         .then(data => {
@@ -384,11 +385,10 @@
         const spinner = document.getElementById('loadingSpinner');
         spinner.style.display = 'block';
 
-        fetch("{% url 'store:razorpay_verify' %}", {
+        fetch("{% url 'store:payment_verify' %}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 razorpay_order_id: razorpayOrderId,
@@ -400,7 +400,7 @@
         .then(data => {
             spinner.style.display = 'none';
             if (data.status === 'success') {
-                window.location.href = "{% url 'store:order_success' order.order_number %}";
+                window.location.href = data.success_url || "{% url 'store:order_success' order.order_number %}";
             } else {
                 showError(data.message || 'Payment verification failed.');
                 document.getElementById('payBtn').disabled = false;

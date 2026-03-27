@@ -1,11 +1,15 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core import signing
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
 from django.views.generic import DetailView, FormView, ListView, TemplateView, View
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
 import json
@@ -479,13 +483,14 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
         except (CartError, StockError) as exc:
             messages.error(self.request, str(exc))
             return redirect("store:checkout")
-        self.request.session["last_order_number"] = order.order_number
         payment_method = form.cleaned_data.get("payment")
         if payment_method == "razorpay":
-            return redirect("store:razorpay_payment", order_number=order.order_number)
+            access_token = _build_order_access_token(order)
+            return redirect(f"{reverse('store:razorpay_payment', kwargs={'order_number': order.order_number})}?access_token={access_token}")
         if payment_method == "whatsapp":
             messages.info(self.request, "We will contact you on WhatsApp to confirm your order.")
-        return redirect("store:order_success", order_number=order.order_number)
+        access_token = _build_order_access_token(order)
+        return redirect(f"{reverse('store:order_success', kwargs={'order_number': order.order_number})}?access_token={access_token}")
 
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors in the form.")
@@ -504,12 +509,8 @@ class OrderSuccessView(DetailView):
     def dispatch(self, request, *args, **kwargs):
         order_number = kwargs.get("order_number")
         order = get_object_or_404(Order, order_number=order_number)
-        if request.user.is_authenticated:
-            if order.user and order.user != request.user:
-                return HttpResponseForbidden()
-        else:
-            if request.session.get("last_order_number") != order_number:
-                return HttpResponseForbidden()
+        if not _can_access_order(request, order):
+            return HttpResponseForbidden()
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -583,10 +584,25 @@ class NewsletterSubscribeView(FormView):
         return redirect(self.get_success_url())
 
 def _can_access_order(request, order):
-    """Allow access if order belongs to user or guest session matches."""
-    if order.user is None:
-        return request.session.get("last_order_number") == order.order_number
-    return request.user.is_authenticated and order.user == request.user
+    """Allow access using auth user or signed order token."""
+    if request.user.is_authenticated and order.user and order.user == request.user:
+        return True
+    token = request.GET.get("access_token") or request.POST.get("access_token")
+    return _validate_order_access_token(order, token)
+
+
+def _build_order_access_token(order):
+    return signing.dumps({"order_number": order.order_number}, salt="order-success-access")
+
+
+def _validate_order_access_token(order, token):
+    if not token:
+        return False
+    try:
+        payload = signing.loads(token, salt="order-success-access", max_age=60 * 60 * 24)
+    except signing.BadSignature:
+        return False
+    return payload.get("order_number") == order.order_number
 
 
 class RazorpayPaymentView(View):
@@ -629,7 +645,11 @@ class RazorpayPaymentView(View):
             razorpay_order = client.order.create({
                 'amount': int(order.total * 100),
                 'currency': 'INR',
-                'payment_capture': 1,
+                'receipt': order.order_number[:40],
+                'notes': {
+                    'internal_order_number': order.order_number,
+                    'internal_order_id': str(order.id),
+                },
             })
 
             payment.razorpay_order_id = razorpay_order['id']
@@ -646,7 +666,7 @@ class RazorpayPaymentView(View):
                 'customer_name': order.address.full_name,
                 'customer_email': customer_email,
                 'customer_phone': order.address.phone,
-                'callback_url': f"{base_url}/payment/razorpay/callback/?order={order.order_number}",  # ← new
+                'callback_url': f"{base_url}{reverse('store:razorpay_callback')}?order={order.order_number}",
             })
         except Order.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
@@ -655,6 +675,7 @@ class RazorpayPaymentView(View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class RazorpayPaymentVerifyView(View):
     """Verify Razorpay payment signature."""
 
@@ -674,36 +695,44 @@ class RazorpayPaymentVerifyView(View):
             if not razorpay_order_id or not razorpay_payment_id or not razorpay_signature:
                 return JsonResponse({'status': 'error', 'message': 'Missing payment verification data'}, status=400)
 
-            payment = Payment.objects.select_related('order').get(razorpay_order_id=razorpay_order_id)
+            with transaction.atomic():
+                payment = Payment.objects.select_related('order').select_for_update().get(razorpay_order_id=razorpay_order_id)
+                client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
+                client.utility.verify_payment_signature({
+                    "razorpay_order_id": razorpay_order_id,
+                    "razorpay_payment_id": razorpay_payment_id,
+                    "razorpay_signature": razorpay_signature,
+                })
 
-            signature_data = f"{razorpay_order_id}|{razorpay_payment_id}"
-            signature_check = hmac.new(
-                settings.RZP_CLIENT_SECRET.encode(),
-                signature_data.encode(),
-                hashlib.sha256
-            ).hexdigest()
-
-            if signature_check == razorpay_signature:
                 if payment.status != Payment.Status.PAID:
                     payment.razorpay_payment_id = razorpay_payment_id
                     payment.razorpay_signature = razorpay_signature
                     payment.status = Payment.Status.PAID
                     payment.processed_at = timezone.now()
+                    payment.order.status = Order.Status.CONFIRMED
                     payment.save(update_fields=[
                         'status', 'processed_at', 'razorpay_payment_id', 'razorpay_signature'
                     ])
+                    payment.order.save(update_fields=['status'])
+
+                success_token = _build_order_access_token(payment.order)
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Payment verified successfully',
-                    'order_number': payment.order.order_number
+                    'order_number': payment.order.order_number,
+                    'success_url': f"{reverse('store:order_success', kwargs={'order_number': payment.order.order_number})}?access_token={success_token}",
                 })
-
-            payment.status = Payment.Status.FAILED
-            payment.save(update_fields=['status'])
-            return JsonResponse({'status': 'error', 'message': 'Payment verification failed'}, status=400)
 
         except Payment.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Payment record not found'}, status=404)
+        except razorpay.errors.SignatureVerificationError:
+            try:
+                payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
+                payment.status = Payment.Status.FAILED
+                payment.save(update_fields=['status'])
+            except Payment.DoesNotExist:
+                pass
+            return JsonResponse({'status': 'error', 'message': 'Payment verification failed'}, status=400)
         except Exception as e:
             logger.error("Payment verification error: %s", e, exc_info=True)
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -721,13 +750,11 @@ class RazorpayCallbackView(View):
         return self.handle(request, request.POST)
 
     def handle(self, request, data):
+        fallback_order_number = request.GET.get('order', '')
         try:
             razorpay_payment_id = data.get('razorpay_payment_id', '')
             razorpay_order_id   = data.get('razorpay_order_id', '')
             razorpay_signature  = data.get('razorpay_signature', '')
-
-            # Fallback order number from URL param (set by us for dismiss case)
-            fallback_order_number = request.GET.get('order', '')
 
             # ── No payment ID = dismissed or failed ──
             if not razorpay_payment_id:
@@ -747,15 +774,21 @@ class RazorpayCallbackView(View):
                         if payment.status == Payment.Status.PENDING:
                             payment.status = Payment.Status.FAILED
                             payment.save(update_fields=['status'])
+                        access_token = _build_order_access_token(payment.order)
                         return redirect(
-                            reverse('store:razorpay_payment',
-                                    kwargs={'order_number': payment.order.order_number})
+                            f"{reverse('store:razorpay_payment', kwargs={'order_number': payment.order.order_number})}?access_token={access_token}"
                         )
                     except Payment.DoesNotExist:
                         pass
 
                 # Fallback — use order number from URL param
                 if fallback_order_number:
+                    order = Order.objects.filter(order_number=fallback_order_number).first()
+                    if order:
+                        access_token = _build_order_access_token(order)
+                        return redirect(
+                            f"{reverse('store:razorpay_payment', kwargs={'order_number': fallback_order_number})}?access_token={access_token}"
+                        )
                     return redirect(
                         reverse('store:razorpay_payment',
                                 kwargs={'order_number': fallback_order_number})
@@ -775,37 +808,42 @@ class RazorpayCallbackView(View):
                 razorpay_order_id=razorpay_order_id
             )
 
-            if signature_check == razorpay_signature:
+            if hmac.compare_digest(signature_check, razorpay_signature):
                 if payment.status != Payment.Status.PAID:
                     payment.razorpay_payment_id = razorpay_payment_id
                     payment.razorpay_signature  = razorpay_signature
                     payment.status              = Payment.Status.PAID
                     payment.processed_at        = timezone.now()
+                    payment.order.status        = Order.Status.CONFIRMED
                     payment.save(update_fields=[
                         'status', 'processed_at',
                         'razorpay_payment_id', 'razorpay_signature'
                     ])
+                    payment.order.save(update_fields=['status'])
                     logger.info("UPI callback success: %s", razorpay_payment_id)
 
-                # ── Set session so OrderSuccessView allows access ──
-                request.session['last_order_number'] = payment.order.order_number
-
+                access_token = _build_order_access_token(payment.order)
                 return redirect(
-                    reverse('store:order_success',
-                            kwargs={'order_number': payment.order.order_number})
+                    f"{reverse('store:order_success', kwargs={'order_number': payment.order.order_number})}?access_token={access_token}"
                 )
 
             payment.status = Payment.Status.FAILED
             payment.save(update_fields=['status'])
             logger.warning("UPI callback — signature mismatch: %s", razorpay_order_id)
+            access_token = _build_order_access_token(payment.order)
             return redirect(
-                reverse('store:razorpay_payment',
-                        kwargs={'order_number': payment.order.order_number})
+                f"{reverse('store:razorpay_payment', kwargs={'order_number': payment.order.order_number})}?access_token={access_token}"
             )
 
         except Payment.DoesNotExist:
             logger.error("UPI callback — payment not found")
             if fallback_order_number:
+                order = Order.objects.filter(order_number=fallback_order_number).first()
+                if order:
+                    access_token = _build_order_access_token(order)
+                    return redirect(
+                        f"{reverse('store:razorpay_payment', kwargs={'order_number': fallback_order_number})}?access_token={access_token}"
+                    )
                 return redirect(
                     reverse('store:razorpay_payment',
                             kwargs={'order_number': fallback_order_number})
@@ -814,3 +852,56 @@ class RazorpayCallbackView(View):
         except Exception as e:
             logger.error("UPI callback error: %s", e, exc_info=True)
             return redirect('store:cart')
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class RazorpayWebhookView(View):
+    """Webhook fallback for payment capture events."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        webhook_secret = getattr(settings, "RZP_WEBHOOK_SECRET", "")
+        if not webhook_secret:
+            return JsonResponse({"status": "ignored", "message": "Webhook secret not configured"}, status=200)
+
+        signature = request.headers.get("X-Razorpay-Signature", "")
+        body = request.body.decode("utf-8")
+
+        try:
+            client = razorpay.Client(auth=(settings.RZP_CLIENT_ID, settings.RZP_CLIENT_SECRET))
+            client.utility.verify_webhook_signature(body, signature, webhook_secret)
+        except Exception:
+            return JsonResponse({"status": "error", "message": "Invalid webhook signature"}, status=400)
+
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            return JsonResponse({"status": "error", "message": "Invalid webhook payload"}, status=400)
+
+        event = payload.get("event")
+        entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        razorpay_order_id = entity.get("order_id")
+        razorpay_payment_id = entity.get("id")
+
+        if not razorpay_order_id:
+            return JsonResponse({"status": "ok"})
+
+        try:
+            with transaction.atomic():
+                payment = Payment.objects.select_related("order").select_for_update().get(razorpay_order_id=razorpay_order_id)
+                if event == "payment.captured":
+                    if payment.status != Payment.Status.PAID:
+                        payment.status = Payment.Status.PAID
+                        payment.processed_at = timezone.now()
+                        payment.razorpay_payment_id = razorpay_payment_id
+                        payment.order.status = Order.Status.CONFIRMED
+                        payment.save(update_fields=["status", "processed_at", "razorpay_payment_id"])
+                        payment.order.save(update_fields=["status"])
+                elif event == "payment.failed" and payment.status == Payment.Status.PENDING:
+                    payment.status = Payment.Status.FAILED
+                    payment.save(update_fields=["status"])
+        except Payment.DoesNotExist:
+            logger.warning("Webhook payment not found for order_id: %s", razorpay_order_id)
+
+        return JsonResponse({"status": "ok"})
