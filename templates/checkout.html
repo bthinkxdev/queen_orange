@@ -155,7 +155,7 @@
                                     </div>
                                 </label> {% endcomment %}
 
-                                <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
+                                {% comment %} <label class="payment-option {% if form.payment.value == 'whatsapp' %}selected{% endif %}">
                                     <input type="radio" name="payment" value="whatsapp" {% if form.payment.value == 'whatsapp' %}checked{% endif %}>
                                     <div class="payment-option-content">
                                         <div class="payment-checkbox">
@@ -168,7 +168,7 @@
                                             <p>Complete order via WhatsApp chat</p>
                                         </div>
                                     </div>
-                                </label>
+                                </label> {% endcomment %}
 
                                 <label class="payment-option {% if form.payment.value == 'razorpay' %}selected{% endif %}">
                                     <input type="radio" name="payment" value="razorpay" {% if form.payment.value == 'razorpay' %}checked{% endif %}>
