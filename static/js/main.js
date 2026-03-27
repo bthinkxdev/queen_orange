@@ -268,7 +268,6 @@ function initCartFormInterceptor() {
         form.addEventListener("submit", async function(event) {
             var submitter = event.submitter;
             var action = (submitter && submitter.name === "action" && submitter.value) ? submitter.value : "add";
-            if (action === "whatsapp") return;
             event.preventDefault();
             try {
                 var formData = new FormData(form);

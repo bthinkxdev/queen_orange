@@ -487,8 +487,6 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
         if payment_method == "razorpay":
             access_token = _build_order_access_token(order)
             return redirect(f"{reverse('store:razorpay_payment', kwargs={'order_number': order.order_number})}?access_token={access_token}")
-        if payment_method == "whatsapp":
-            messages.info(self.request, "We will contact you on WhatsApp to confirm your order.")
         access_token = _build_order_access_token(order)
         return redirect(f"{reverse('store:order_success', kwargs={'order_number': order.order_number})}?access_token={access_token}")
 
