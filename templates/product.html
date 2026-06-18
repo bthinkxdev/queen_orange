@@ -1,7 +1,16 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static seo_tags %}
 {% block title %}{{ product.name }} - Golden Elegance{% endblock %}
 {% block meta_description %}Explore this exquisite {{ product.name }}. Premium gold-plated jewelry with detailed specifications and secure checkout.{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }} - Golden Elegance{% endblock %}
+{% block og_description %}Explore this exquisite {{ product.name }}. Premium gold-plated jewelry — ₹{{ product.price }}. Free shipping across India.{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_image %}{% with img=product.images.first %}{% if img %}{% absolute_uri img.image.url %}{% elif product.image %}{% absolute_uri product.image.url %}{% else %}{% static 'images/banner1.png' as default_og_image %}{% absolute_uri default_og_image %}{% endif %}{% endwith %}{% endblock %}
+{% block og_image_alt %}{{ product.name }} - Golden Elegance{% endblock %}
+{% block twitter_title %}{{ product.name }} - Golden Elegance{% endblock %}
+{% block twitter_description %}Explore this exquisite {{ product.name }}. Premium gold-plated jewelry — ₹{{ product.price }}.{% endblock %}
+{% block twitter_image %}{% with img=product.images.first %}{% if img %}{% absolute_uri img.image.url %}{% elif product.image %}{% absolute_uri product.image.url %}{% else %}{% static 'images/banner1.png' as default_twitter_image %}{% absolute_uri default_twitter_image %}{% endif %}{% endwith %}{% endblock %}
 {% block content %}
     <section class="product-detail">
         <div class="container">
