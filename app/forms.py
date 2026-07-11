@@ -33,7 +33,7 @@ class CheckoutForm(forms.Form):
     
     # Payment
     payment = forms.ChoiceField(
-        choices=[("razorpay", "Online Payment")], #("cod", "Cash on Delivery"), ("whatsapp", "WhatsApp Order"), 
+        choices=[("razorpay", "Online Payment")],
         widget=forms.RadioSelect,
     )
 
@@ -41,6 +41,9 @@ class CheckoutForm(forms.Form):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields["payment"].initial = "razorpay"
+        # Guests must enter a new address
+        if not self.user:
+            self.fields["use_new_address"].initial = True
         for field in self.fields.values():
             if isinstance(field.widget, (forms.RadioSelect, forms.HiddenInput)):
                 continue
@@ -51,12 +54,22 @@ class CheckoutForm(forms.Form):
         cleaned_data = super().clean()
         selected_address = cleaned_data.get('selected_address')
         use_new_address = cleaned_data.get('use_new_address')
+
+        # Guests always use new address and must provide email
+        if not self.user:
+            use_new_address = True
+            cleaned_data['use_new_address'] = True
+            cleaned_data['selected_address'] = None
+            required_fields = ['full_name', 'phone', 'email', 'address_line', 'city', 'state', 'pincode']
+            for field in required_fields:
+                if not cleaned_data.get(field):
+                    self.add_error(field, 'This field is required.')
+            return cleaned_data
         
-        # If using existing address
+        # Logged-in: existing saved address OR new address
         if selected_address and not use_new_address:
             try:
                 address = Address.objects.get(pk=selected_address, user=self.user, is_snapshot=False)
-                # Populate form data from selected address
                 cleaned_data['full_name'] = address.full_name
                 cleaned_data['phone'] = address.phone
                 cleaned_data['email'] = address.email
@@ -67,17 +80,13 @@ class CheckoutForm(forms.Form):
             except Address.DoesNotExist:
                 raise forms.ValidationError("Selected address not found.")
         else:
-            # If not using existing address and no saved addresses, require new address
             if not use_new_address and not selected_address:
-                # Check if user has any saved addresses
-                if self.user and Address.objects.filter(user=self.user, is_snapshot=False).exists():
+                if Address.objects.filter(user=self.user, is_snapshot=False).exists():
                     raise forms.ValidationError("Please select an address or add a new one.")
                 else:
-                    # No saved addresses, require new address
                     use_new_address = True
                     cleaned_data['use_new_address'] = True
             
-            # Validate new address fields
             if use_new_address:
                 required_fields = ['full_name', 'phone', 'address_line', 'city', 'state', 'pincode']
                 for field in required_fields:

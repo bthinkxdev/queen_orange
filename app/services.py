@@ -86,27 +86,58 @@ class CartService:
 
     @classmethod
     def get_or_create_cart(cls, request):
-        user = request.user if request.user.is_authenticated else None
+        user = request.user if getattr(request.user, "is_authenticated", False) else None
         if user:
-            cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
-            return cart
+            cart = Cart.objects.filter(user=user, status=Cart.Status.ACTIVE).order_by("-updated_at").first()
+            if cart:
+                return cart
+            return Cart.objects.create(user=user, status=Cart.Status.ACTIVE)
+
         session_key = cls._ensure_session_key(request)
-        cart, _ = Cart.objects.get_or_create(session_key=session_key, status=Cart.Status.ACTIVE)
-        return cart
+        cart = (
+            Cart.objects.filter(session_key=session_key, status=Cart.Status.ACTIVE, user__isnull=True)
+            .order_by("-updated_at")
+            .first()
+        )
+        if cart:
+            return cart
+        return Cart.objects.create(session_key=session_key, status=Cart.Status.ACTIVE, user=None)
 
     @classmethod
+    @transaction.atomic
     def merge_carts(cls, user, session_key):
+        """Merge guest session cart into user cart by combining quantities (no overwrite)."""
         if not user or not session_key:
             return
-        try:
-            session_cart = Cart.objects.get(session_key=session_key, status=Cart.Status.ACTIVE)
-        except Cart.DoesNotExist:
+
+        session_cart = (
+            Cart.objects.select_for_update()
+            .filter(session_key=session_key, status=Cart.Status.ACTIVE, user__isnull=True)
+            .first()
+        )
+        if not session_cart:
             return
-        user_cart, _ = Cart.objects.get_or_create(user=user, status=Cart.Status.ACTIVE)
-        for item in session_cart.items.all():
-            cls.add_item(user_cart, item.variant, item.quantity)
+
+        user_cart, _ = Cart.objects.select_for_update().get_or_create(
+            user=user,
+            status=Cart.Status.ACTIVE,
+        )
+
+        # Same cart edge case: already attached somehow
+        if session_cart.pk == user_cart.pk:
+            return
+
+        for item in list(session_cart.items.select_related("variant", "product").all()):
+            try:
+                cls.add_item(user_cart, item.variant, item.quantity)
+            except StockError:
+                # Keep merge best-effort: skip out-of-stock guest lines
+                continue
+
+        session_cart.items.all().delete()
         session_cart.status = Cart.Status.ABANDONED
-        session_cart.save(update_fields=["status"])
+        session_cart.session_key = ""
+        session_cart.save(update_fields=["status", "session_key", "updated_at"])
 
     @staticmethod
     def compute_totals(cart):
@@ -178,12 +209,15 @@ class OrderService:
             if item.quantity > item.variant.stock_quantity:
                 raise StockError(f"{item.product.name} is out of stock.")
 
-        # Handle address - either use existing or create snapshot
         selected_address_id = form_data.get('selected_address')
         use_new_address = form_data.get('use_new_address', False)
-        
-        if selected_address_id and not use_new_address:
-            # Create snapshot of existing address
+
+        # Guests never use saved addresses
+        if not user:
+            use_new_address = True
+            selected_address_id = None
+
+        if selected_address_id and not use_new_address and user:
             try:
                 existing_address = Address.objects.get(pk=selected_address_id, user=user, is_snapshot=False)
                 address = Address.objects.create(
@@ -200,9 +234,8 @@ class OrderService:
             except Address.DoesNotExist:
                 raise CartError("Selected address not found.")
         else:
-            # Create new snapshot address
             address = Address.objects.create(
-                user=cart.user if cart.user else None,
+                user=user,
                 full_name=form_data["full_name"],
                 phone=form_data["phone"],
                 email=form_data.get("email", ""),
@@ -216,7 +249,7 @@ class OrderService:
         totals = CartService.compute_totals(cart)
         order_number = cls._generate_order_number()
         order = Order.objects.create(
-            user=cart.user if cart.user else None,
+            user=user,
             order_number=order_number,
             subtotal=totals.subtotal,
             shipping=totals.shipping,
@@ -248,7 +281,6 @@ class OrderService:
         cart.save(update_fields=["status"])
         cart.items.all().delete()
 
-        # Send order notification email to admin/owner asynchronously
         send_order_notification_email_async(order)
 
         return order

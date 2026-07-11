@@ -1,6 +1,6 @@
 /**
- * Login modal – shown when guest tries add-to-cart, cart, or account.
- * Uses OTP login via AJAX; on success redirects to intended page.
+ * Login modal – shown when guest tries account pages.
+ * Cart/checkout are open to guests. OTP login via AJAX; on success redirects.
  */
 (function() {
     function getCookie(name) {
@@ -200,16 +200,9 @@
         });
     }
 
-    function interceptCartAndAccount() {
+    function interceptAccountLinks() {
         var loggedIn = window.__USER_LOGGED_IN__ === true;
         if (loggedIn) return;
-        var cartBtn = document.querySelector('a.cart-btn[href*="/cart/"]');
-        if (cartBtn) {
-            cartBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                openLoginModal('/cart/');
-            });
-        }
         var accountLinks = document.querySelectorAll('a[href*="/accounts/account/"]');
         accountLinks.forEach(function(a) {
             a.addEventListener('click', function(e) {
@@ -223,7 +216,7 @@
         loginAjaxUrl = window.__LOGIN_AJAX_URL__ || '';
         if (!loginAjaxUrl) return;
         initModal();
-        interceptCartAndAccount();
+        interceptAccountLinks();
         window.openLoginModal = openLoginModal;
         window.closeLoginModal = closeLoginModal;
     }

@@ -141,17 +141,21 @@ class OTPLoginView(View):
         if success:
             # Get or create user
             user, created = AuthenticationService.get_or_create_user(email)
-            
+
+            # Capture guest session cart key BEFORE login (session may rotate)
+            session_key = request.session.session_key
+
             # Log user in
             login(request, user)
-            
+
             # Clear OTP session data
             request.session.pop('otp_email', None)
             request.session.pop('otp_next', None)
-            
-            # Transfer session cart to user
-            self.transfer_cart_to_user(request, user)
-            
+
+            # Merge guest cart into user cart (qty combine, no overwrite)
+            from .services import CartService
+            CartService.merge_carts(user, session_key)
+
             messages.success(request, 'Login successful!')
             
             # Redirect to next URL or default
@@ -169,21 +173,6 @@ class OTPLoginView(View):
                 'next': next_url,
             }
             return render(request, self.template_name, context)
-    
-    def transfer_cart_to_user(self, request, user):
-        """Transfer session cart to authenticated user"""
-        from .models import Cart
-        
-        session_key = request.session.session_key
-        if session_key:
-            # Find session cart
-            try:
-                cart = Cart.objects.get(session_key=session_key, status=Cart.Status.ACTIVE)
-                # Assign to user
-                cart.user = user
-                cart.save()
-            except Cart.DoesNotExist:
-                pass
     
     def get_success_url(self):
         """Get redirect URL after login"""
@@ -267,11 +256,13 @@ class OTPLoginAjaxView(View):
         
         if success:
             user, created = AuthenticationService.get_or_create_user(email)
+
+            session_key = request.session.session_key
             login(request, user)
-            
-            # Transfer cart
-            self.transfer_cart_to_user(request, user)
-            
+
+            from .services import CartService
+            CartService.merge_carts(user, session_key)
+
             request.session.pop('otp_email', None)
             
             next_url = request.POST.get('next', '/')
@@ -286,19 +277,6 @@ class OTPLoginAjaxView(View):
                 'success': False,
                 'error': message,
             }, status=400)
-    
-    def transfer_cart_to_user(self, request, user):
-        """Transfer session cart to authenticated user"""
-        from .models import Cart
-        
-        session_key = request.session.session_key
-        if session_key:
-            try:
-                cart = Cart.objects.get(session_key=session_key, status=Cart.Status.ACTIVE)
-                cart.user = user
-                cart.save()
-            except Cart.DoesNotExist:
-                pass
 
 
 class LogoutView(View):

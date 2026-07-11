@@ -17,7 +17,6 @@ import razorpay
 import hmac
 import hashlib
 
-from .auth_decorators import LoginRequiredForActionMixin
 from .forms import CartAddForm, CartUpdateForm, CheckoutForm, ContactForm, NewsletterForm
 from .models import CartItem, Category, Order, Product, ProductImage, ProductVariant, Payment
 from .services import CartError, CartService, OrderService, StockError
@@ -258,7 +257,7 @@ class ProductDetailView(DetailView):
         return context
 
 
-class CartView(LoginRequiredForActionMixin, TemplateView):
+class CartView(TemplateView):
     template_name = "cart.html"
 
     def get_context_data(self, **kwargs):
@@ -278,7 +277,7 @@ class CartView(LoginRequiredForActionMixin, TemplateView):
         return context
 
 
-class AddToCartView(LoginRequiredForActionMixin, View):
+class AddToCartView(View):
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
@@ -352,7 +351,7 @@ class AddToCartView(LoginRequiredForActionMixin, View):
         return redirect(url)
 
 
-class UpdateCartItemView(LoginRequiredForActionMixin, View):
+class UpdateCartItemView(View):
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
@@ -369,7 +368,7 @@ class UpdateCartItemView(LoginRequiredForActionMixin, View):
         return redirect("store:cart")
 
 
-class RemoveCartItemView(LoginRequiredForActionMixin, View):
+class RemoveCartItemView(View):
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
@@ -380,16 +379,10 @@ class RemoveCartItemView(LoginRequiredForActionMixin, View):
         return redirect("store:cart")
 
 
-class CheckoutView(LoginRequiredForActionMixin, TemplateView):
+class CheckoutView(TemplateView):
     template_name = "checkout.html"
 
     def dispatch(self, request, *args, **kwargs):
-        # Check authentication first
-        if not request.user.is_authenticated:
-            next_url = request.get_full_path()
-            login_url = f"{reverse('auth:login')}?next={next_url}"
-            return redirect(login_url)
-        
         cart = CartService.get_or_create_cart(request)
         if not cart.items.exists():
             messages.info(request, "Your cart is empty.")
@@ -400,28 +393,27 @@ class CheckoutView(LoginRequiredForActionMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         cart = CartService.get_or_create_cart(self.request)
         totals = CartService.compute_totals(cart)
-        
-        # Get user's saved addresses
+        user = self.request.user if self.request.user.is_authenticated else None
+
         from .models import Address
-        addresses = Address.objects.filter(
-            user=self.request.user,
-            is_snapshot=False
-        ).order_by('-is_default', '-created_at')
-        
-        # Get default address
-        default_address = addresses.filter(is_default=True).first()
-        
-        # Prepare initial form data
+        addresses = Address.objects.none()
+        default_address = None
         initial = {}
-        if default_address:
-            initial['selected_address'] = default_address.id
-        
+        if user:
+            addresses = Address.objects.filter(
+                user=user,
+                is_snapshot=False
+            ).order_by('-is_default', '-created_at')
+            default_address = addresses.filter(is_default=True).first()
+            if default_address:
+                initial['selected_address'] = default_address.id
+
         context.update(
             {
                 "cart": cart,
                 "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
                 "totals": totals,
-                "form": CheckoutForm(initial=initial, user=self.request.user),
+                "form": CheckoutForm(initial=initial, user=user),
                 "addresses": addresses,
                 "default_address": default_address,
                 "active_page": "cart",
@@ -430,17 +422,11 @@ class CheckoutView(LoginRequiredForActionMixin, TemplateView):
         return context
 
 
-class OrderCreateView(LoginRequiredForActionMixin, FormView):
+class OrderCreateView(FormView):
     form_class = CheckoutForm
     template_name = "checkout.html"
 
     def dispatch(self, request, *args, **kwargs):
-        # Check authentication first
-        if not request.user.is_authenticated:
-            next_url = reverse('store:checkout')
-            login_url = f"{reverse('auth:login')}?next={next_url}"
-            return redirect(login_url)
-        
         cart = CartService.get_or_create_cart(request)
         if not cart.items.exists():
             messages.info(request, "Your cart is empty.")
@@ -449,23 +435,25 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
+        kwargs['user'] = self.request.user if self.request.user.is_authenticated else None
         return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cart = CartService.get_or_create_cart(self.request)
         totals = CartService.compute_totals(cart)
-        
-        # Get user's saved addresses
+        user = self.request.user if self.request.user.is_authenticated else None
+
         from .models import Address
-        addresses = Address.objects.filter(
-            user=self.request.user,
-            is_snapshot=False
-        ).order_by('-is_default', '-created_at')
-        
-        default_address = addresses.filter(is_default=True).first()
-        
+        addresses = Address.objects.none()
+        default_address = None
+        if user:
+            addresses = Address.objects.filter(
+                user=user,
+                is_snapshot=False
+            ).order_by('-is_default', '-created_at')
+            default_address = addresses.filter(is_default=True).first()
+
         context.update({
             "cart": cart,
             "items": cart.items.select_related("product", "variant").prefetch_related("product__images"),
@@ -478,8 +466,9 @@ class OrderCreateView(LoginRequiredForActionMixin, FormView):
 
     def form_valid(self, form):
         cart = CartService.get_or_create_cart(self.request)
+        user = self.request.user if self.request.user.is_authenticated else None
         try:
-            order = OrderService.create_order(cart, form.cleaned_data, self.request.user)
+            order = OrderService.create_order(cart, form.cleaned_data, user)
         except (CartError, StockError) as exc:
             messages.error(self.request, str(exc))
             return redirect("store:checkout")
